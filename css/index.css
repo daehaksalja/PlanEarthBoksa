@@ -1,57 +1,49 @@
-/* ===== 기본 설정 ===== */
+
 body {
   margin: 0;
-  padding: 0;
-  background: #ffffff;
-   font-family: 'Nanum Gothic', sans-serif;
-  overflow: hidden;
+  font-family: 'Nanum Gothic', sans-serif;
 }
-
-.main-logo {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: clamp(1rem, 6vw, 2.5rem);
-
-  white-space: nowrap;                /* 줄바꿈 금지 */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: fit-content;
-  max-width: 100vw;
-  padding: 0 1rem;
+#mainLogo {
+  font-family: 'Nanum Gothic', sans-serif;
   font-weight: bold;
+  font-size:16.5vh; /* 반응형 폰트 */
   text-align: center;
-  box-sizing: border-box;
-  z-index: 100;
-  animation: fadeIn 1s ease-out forwards, moveUp 1s ease-in-out 2s forwards;
+  line-height: 1.1;
 }
+@media (min-aspect-ratio: 1/1) {
+  #mainLogo {
+    font-size: 8.25vw;
+    white-space: nowrap;
+  }
 
-@keyframes fadeIn {
-  to {
-    opacity: 1;
+  #mainLogo br {
+    display: none;
   }
 }
 
-@keyframes moveUp {
-  to {
-    top: 4vh;
-      font-size: clamp(1rem, 4vw, 1.8rem); /* 작아지게 조정 */
-    transform: translate(-50%, 0); /* 정중앙 고정 유지 */
-  }
+.main-logo.one-line #mainLogo br {
+  display: none; /* 한줄모드: <br> 숨김 */
+}
+
+.main-logo.one-line #mainLogo {
+  white-space: nowrap;
+}
+
+.main-logo.two-line #mainLogo {
+  white-space: normal;
 }
 
 
-/* ===== 메인 내용 ===== */
-main {
+#mainLogo {
   opacity: 0;
-  animation: showMain 1s ease-in-out 3.2s forwards;
-  padding-top: 100px;
-  text-align: center;
+  transform: translateY(-10px);
+  animation: logoFadeIn 0.8s ease-out forwards;
+  animation-delay: 0.2s;
 }
 
-@keyframes showMain {
+@keyframes logoFadeIn {
   to {
     opacity: 1;
+    transform: translateY(0);
   }
 }
