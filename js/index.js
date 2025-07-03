@@ -12,5 +12,4 @@ function updateLogoMode() {
   }
 }
 
-window.addEventListener('load', updateLogoMode);
-window.addEventListener('resize', updateLogoMode);
+

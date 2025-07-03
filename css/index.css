@@ -1,49 +1,87 @@
-
-body {
+/* 전체 초기 세팅 */
+html, body {
   margin: 0;
+  padding: 0;
+  height: 100vh;
   font-family: 'Nanum Gothic', sans-serif;
+  overflow: hidden;
 }
+
 #mainLogo {
-  font-family: 'Nanum Gothic', sans-serif;
   font-weight: bold;
-  font-size:16.5vw; /* 반응형 폰트 */
+  font-size: 16.5vw;
   text-align: center;
   line-height: 1.1;
+  opacity: 0;
+  transform: translateY(-10px);
+  animation: logoFadeIn 0.8s ease-out forwards;
+  animation-delay: 0.2s;
+  white-space: normal !important;
 }
+
+#mainLogo br {
+  display: inline !important;
+}
+
+/* 로고 애니메이션 */
+@keyframes logoFadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+#mainLogo {
+  white-space: normal !important; /* 강제 줄바꿈 허용 */
+}
+
+#mainLogo br {
+  display: inline !important; /* 강제 줄바꿈 유지 */
+}
+
+/* 전체 레이아웃 감싸는 wrapper */
+#layoutWrapper {
+  display: flex;
+  flex-direction: column; /* 세로모드 기준 */
+  width: 100%;
+  height: 100%;
+}
+
+/* 기본적으로는 한쪽만 보이게 */
+#leftPane, #rightPane {
+  width: 100%;
+}
+
+/* 👉 가로모드일 때 레이아웃 전환 */
 @media (min-aspect-ratio: 1/1) {
+  @media (min-aspect-ratio: 1/1) {
+  #layoutWrapper {
+    flex-direction: row;
+  }
+
+  #leftPane, #rightPane {
+    width: 50%;
+    height: 100%;
+  }
+
+  .main-logo {
+    font-size: 8vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
   #mainLogo {
-    font-size: 8.25vw;
+    font-size: inherit;
     white-space: nowrap;
   }
 
   #mainLogo br {
     display: none;
   }
-}
 
-.main-logo.one-line #mainLogo br {
-  display: none; /* 한줄모드: <br> 숨김 */
-}
-
-.main-logo.one-line #mainLogo {
-  white-space: nowrap;
-}
-
-.main-logo.two-line #mainLogo {
-  white-space: normal;
-}
-
-
-#mainLogo {
-  opacity: 0;
-  transform: translateY(-10px);
-  animation: logoFadeIn 0.8s ease-out forwards;
-  animation-delay: 0.2s;
-}
-
-@keyframes logoFadeIn {
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  #rightPane {
+    background-color: #f2f2f2;
   }
+}
+
 }
