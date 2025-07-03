@@ -85,3 +85,18 @@ html, body {
 }
 
 }
+
+
+
+@media (prefers-color-scheme: dark) {
+  html, body {
+    background-color: white !important;
+    color: black !important;
+  }
+
+  #mainLogo {
+    color: black !important;
+  }
+
+  /* 필요한 다른 요소들도 추가 가능 */
+}
