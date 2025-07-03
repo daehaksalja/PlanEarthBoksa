@@ -6,7 +6,7 @@ body {
 #mainLogo {
   font-family: 'Nanum Gothic', sans-serif;
   font-weight: bold;
-  font-size:16.5vh; /* 반응형 폰트 */
+  font-size:16.5vw; /* 반응형 폰트 */
   text-align: center;
   line-height: 1.1;
 }
