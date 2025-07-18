@@ -1,92 +1,86 @@
-/* 초기 세팅 */
-html, body {
+body {
   margin: 0;
   padding: 0;
-  height: 100vh;
-  font-family: 'Nanum Gothic', sans-serif;
-  overflow: hidden;
-  background-color: white;
-  color: black;
+  font-family: 'Nanum Gothic','Malgun Gothic','Dotum','AppleGothic','gulim',sans-serif;
+  font-size: 13px;
+  font-weight: normal;
+  color: #6d6e71;
+  background-color: #fff;
+  line-height: 1.48;
+  -webkit-text-size-adjust: none;
 }
 
-/* 로고 */
-#mainLogo {
-  font-weight: bold;
-  font-size: 16.5vw; /* 세로모드 기준 */
-  text-align: center;
-  line-height: 1.1;
+.container {
+  width: 80%;
+  max-width: 547px;
+  margin: 0 auto;
+  padding: 0;
   opacity: 0;
-  transform: translateY(-10px);
-  animation: logoFadeIn 0.8s ease-out forwards;
-  animation-delay: 0.2s;
-  white-space: normal !important;
-  color: black;
+  transform: translateY(15px);
+  animation: fadeInAll 1s ease-out forwards;
 }
 
-#mainLogo br {
-  display: inline !important;
-}
-
-/* 애니메이션 */
-@keyframes logoFadeIn {
+@keyframes fadeInAll {
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-/* 전체 레이아웃 */
-#layoutWrapper {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
+h1 {
+  text-align: center;
+  font-size: 28px;
+  letter-spacing: 0.1em;
+  color: #222;
+  margin: 46px 0 22px 0;
 }
 
-#leftPane, #rightPane {
-  width: 100%;
+nav {
+  text-align: center;
+  margin-top: 10px;
+  margin-bottom: 30px;
 }
 
-/* 가로모드 대응 */
-@media (min-aspect-ratio: 1/1) {
-  #layoutWrapper {
-    flex-direction: row;
-  }
-
-  #leftPane, #rightPane {
-    width: 50%;
-    height: 100%;
-  }
-
-  .main-logo {
-    font-size: 8vw;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  #mainLogo {
-    font-size: inherit;
-    white-space: normal !important;  /* ← 항상 줄바꿈 허용 */
-  }
-
-  #mainLogo br {
-    display: inline !important;
-  }
-
-  #rightPane {
-    background-color: #f2f2f2;
-  }
+nav a {
+  margin: 0 15px;
+  font-size: 13px;
+  text-decoration: none;
+  color: #666;
 }
 
-/* 다크모드 강제 무시 */
-@media (prefers-color-scheme: dark) {
-  html, body {
-    background-color: white !important;
-    color: black !important;
-  }
+nav a.on,
+nav a:hover {
+  font-weight: bold;
+  color: #111;
+}
 
-  #mainLogo {
-    color: black !important;
-  }
+section {
+  margin-bottom: 40px;
+}
+
+p {
+  margin: 0 0 10px 0;
+}
+
+.contact {
+  margin-top: 45px;
+  font-size: 13px;
+  color: #666;
+}
+
+.email a {
+  color: #0073e6;
+  text-decoration: none;
+}
+
+.email a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+  .container { width: 96%; }
+  h1 { font-size: 22px; margin: 26px 0 18px 0; }
+  nav { margin-bottom: 16px; }
+  section { margin-bottom: 28px; }
+  .contact { margin-top: 28px; }
 }

@@ -1,0 +1,98 @@
+ body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Nanum Gothic','Malgun Gothic','Dotum','AppleGothic','gulim',sans-serif;
+      font-size: 13px;
+      font-weight: normal;
+      color: #6d6e71;
+      background-color: #fff;
+      line-height: 1.48;
+      -webkit-text-size-adjust: none;
+    }
+    .container {
+      width: 80%;
+      max-width: 547px;
+      margin: 0 auto;
+      padding: 0;
+      opacity: 0;
+      transform: translateY(15px);
+      animation: fadeInAll 1s ease-out forwards;
+    }
+    @keyframes fadeInAll {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    h1 {
+      text-align: center;
+      font-size: 28px;
+      letter-spacing: 0.1em;
+      color: #222;
+      margin: 46px 0 22px 0;
+    }
+    nav {
+      text-align: center;
+      margin-top: 10px;
+      margin-bottom: 30px;
+    }
+    nav a {
+      margin: 0 15px;
+      font-size: 13px;
+      text-decoration: none;
+      color: #666;
+    }
+    nav a.on,
+    nav a:hover {
+      font-weight: bold;
+      color: #111;
+    }
+    section {
+      margin-bottom: 40px;
+    }
+    .workshop-archive {
+      margin-bottom: 48px;
+    }
+    .workshop-item {
+      margin-bottom: 28px;
+    }
+    .workshop-title {
+      font-weight: bold;
+      color: #222;
+      font-size: 14.1px;
+      margin-bottom: 4px;
+      line-height: 1.42;
+    }
+    .workshop-desc {
+      color: #444;
+      font-size: 13.1px;
+      line-height: 1.64;
+      word-break: keep-all;
+    }
+    .workshop-link {
+      color: #0066cc;
+      text-decoration: underline;
+      word-break: break-all;
+      margin-top: 4px;
+      display: inline-block;
+    }
+    .contact {
+      margin-top: 45px;
+      font-size: 13px;
+      color: #666;
+    }
+    .email a {
+      color: #0073e6;
+      text-decoration: none;
+    }
+    .email a:hover {
+      text-decoration: underline;
+    }
+    @media (max-width: 600px) {
+      .container { width: 96%; }
+      h1 { font-size: 22px; margin: 26px 0 18px 0; }
+      nav { margin-bottom: 16px; }
+      .workshop-item { margin-bottom: 22px; }
+      section { margin-bottom: 28px; }
+      .contact { margin-top: 28px; }
+    }
