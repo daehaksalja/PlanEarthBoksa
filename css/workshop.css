@@ -9,14 +9,22 @@
       line-height: 1.48;
       -webkit-text-size-adjust: none;
     }
+
+ /* {
+  outline: 1px solid red !important;
+}*/
+
     .container {
-      width: 80%;
+      width: 100%;
       max-width: 547px;
+      
       margin: 0 auto;
       padding: 0;
       opacity: 0;
       transform: translateY(15px);
       animation: fadeInAll 1s ease-out forwards;
+      box-sizing: border-box; /* 이거 무조건! */
+        padding: 0 24px; /* 양옆 24px 패딩! */
     }
     @keyframes fadeInAll {
       to {
@@ -24,24 +32,30 @@
         transform: translateY(0);
       }
     }
-    h1 {
-      text-align: center;
-      font-size: 28px;
-      letter-spacing: 0.1em;
-      color: #222;
-      margin: 46px 0 22px 0;
-    }
+   h1 {
+  text-align: center;
+  font-size: clamp(8px, 6vw, 28px);
+  letter-spacing: 0.1em;
+  color: #222;
+  margin: 46px 0 16px 0;
+  white-space: nowrap;
+}
+   
+
     nav {
       text-align: center;
       margin-top: 10px;
       margin-bottom: 30px;
+    white-space: nowrap;
+
     }
-    nav a {
-      margin: 0 15px;
-      font-size: 13px;
-      text-decoration: none;
-      color: #666;
-    }
+   nav a {
+  margin: 0 9px;
+ font-size: clamp(3px, 3vw, 14px);
+  text-decoration: none;
+  color: #666;
+}
+
     nav a.on,
     nav a:hover {
       font-weight: bold;
@@ -58,7 +72,7 @@
     }
     .workshop-title {
       font-weight: bold;
-      color: #222;
+      color: #6d6e71;
       font-size: 14.1px;
       margin-bottom: 4px;
       line-height: 1.42;
@@ -88,11 +102,4 @@
     .email a:hover {
       text-decoration: underline;
     }
-    @media (max-width: 600px) {
-      .container { width: 96%; }
-      h1 { font-size: 22px; margin: 26px 0 18px 0; }
-      nav { margin-bottom: 16px; }
-      .workshop-item { margin-bottom: 22px; }
-      section { margin-bottom: 28px; }
-      .contact { margin-top: 28px; }
-    }
+   

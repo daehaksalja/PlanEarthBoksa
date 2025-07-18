@@ -11,13 +11,15 @@ body {
 }
 
 .container {
-  width: 80%;
+ width: 100%;
   max-width: 547px;
   margin: 0 auto;
   padding: 0;
   opacity: 0;
   transform: translateY(15px);
   animation: fadeInAll 1s ease-out forwards;
+  box-sizing: border-box; /* 이거 무조건! */
+        padding: 0 24px; /* 양옆 24px 패딩! */
 }
 
 @keyframes fadeInAll {
@@ -26,24 +28,28 @@ body {
     transform: translateY(0);
   }
 }
-
-h1 {
+ /* {
+  outline: 1px solid red !important;
+}*/
+ h1 {
   text-align: center;
-  font-size: 28px;
+  font-size: clamp(8px, 6vw, 28px);
   letter-spacing: 0.1em;
   color: #222;
-  margin: 46px 0 22px 0;
+  margin: 46px 0 16px 0;
+  white-space: nowrap;
 }
 
 nav {
   text-align: center;
-  margin-top: 10px;
+  margin-top: 0px;
   margin-bottom: 30px;
+   white-space: nowrap;
 }
 
 nav a {
-  margin: 0 15px;
-  font-size: 13px;
+  margin: 0 9px;
+ font-size: clamp(2px, 3.5vw, 14px);
   text-decoration: none;
   color: #666;
 }
@@ -77,10 +83,3 @@ p {
   text-decoration: underline;
 }
 
-@media (max-width: 600px) {
-  .container { width: 96%; }
-  h1 { font-size: 22px; margin: 26px 0 18px 0; }
-  nav { margin-bottom: 16px; }
-  section { margin-bottom: 28px; }
-  .contact { margin-top: 28px; }
-}
