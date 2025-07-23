@@ -13,6 +13,7 @@ body {
 .container {
  width: 100%;
   max-width: 898px;
+    min-width: 350px;  /* 원하는 최소 픽셀로! */
   margin: 0 auto;
   padding: 0;
   opacity: 0;
@@ -108,7 +109,7 @@ p {
   background: #fafafc;
   border-radius:10px;
   box-shadow: 0 2px 8px 0 rgba(0,0,0,0.04);
-  padding: 14px 0px 10px 0px;
+  padding: 14px 5px 10px 5px;
   transition: box-shadow .22s;
   width: 100%;
   max-width: 136px;

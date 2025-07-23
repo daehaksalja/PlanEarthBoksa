@@ -10,8 +10,7 @@ async function loadWorks() {
     .select('*')
     .order('id', { ascending: true });
 
-  console.log('supabase에서 받아온 data:', data);
-  console.log('supabase error:', error);
+
 
   if (error) {
     alert('DB 로드 오류! ' + error.message);
