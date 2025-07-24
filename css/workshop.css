@@ -32,26 +32,25 @@
         transform: translateY(0);
       }
     }
-   h1 {
+  h1 {
   text-align: center;
   font-size: clamp(8px, 6vw, 28px);
   letter-spacing: 0.1em;
   color: #222;
-  margin: 46px 0 16px 0;
+  margin: 46px 0 15px 0;
   white-space: nowrap;
 }
-   
 
-    nav {
-      text-align: center;
-      margin-top: 10px;
-      margin-bottom: 30px;
-    white-space: nowrap;
+nav {
+  text-align: center;
+  margin-top: 0px;
+   margin-bottom: 45px;
+   white-space: nowrap;
+}
 
-    }
-   nav a {
-  margin: 0 9px;
- font-size: clamp(3px, 3vw, 14px);
+nav a {
+  margin: 0  20px;
+ font-size: clamp(2px, 3.5vw, 14px);
   text-decoration: none;
   color: #666;
 }
