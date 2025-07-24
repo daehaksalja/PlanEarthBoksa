@@ -129,7 +129,7 @@ nav {
   pointer-events: none;
 }
 .gallery-nav:hover:not(.fadeout) {
-  color: #b2b2b2;
+  color:#555;
   opacity: 0.8;
   background: transparent;
   transform: translateY(-50%) scale(1.12);
@@ -198,12 +198,3 @@ nav {
   box-shadow: none !important;
 }
 
-/* hover 효과 PC만 */
-@media (hover: hover) and (pointer: fine) {
-  .gallery-nav:hover {
-    color: #b2b2b2;
-    opacity: 0.8;
-    background: transparent;
-    transform: translateY(-50%) scale(1.12);
-  }
-}
