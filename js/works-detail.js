@@ -72,7 +72,15 @@ function renderGallery() {
     }
   };
 }
+function updateGalleryNavButtons() {
+  const leftBtn = document.getElementById('galleryNavLeft');
+  const rightBtn = document.getElementById('galleryNavRight');
 
+  if (currentIndex === 0) leftBtn.classList.add('fadeout');
+  else leftBtn.classList.remove('fadeout');
+  if (currentIndex === images.length - 1) rightBtn.classList.add('fadeout');
+  else rightBtn.classList.remove('fadeout');
+}
 
 // 3. 이미지/버튼 상태만 바꿈 (DOM은 그대로)
 function showImage(idx, direction = 0) {
@@ -83,35 +91,42 @@ function showImage(idx, direction = 0) {
   const currImg = document.getElementById('galleryImg');
 
   // 1. 이전 이미지 -> prevImg에 세팅, 보이게
-  prevImg.src = currImg.src || images[idx].image_url; // 첫 로딩 땐 자기 자신
+  prevImg.src = currImg.src || images[idx].image_url;
   prevImg.alt = currImg.alt || images[idx].image_url;
   prevImg.style.display = currImg.src ? 'block' : 'none';
   prevImg.style.transition = 'none';
   prevImg.style.transform = 'translateX(0%)';
 
-  // 2. 새 이미지 준비(슬라이드 바깥 위치에서 대기)
-  currImg.src = images[idx].image_url;
-  currImg.alt = images[idx].image_url;
-  currImg.style.transition = 'none';
-  currImg.style.transform = `translateX(${direction === 1 ? '100%' : direction === -1 ? '-100%' : '0%'})`;
+  // 2. 새 이미지 프리로드!
+  const preloader = new window.Image();
+  preloader.onload = () => {
+    // 2-1. 새 이미지 세팅 (슬라이드 바깥 위치)
+    currImg.src = images[idx].image_url;
+    currImg.alt = images[idx].image_url;
+    currImg.style.transition = 'none';
+    currImg.style.transform = `translateX(${direction === 1 ? '100%' : direction === -1 ? '-100%' : '0%'})`;
 
-  // 3. 한 프레임 쉬고 슬라이드 애니 시작
-  setTimeout(() => {
-    currImg.style.transition = 'transform 0.45s cubic-bezier(.77,0,.18,1)';
-    prevImg.style.transition = 'transform 0.45s cubic-bezier(.77,0,.18,1)';
-    prevImg.style.transform = `translateX(${direction === 1 ? '-100%' : direction === -1 ? '100%' : '0%'})`;
-    currImg.style.transform = 'translateX(0%)';
-  }, 16);
+    // 3. 한 프레임 쉬고 슬라이드 애니 시작
+    setTimeout(() => {
+      currImg.style.transition = 'transform 0.45s cubic-bezier(.77,0,.18,1)';
+      prevImg.style.transition = 'transform 0.45s cubic-bezier(.77,0,.18,1)';
+      prevImg.style.transform = `translateX(${direction === 1 ? '-100%' : direction === -1 ? '100%' : '0%'})`;
+      currImg.style.transform = 'translateX(0%)';
+    }, 16);
 
-  // 4. 애니 끝나면 prevImg 숨김, 상태 갱신
-  setTimeout(() => {
-    prevImg.style.display = 'none';
-    prevImg.style.transition = 'none';
-    prevImg.style.transform = 'translateX(0%)';
-    isSliding = false;
-    updateGalleryNavButtons();
-    updatePagination();
-  }, 470);
+    // 4. 애니 끝나면 prevImg 숨김, 상태 갱신
+    setTimeout(() => {
+      prevImg.style.display = 'none';
+      prevImg.style.transition = 'none';
+      prevImg.style.transform = 'translateX(0%)';
+      isSliding = false;
+      updateGalleryNavButtons();
+      updatePagination();
+    }, 470);
+  };
+
+  // 진짜 프리로드 시작!
+  preloader.src = images[idx].image_url;
 }
 
 // 5. 페이지네이션

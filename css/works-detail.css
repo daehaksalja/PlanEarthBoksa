@@ -184,3 +184,26 @@ nav {
   margin-bottom: 1px;
   text-align: center;
 }
+
+/* 모바일 터치 잉크(파란 터치) 완전 OFF */
+* {
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 포커스(파란 테두리, 그림자) 완전 OFF */
+*:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* hover 효과 PC만 */
+@media (hover: hover) and (pointer: fine) {
+  .gallery-nav:hover {
+    color: #b2b2b2;
+    opacity: 0.8;
+    background: transparent;
+    transform: translateY(-50%) scale(1.12);
+  }
+}

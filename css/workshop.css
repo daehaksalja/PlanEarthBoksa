@@ -101,4 +101,17 @@ nav a {
     .email a:hover {
       text-decoration: underline;
     }
-   
+
+
+/* 모바일 터치 잉크(파란 터치) 완전 OFF */
+* {
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 포커스(파란 테두리, 그림자) 완전 OFF */
+*:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
