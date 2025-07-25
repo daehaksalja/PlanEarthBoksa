@@ -1,7 +1,7 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Nanum Gothic','Malgun Gothic','Dotum','AppleGothic','gulim',sans-serif;
+  font-family: 'Nanum Gothic', 'Malgun Gothic', 'Dotum', 'AppleGothic', 'gulim', sans-serif;
   font-size: 13px;
   font-weight: normal;
   color: #6d6e71;
@@ -9,21 +9,26 @@ body {
   line-height: 1.48;
   -webkit-text-size-adjust: none;
 }
- /*{
+
+/*{
   outline: 1px solid red !important;
 } */
 .container {
- width: 100%;
+  width: 100%;
   max-width: 898px;
-    min-width: 350px;  /* 원하는 최소 픽셀로! */
+
   margin: 0 auto;
   padding: 0;
   opacity: 0;
   transform: translateY(15px);
   animation: fadeInAll 1s ease-out forwards;
-  box-sizing: border-box; /* 이거 무조건! */
-        padding: 0 24px; /* 양옆 24px 패딩! */
+  box-sizing: border-box;
+  /* 이거 무조건! */
+  padding: 0 24px;
+  /* 양옆 24px 패딩! */
 }
+
+
 
 @keyframes fadeInAll {
   to {
@@ -32,7 +37,7 @@ body {
   }
 }
 
- h1 {
+h1 {
   text-align: center;
   font-size: clamp(8px, 6vw, 28px);
   letter-spacing: 0.1em;
@@ -40,23 +45,32 @@ body {
   margin: 46px 0 20px 0;
   white-space: nowrap;
 }
+
 @font-face {
   font-family: 'Nanum Gothic ExtraBold';
-  src: url('../fonts/NanumGothic-ExtraBold.ttf') format('truetype');
+  src: url('/assets/fonts/NanumGothic-ExtraBold.ttf') format('truetype');
   font-weight: 800;
   font-style: normal;
+}
+
+
+.earth-bold {
+  font-size: 1em;
+  /* h1보다 30% 더 크게 */
+  font-family: 'Nanum Gothic ExtraBold';
+  font-weight: 800;
 }
 
 nav {
   text-align: center;
   margin-top: 0px;
-   margin-bottom: 50px;
-   white-space: nowrap;
+  margin-bottom: 50px;
+  white-space: nowrap;
 }
 
 nav a {
-  margin: 0  20px;
- font-size: clamp(2px, 3.5vw, 14px);
+ margin: 0 2.5%;
+  font-size: clamp(2px, 3.5vw, 14px);
   text-decoration: none;
   color: #666;
 }
@@ -116,7 +130,7 @@ p {
 }
 
 
- /* *{
+/* *{
  outline: 1px solid red !important;
 } */
 .work-item {
@@ -124,19 +138,23 @@ p {
   flex-direction: column;
   align-items: center;
   background: #fafafc;
-  border-radius:15px;
-  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.04);
+  border-radius: 15px;
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.04);
   padding: 8px 5px 10px 5px;
-  transition: box-shadow .22s, transform .20s cubic-bezier(.23, 1.12, .55, .98); /* <-- 추가 */
+  transition: box-shadow .22s, transform .20s cubic-bezier(.23, 1.12, .55, .98);
+  /* <-- 추가 */
   width: 100%;
   max-width: 136px;
   min-width: 0;
 }
 
 .work-item:hover {
-  box-shadow: 0 8px 28px 0 rgba(0,0,0,0.14); /* 그림자 더 진하게 */
-  transform: translateY(-4px) scale(1.09);   /* 살짝 위로+확대 */
-  z-index: 2; /* 겹쳤을 때 위로 */
+  box-shadow: 0 8px 28px 0 rgba(0, 0, 0, 0.14);
+  /* 그림자 더 진하게 */
+  transform: translateY(-4px) scale(1.09);
+  /* 살짝 위로+확대 */
+  z-index: 2;
+  /* 겹쳤을 때 위로 */
 }
 
 .work-item img {
@@ -146,16 +164,19 @@ p {
   border-radius: 0px;
   margin-bottom: 13px;
   background: #e5e5e5;
-  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.05);
   display: block;
 }
 
 .work-title {
   font-size: 15px;
   font-weight: 600;
-  color:  #5d5d5d;
+  color: #5d5d5d;
   text-align: center;
   margin-bottom: 0;
+}
+* {
+  outline: 1px solid red !important;
 }
 .work-title span {
   display: block;
@@ -164,17 +185,17 @@ p {
   color: #888;
   margin-top: 2px;
 }
-
+/* 포커스(파란 테두리, 그림자) 완전 OFF */
 
 /* 모바일 터치 잉크(파란 터치) 완전 OFF */
-* {
+ * {
   -webkit-tap-highlight-color: transparent !important;
   outline: none !important;
   box-shadow: none !important;
 }
 
-/* 포커스(파란 테두리, 그림자) 완전 OFF */
+
 *:focus {
   outline: none !important;
   box-shadow: none !important;
-}
+} 
