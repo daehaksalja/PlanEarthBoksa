@@ -40,6 +40,12 @@ body {
   margin: 46px 0 20px 0;
   white-space: nowrap;
 }
+@font-face {
+  font-family: 'Nanum Gothic ExtraBold';
+  src: url('../fonts/NanumGothic-ExtraBold.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+}
 
 nav {
   text-align: center;
