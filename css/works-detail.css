@@ -80,7 +80,7 @@ nav {
   max-width: 800px;
   aspect-ratio: 4 / 3;
   background: #fff;
-  border-radius: 16px;
+  border-radius: 0px;
   box-shadow: 0 2px 24px #0002;
   overflow: hidden;
   display: flex;
