@@ -137,7 +137,7 @@ p {
   width: 136px;
   height: 136px;
   object-fit: cover;
-  border-radius: 15px;
+  border-radius: 0px;
   margin-bottom: 13px;
   background: #e5e5e5;
   box-shadow: 0 2px 8px 0 rgba(0,0,0,0.05);
