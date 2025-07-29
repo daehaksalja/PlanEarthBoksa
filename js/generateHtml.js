@@ -1,67 +1,51 @@
-// 📁 generateHtml.js
-const fs = require('fs-extra');
+// generateHtml.js 최상단
+const os = require('os');
 const path = require('path');
+const fs = require('fs-extra');
 const { createClient } = require('@supabase/supabase-js');
 
-// 📌 Supabase 연결 정보
+// OUTPUT_DIR을 OS 임시 디렉토리 아래로 변경
+const OUTPUT_DIR = path.join(os.tmpdir(), 'dist');  // 예: /tmp/dist
+
 const SUPABASE_URL = 'https://feprvneoartflrnmefxz.supabase.co';
 const SUPABASE_KEY = 'sb_secret_MJU0fw2ANZ4TqNiLuh5kHA_1GuTC48_';
-const OUTPUT_DIR = path.join(__dirname, '..', 'dist');
-
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// 🔧 슬러그 생성 함수 (파일명용)
-function slugify(str) {
-  return str
-    .toLowerCase()
-   
-    .replace(/[^a-z0-9가-힣\s_-]/g, '')
-    .replace(/[\s]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
+async function prepareOutputDir() {
+  await fs.ensureDir(OUTPUT_DIR);
+  console.log(`${OUTPUT_DIR} 폴더가 생성되었거나 이미 존재합니다.`);
 }
 
-// 🧹 기존 dist 폴더 비우기
+prepareOutputDir();
 async function cleanOutput() {
-  try {
-    console.log('📂 dist 경로:', OUTPUT_DIR);
-    await fs.ensureDir(OUTPUT_DIR);
-    console.log('🧹 emptyDir 실행 전');
-    await fs.emptyDir(OUTPUT_DIR);
-    console.log('🧼 dist 폴더 초기화 완료');
-  } catch (err) {
-    console.error('❌ dist 초기화 실패:', err.message);
-  }
+  await fs.ensureDir(OUTPUT_DIR);
+  await fs.emptyDir(OUTPUT_DIR);
+  console.log('🧼 임시 dist 폴더 초기화 완료:', OUTPUT_DIR);
 }
 
-
-// 📄 HTML 정적 페이지 생성
 async function generatePages() {
   const { data: works, error } = await supabase.from('works').select('*');
   if (error) throw error;
 
-  const templatePath = path.join(__dirname, '..', 'template.html'); // ✅ 상위 폴더 기준
-
+  const templatePath = path.join(__dirname, '..', 'template.html');
   const template = fs.readFileSync(templatePath, 'utf-8');
-for (const item of works) {
-  const slug = `${item.id}-${slugify(item.title)}`;
-  const html = template
-    .replace(/{{id}}/g, item.id)
-    .replace(/{{title}}/g, item.title || '')
-    .replace(/{{subtitle}}/g, item.subtitle || '')
-    .replace(/{{image_url}}/g, item.image_url || '')
-    .replace(/{{since}}/g, item.since || '');
-console.log('👉 원본 데이터:', item);
 
-  const outputPath = path.join(OUTPUT_DIR, `${slug}.html`);
-  await fs.writeFile(outputPath, html);
-  console.log(`✅ 생성됨: ${slug}.html`);
+  for (const item of works) {
+    const slug = `${item.id}-${slugify(item.title)}`;
+    const html = template
+      .replace(/{{id}}/g, item.id)
+      .replace(/{{title}}/g, item.title || '')
+      .replace(/{{subtitle}}/g, item.subtitle || '')
+      .replace(/{{image_url}}/g, item.image_url || '')
+      .replace(/{{since}}/g, item.since || '');
+
+    const outputPath = path.join(OUTPUT_DIR, `${slug}.html`);
+    await fs.writeFile(outputPath, html);
+    console.log(`✅ 생성됨: ${slug}.html`);
+  }
 }
 
-}
-
-// 🏁 실행
+// 나머지 코드 동일
 (async () => {
   try {
     await cleanOutput();
@@ -76,3 +60,12 @@ console.log('👉 원본 데이터:', item);
   }
 })();
 
+// 슬러그 생성 함수도 기존대로 유지
+function slugify(str) {
+  return str
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣\s_-]/g, '')
+    .replace(/[\s]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
