@@ -135,9 +135,8 @@ p {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: #fafafc;
+  background: #ffffff;
   border-radius: 15px;
-  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.04);
   padding: 8px 5px 10px 5px;
   transition: box-shadow .22s, transform .20s cubic-bezier(.23, 1.12, .55, .98);
   /* <-- 추가 */
@@ -161,7 +160,7 @@ p {
   object-fit: cover;
   border-radius: 0px;
   margin-bottom: 13px;
-  background: #e5e5e5;
+  background: #ffffff;
   box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.05);
   display: block;
 }
@@ -192,7 +191,7 @@ p {
     transition: transform 0.3s ease;
   }
 .works-grid {
-    gap: 200px 0px; /* ← 세로 간격 늘림 */
+    gap: 100px 0px; /* ← 세로 간격 늘림 */
   }
    /* ✅ 폰트만 줄이기 */
 

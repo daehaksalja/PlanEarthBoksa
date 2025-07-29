@@ -99,7 +99,7 @@ function dragEnd(e) {
   if (!isDragging) return;
   const endX = e.type.includes('mouse') ? e.clientX : e.changedTouches[0].clientX;
   const dx = endX - startX;
-  const threshold = window.innerWidth * 0.25;
+  const threshold = window.innerWidth * 0.07;
 
   if (dx > threshold && currentIndex > 0) currentIndex--;
   else if (dx < -threshold && currentIndex < images.length - 1) currentIndex++;
