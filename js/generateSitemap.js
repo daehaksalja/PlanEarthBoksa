@@ -5,7 +5,7 @@ const os = require('os');  // 추가
 const DOMAIN = 'https://www.moongsoon.xyz';
 // 임시 폴더 내 dist 경로로 변경
 const DIST_DIR = path.join(os.tmpdir(), 'dist');  // /tmp/dist (윈도우는 %TEMP%)
-const SITEMAP_PATH = path.join(__dirname, '..', 'public', 'sitemap.xml');
+const SITEMAP_PATH = path.join(__dirname, '..', 'sitemap.xml');
 
 console.log('✅ sitemap 생성 대상 경로:', SITEMAP_PATH);
 
