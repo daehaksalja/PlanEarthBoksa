@@ -1,6 +1,23 @@
 const express = require('express');
 const { exec } = require('child_process');
 const app = express();
+const fs = require('fs');
+const path = require('path');
+
+// sitemap.xml을 직접 서빙하는 라우트
+app.get('/sitemap.xml', (req, res) => {
+  const sitemapPath = path.join(__dirname, 'public', 'sitemap.xml');
+
+  // 파일 존재 여부 체크
+  if (!fs.existsSync(sitemapPath)) {
+    return res.status(404).send('❌ sitemap.xml 없음!');
+  }
+
+  // 파일 읽고 응답
+  const xml = fs.readFileSync(sitemapPath, 'utf-8');
+  res.header('Content-Type', 'application/xml');
+  res.send(xml);
+});
 
 // 자동 생성 라우트
 app.get('/generate', (req, res) => {
