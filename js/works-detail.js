@@ -52,8 +52,8 @@ function renderTrack() {
 
   // 이미지 채워넣기
   track.innerHTML = images
-    .map(img => `<img src="${img.image_url}" draggable="false" style="pointer-events:none;">`)
-    .join('');
+  .map(img => `<img src="${img.image_url}" draggable="false" class="gallery-img">`)
+  .join('');
 
   // ✅ 드래그 시작은 wrapper에 걸어야 트랙 밀려도 작동함
   wrapper.addEventListener('mousedown', dragStart);
@@ -64,6 +64,7 @@ function renderTrack() {
   document.addEventListener('mouseup', dragEnd);
   document.addEventListener('touchmove', dragMove, { passive: false });
   document.addEventListener('touchend', dragEnd);
+  
 }
 
 function renderDots() {
@@ -81,13 +82,14 @@ function updatePosition(animate = true) {
 }
 
 function dragStart(e) {
+  if ((e.touches && e.touches.length > 1)) return;
   isDragging = true;
   startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
   document.getElementById('galleryTrack').style.transition = 'none';
 }
 
 function dragMove(e) {
-  if (!isDragging) return;
+  if (!isDragging || (e.touches && e.touches.length > 1)) return;  // ✅ 두 손가락이면 무시
   e.preventDefault();
   const x = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
   const dx = x - startX;
@@ -96,7 +98,7 @@ function dragMove(e) {
 }
 
 function dragEnd(e) {
-  if (!isDragging) return;
+   if (!isDragging || (e.changedTouches && e.changedTouches.length > 1)) return;  // ✅ 두 손가락이면 무시
   const endX = e.type.includes('mouse') ? e.clientX : e.changedTouches[0].clientX;
   const dx = endX - startX;
   const threshold = window.innerWidth * 0.07;
@@ -107,5 +109,16 @@ function dragEnd(e) {
   isDragging = false;
   updatePosition();
 }
+
+function shouldBlockPinch(e) {
+  return e.touches && e.touches.length > 1;
+}
+
+// ✅ 여기에 조건 추가!
+document.addEventListener('touchmove', (e) => {
+  if (shouldBlockPinch(e)) return;   // ✌️ 두 손가락이면 슬라이드 무시 → 핀치 줌 허용
+  dragMove(e);                       // 👉 한 손가락일 때만 슬라이드 동작
+}, { passive: false });
+
 
 loadWorkAndImages();
