@@ -18,13 +18,21 @@ function setTitleFontSizeByLength(selector, baseFontSize = 15, minFontSize = 10)
 
 // 🔁 스크롤 복원 함수 (로드 후 호출)
 function restoreScroll() {
-  const savedY = sessionStorage.getItem('scrollY');
-  if (savedY !== null) {
-    setTimeout(() => {
-      window.scrollTo(0, parseInt(savedY));
-    }, 0);
+  const navEntries = performance.getEntriesByType('navigation');
+  const isBackForward = navEntries[0]?.type === 'back_forward';
+
+  if (isBackForward) {
+    const savedY = sessionStorage.getItem('scrollY');
+    if (savedY !== null) {
+      setTimeout(() => {
+        window.scrollTo(0, parseInt(savedY));
+      }, 0);
+    }
+  } else {
+    sessionStorage.removeItem('scrollY'); // ✅ 새로 진입한 경우 초기화
   }
 }
+
 
 // 📐 창 크기 바뀔 때 폰트 다시 계산
 window.addEventListener('resize', () => {
