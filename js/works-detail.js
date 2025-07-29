@@ -52,8 +52,8 @@ function renderTrack() {
 
   // 이미지 채워넣기
   track.innerHTML = images
-  .map(img => `<img src="${img.image_url}" draggable="false" class="gallery-img">`)
-  .join('');
+    .map(img => `<img src="${img.image_url}" draggable="false" >`)
+    .join('');
 
   // ✅ 드래그 시작은 wrapper에 걸어야 트랙 밀려도 작동함
   wrapper.addEventListener('mousedown', dragStart);
@@ -64,7 +64,6 @@ function renderTrack() {
   document.addEventListener('mouseup', dragEnd);
   document.addEventListener('touchmove', dragMove, { passive: false });
   document.addEventListener('touchend', dragEnd);
-  
 }
 
 function renderDots() {
@@ -98,7 +97,7 @@ function dragMove(e) {
 }
 
 function dragEnd(e) {
-   if (!isDragging || (e.changedTouches && e.changedTouches.length > 1)) return;  // ✅ 두 손가락이면 무시
+    if (!isDragging || (e.changedTouches && e.changedTouches.length > 1)) return;  // ✅ 두 손가락이면 무시
   const endX = e.type.includes('mouse') ? e.clientX : e.changedTouches[0].clientX;
   const dx = endX - startX;
   const threshold = window.innerWidth * 0.07;
