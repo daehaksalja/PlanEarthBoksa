@@ -3,8 +3,9 @@ const path = require('path');
 
 const DOMAIN = 'https://www.moongsoon.xyz';
 const DIST_DIR = path.join(__dirname, '..', 'dist');
-const SITEMAP_PATH = path.join(__dirname, '..', 'sitemap.xml'); // ✅ 올바른 경로
-
+const SITEMAP_PATH = path.join(__dirname, '..', 'public', 'sitemap.xml');
+const sitemapPath = path.join(__dirname, 'public', 'sitemap.xml');
+console.log('✅ 생성된 경로:', sitemapPath);
 function generateSitemap() {
   // 기존 sitemap 삭제
   if (fs.existsSync(SITEMAP_PATH)) {
