@@ -1,13 +1,17 @@
 const fs = require('fs');
 const path = require('path');
 
-const DOMAIN = 'http://www.planearth.co.kr'; // 실 주소로 바꿔줘
+const DOMAIN = 'https://www.moongsoon.xyz';
 const DIST_DIR = path.join(__dirname, '..', 'dist');
-
-const SITEMAP_PATH = path.join(__dirname, 'sitemap.xml');
+const SITEMAP_PATH = path.join(__dirname, '..', 'sitemap.xml'); // ✅ 올바른 경로
 
 function generateSitemap() {
-  // 고정 페이지들
+  // 기존 sitemap 삭제
+  if (fs.existsSync(SITEMAP_PATH)) {
+    fs.unlinkSync(SITEMAP_PATH);
+    console.log('🗑️ 기존 sitemap.xml 삭제 완료');
+  }
+
   const staticUrls = [
     { loc: `${DOMAIN}/`, priority: '1.0' },
     { loc: `${DOMAIN}/works`, priority: '0.8' },
@@ -15,7 +19,6 @@ function generateSitemap() {
     { loc: `${DOMAIN}/works-detail`, priority: '0.7' },
   ];
 
-  // 명함용 정적 HTML들
   const files = fs.readdirSync(DIST_DIR).filter(f => f.endsWith('.html'));
   const dynamicUrls = files.map(filename => ({
     loc: `${DOMAIN}/works/${filename}`,
