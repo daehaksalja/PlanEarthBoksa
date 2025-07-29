@@ -110,15 +110,4 @@ function dragEnd(e) {
   updatePosition();
 }
 
-function shouldBlockPinch(e) {
-  return e.touches && e.touches.length > 1;
-}
-
-// ✅ 여기에 조건 추가!
-document.addEventListener('touchmove', (e) => {
-  if (shouldBlockPinch(e)) return;   // ✌️ 두 손가락이면 슬라이드 무시 → 핀치 줌 허용
-  dragMove(e);                       // 👉 한 손가락일 때만 슬라이드 동작
-}, { passive: false });
-
-
 loadWorkAndImages();
