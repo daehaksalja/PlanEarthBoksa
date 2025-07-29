@@ -59,7 +59,7 @@ app.get('/', (req, res) => {
 });
 
 // 5. 서버 시작
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`🚀 서버 실행 중! 포트: ${PORT}`);
 });
