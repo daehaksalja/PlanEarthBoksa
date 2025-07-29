@@ -1,10 +1,37 @@
-// supabase 라이브러리 불러오기 (CDN 사용시 필요없음! 아래 script태그 참고)
-
-
+// Supabase 연결
 const supabaseUrl = 'https://feprvneoartflrnmefxz.supabase.co';
 const supabaseKey = 'sb_publishable_LW3f112nFPSSUUNvrXl19A__y73y2DE';
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-// 1. 데이터 로딩 후 setTitleFontSizeByLength() 호출!
+
+// 🔥 폰트 사이즈 자동 조정
+function setTitleFontSizeByLength(selector, baseFontSize = 15, minFontSize = 10) {
+  document.querySelectorAll(selector).forEach(el => {
+    const text = el.textContent.replace(/\s+/g, '').replace(/\n/g, '');
+    const len = text.length;
+    let size = baseFontSize;
+    if (len > 10) {
+      size = Math.max(minFontSize, baseFontSize - (len - 10) * 0.7);
+    }
+    el.style.fontSize = size + "px";
+  });
+}
+
+// 🔁 스크롤 복원 함수 (로드 후 호출)
+function restoreScroll() {
+  const savedY = sessionStorage.getItem('scrollY');
+  if (savedY !== null) {
+    setTimeout(() => {
+      window.scrollTo(0, parseInt(savedY));
+    }, 0);
+  }
+}
+
+// 📐 창 크기 바뀔 때 폰트 다시 계산
+window.addEventListener('resize', () => {
+  setTitleFontSizeByLength('.work-title', 18, 12);
+});
+
+// 🔄 데이터 로드 + 렌더링
 async function loadWorks() {
   const { data, error } = await supabase
     .from('works')
@@ -29,25 +56,19 @@ async function loadWorks() {
     grid.insertAdjacentHTML('beforeend', html);
   });
 
-  // 🔥 카드 생성 후 폰트 크기 조정!
+  // 텍스트 길이에 따라 폰트 크기 조정
   setTitleFontSizeByLength('.work-title');
-}
 
-function setTitleFontSizeByLength(selector, baseFontSize = 15, minFontSize = 10) {
-  document.querySelectorAll(selector).forEach(el => {
-    // <br> 등 HTML 태그 제거, 한글+영문 구분 없이 길이 체크
-    const text = el.textContent.replace(/\s+/g, '').replace(/\n/g, '');
-    const len = text.length;
-    let size = baseFontSize;
-    if (len > 10) {
-      size = Math.max(minFontSize, baseFontSize - (len - 10) * 0.7);
-    }
-    el.style.fontSize = size + "px";
+  // 🔸 클릭 시 현재 스크롤 저장
+  document.querySelectorAll('.work-item').forEach(link => {
+    link.addEventListener('click', () => {
+      sessionStorage.setItem('scrollY', window.scrollY);
+    });
   });
+
+  // ✅ 모든 요소 생성 완료 후 스크롤 복원 실행!
+  restoreScroll();
 }
 
-window.addEventListener('resize', () => {
-  setTitleFontSizeByLength('.work-title', 18, 12); //기본폰트사이즈, 최소폰트사이즈
-});
-
+// 시작
 loadWorks();

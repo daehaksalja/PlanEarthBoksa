@@ -30,7 +30,7 @@ body {
 }
 
 .container2 {
-  max-width: 800px;
+  max-width: 650px;
   margin: 0 auto;
   width: 100%;
 
@@ -70,7 +70,7 @@ h1 {
 nav {
   text-align: center;
   margin-top: 0px;
-  margin-bottom: 70px;
+  margin-bottom: 30px;
   white-space: nowrap;
 }
 
@@ -102,20 +102,7 @@ nav a:hover {
 
 
 
-.gallery-img-box {
-  position: relative;
-  width: 100%;
-  max-width: 800px;
-  aspect-ratio: 4 / 3;
-  background: #fff;
-  border-radius: 0px;
-  box-shadow: 0 2px 24px #0002;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto;
-}
+
 
 .gallery-img {
   position: absolute;
@@ -147,7 +134,6 @@ nav a:hover {
   overflow: hidden;
   position: relative;
   width: 100%;
-  touch-action: pan-y;
   user-select: none;
 }
 
@@ -164,6 +150,7 @@ nav a:hover {
   user-drag: none;
   user-select: none;
   pointer-events: none;
+  touch-action: auto;  /* ✅ 터치 제스처 허용 */
 }
 
 .gallery-pagination {
@@ -285,13 +272,13 @@ nav a:hover {
   margin-bottom: 1px;
   text-align: center;
 }
-/* *{
+ /* *{
  outline: 1px solid red !important;
-}  */
+ } */
 /* 모바일 터치 잉크(파란 터치) 완전 OFF */
 
 /* 포커스(파란 테두리, 그림자) 완전 OFF */
- * {
+  * {
   -webkit-tap-highlight-color: transparent !important;
   outline: none !important;
   box-shadow: none !important;
@@ -301,4 +288,4 @@ nav a:hover {
 *:focus {
   outline: none !important;
   box-shadow: none !important;
-} 
+}  
