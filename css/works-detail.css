@@ -149,7 +149,7 @@ nav a:hover {
   height: auto;
   user-drag: none;
   user-select: none;
-  pointer-events: none;
+  
   touch-action: auto;  /* ✅ 터치 제스처 허용 */
 }
 
