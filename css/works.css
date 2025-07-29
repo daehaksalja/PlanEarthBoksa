@@ -146,7 +146,7 @@ p {
 }
 
 .work-item:hover {
-  box-shadow: 0 8px 28px 0 rgba(0, 0, 0, 0.14);
+  box-shadow: 0 8px 28px 0 rgba(0, 0, 0, 0.14)!important;
   /* 그림자 더 진하게 */
   transform: translateY(-4px) scale(1.09);
   /* 살짝 위로+확대 */
