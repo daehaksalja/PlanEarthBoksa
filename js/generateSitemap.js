@@ -4,9 +4,13 @@ const path = require('path');
 const DOMAIN = 'https://www.moongsoon.xyz';
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 const SITEMAP_PATH = path.join(__dirname, '..', 'public', 'sitemap.xml');
-const sitemapPath = path.join(__dirname, 'public', 'sitemap.xml');
-console.log('✅ 생성된 경로:', sitemapPath);
+
+console.log('✅ sitemap 생성 대상 경로:', SITEMAP_PATH);
+
 function generateSitemap() {
+  // public 폴더 없으면 생성
+  fs.mkdirSync(path.dirname(SITEMAP_PATH), { recursive: true });
+
   // 기존 sitemap 삭제
   if (fs.existsSync(SITEMAP_PATH)) {
     fs.unlinkSync(SITEMAP_PATH);
@@ -18,6 +22,7 @@ function generateSitemap() {
     { loc: `${DOMAIN}/works`, priority: '0.8' },
     { loc: `${DOMAIN}/workshop`, priority: '0.8' },
     { loc: `${DOMAIN}/works-detail`, priority: '0.7' },
+
   ];
 
   const files = fs.readdirSync(DIST_DIR).filter(f => f.endsWith('.html'));

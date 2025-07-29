@@ -1,40 +1,31 @@
 const express = require('express');
-const { spawnSync } = require('child_process'); // exec 대신 spawnSync!
+const { exec } = require('child_process');
 const app = express();
-const fs = require('fs');
-const path = require('path');
 
-// sitemap.xml 직접 서빙 라우트
-app.get('/sitemap.xml', (req, res) => {
-  const sitemapPath = path.join(__dirname, 'public', 'sitemap.xml');
-  if (!fs.existsSync(sitemapPath)) {
-    return res.status(404).send('❌ sitemap.xml 없음!');
-  }
-  const xml = fs.readFileSync(sitemapPath, 'utf-8');
-  res.header('Content-Type', 'application/xml');
-  res.send(xml);
-});
-
-// 자동 생성 라우트 (spawnSync로 변경!)
+// 자동 생성 라우트
 app.get('/generate', (req, res) => {
-  const htmlGen = spawnSync('node', ['js/generateHtml.js'], { encoding: 'utf-8' });
-  if (htmlGen.error) {
-    console.error('❌ HTML 생성 실패:', htmlGen.error);
-    return res.status(500).send('HTML 생성 실패!');
-  }
-  console.log('✅ HTML 생성 출력:', htmlGen.stdout);
+  exec('node js/generateHtml.js', (err, stdout, stderr) => {  // stdout, stderr 꼭 받기
+    if (err) {
+      console.error('❌ HTML 생성 실패:', err);
+      return res.status(500).send('HTML 생성 실패!');
+    }
+    console.log('📤 HTML 생성 출력:', stdout);
+    if (stderr) console.error('⚠️ HTML 생성 경고:', stderr);
 
-  const sitemapGen = spawnSync('node', ['js/generateSitemap.js'], { encoding: 'utf-8' });
-  if (sitemapGen.error) {
-    console.error('❌ 사이트맵 생성 실패:', sitemapGen.error);
-    return res.status(500).send('사이트맵 생성 실패!');
-  }
-  console.log('✅ 사이트맵 생성 출력:', sitemapGen.stdout);
+    exec('node js/generateSitemap.js', (err2, stdout2, stderr2) => {
+      if (err2) {
+        console.error('❌ 사이트맵 생성 실패:', err2);
+        return res.status(500).send('사이트맵 생성 실패!');
+      }
+      console.log('📤 사이트맵 생성 출력:', stdout2);
+      if (stderr2) console.error('⚠️ 사이트맵 생성 경고:', stderr2);
 
-  res.send('🎉 HTML + 사이트맵 생성 완료!');
+      res.send('🎉 HTML + 사이트맵 생성 완료!');
+    });
+  });
 });
 
-// 기본 루트
+// 기본 루트 테스트
 app.get('/', (req, res) => {
   res.send('🟢 HTML & Sitemap Generator Server 작동 중');
 });
