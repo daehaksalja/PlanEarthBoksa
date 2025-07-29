@@ -11,6 +11,7 @@ function generateSitemap() {
   // public 폴더 없으면 생성
   fs.mkdirSync(path.dirname(SITEMAP_PATH), { recursive: true });
 
+
   // 기존 sitemap 삭제
   if (fs.existsSync(SITEMAP_PATH)) {
     fs.unlinkSync(SITEMAP_PATH);

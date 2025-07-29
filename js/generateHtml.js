@@ -25,15 +25,16 @@ function slugify(str) {
 // 🧹 기존 dist 폴더 비우기
 async function cleanOutput() {
   try {
-    console.log('📂 dist 경로:', OUTPUT_DIR); // 경로 확인
-    await fs.ensureDir(OUTPUT_DIR); // 폴더 없으면 생성
+    console.log('📂 dist 경로:', OUTPUT_DIR);
+    await fs.ensureDir(OUTPUT_DIR);
     console.log('🧹 emptyDir 실행 전');
-    await fs.emptyDir(OUTPUT_DIR); // 폴더 내부 비우기
+    await fs.emptyDir(OUTPUT_DIR);
     console.log('🧼 dist 폴더 초기화 완료');
   } catch (err) {
     console.error('❌ dist 초기화 실패:', err.message);
   }
 }
+
 
 // 📄 HTML 정적 페이지 생성
 async function generatePages() {
