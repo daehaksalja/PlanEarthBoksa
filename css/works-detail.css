@@ -138,6 +138,56 @@ nav a:hover {
   background: #fff;
   display: block;
 }
+  
+
+
+/* 스와이프css */
+
+.gallery-wrapper {
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.gallery-track {
+  display: flex;
+  transition: transform 0.3s ease;
+  will-change: transform;
+}
+
+.gallery-track img {
+  flex-shrink: 0;
+  width: 100%;
+  height: auto;
+  user-drag: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+.gallery-pagination {
+  text-align: center;
+  margin-top: 12px;
+}
+.page-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ccc;
+  margin: 0 4px;
+}
+.page-dot.active {
+  background: #333;
+}
+
+
+
+
+
+
+
 
 .gallery-nav {
   position: absolute;
@@ -235,16 +285,20 @@ nav a:hover {
   margin-bottom: 1px;
   text-align: center;
 }
-
+/* *{
+ outline: 1px solid red !important;
+}  */
 /* 모바일 터치 잉크(파란 터치) 완전 OFF */
-* {
+
+/* 포커스(파란 테두리, 그림자) 완전 OFF */
+ * {
   -webkit-tap-highlight-color: transparent !important;
   outline: none !important;
   box-shadow: none !important;
 }
 
-/* 포커스(파란 테두리, 그림자) 완전 OFF */
+
 *:focus {
   outline: none !important;
   box-shadow: none !important;
-}
+} 

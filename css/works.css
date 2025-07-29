@@ -130,9 +130,7 @@ p {
 }
 
 
-/* *{
- outline: 1px solid red !important;
-} */
+
 .work-item {
   display: flex;
   flex-direction: column;
@@ -175,9 +173,9 @@ p {
   text-align: center;
   margin-bottom: 0;
 }
-* {
+/* * {
   outline: 1px solid red !important;
-}
+} */
 .work-title span {
   display: block;
   font-size: 12px;
@@ -185,10 +183,36 @@ p {
   color: #888;
   margin-top: 2px;
 }
+
+
+@media (max-width: 338px) {
+  .work-item {
+    transform: scale(1.4); /* ✅ 전체 박스 크기 증가 */
+    transform-origin: center top;
+    transition: transform 0.3s ease;
+  }
+.works-grid {
+    gap: 200px 0px; /* ← 세로 간격 늘림 */
+  }
+   /* ✅ 폰트만 줄이기 */
+
+  .work-title {
+    font-size: 8px !important;
+  }
+
+  .work-title span {
+    font-size: 5px !important;
+  }
+
+  .work-item img {
+    transform: none !important; /* ❌ 중복 스케일 방지 */
+  }
+}
+
 /* 포커스(파란 테두리, 그림자) 완전 OFF */
 
 /* 모바일 터치 잉크(파란 터치) 완전 OFF */
- * {
+ /* * {
   -webkit-tap-highlight-color: transparent !important;
   outline: none !important;
   box-shadow: none !important;
@@ -198,4 +222,4 @@ p {
 *:focus {
   outline: none !important;
   box-shadow: none !important;
-} 
+}  */
