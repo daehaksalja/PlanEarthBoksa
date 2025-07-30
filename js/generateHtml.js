@@ -1,28 +1,44 @@
-// generateHtml.js 최상단
+// generateHtml.js
+
+
+require('dotenv').config({
+  path: require('path').resolve(__dirname, '../.env') // 강제 경로 지정!
+});
+console.log('[DEBUG] SUPABASE_URL:', process.env.SUPABASE_URL);
+console.log('[DEBUG] SUPABASE_KEY:', process.env.SUPABASE_KEY?.slice(0, 10) + '...'); // 일부만
 const os = require('os');
 const path = require('path');
 const fs = require('fs-extra');
 const { createClient } = require('@supabase/supabase-js');
+const AWS = require('aws-sdk');
 
-// OUTPUT_DIR을 OS 임시 디렉토리 아래로 변경
-const OUTPUT_DIR = path.join(os.tmpdir(), 'dist');  // 예: /tmp/dist
+// ✅ 환경변수 기반 초기화
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-const SUPABASE_URL = 'https://feprvneoartflrnmefxz.supabase.co';
-const SUPABASE_KEY = 'sb_secret_MJU0fw2ANZ4TqNiLuh5kHA_1GuTC48_';
+const r2 = new AWS.S3({
+  accessKeyId: process.env.R2_ACCESS_KEY,
+  secretAccessKey: process.env.R2_SECRET_KEY,
+  endpoint: process.env.R2_ENDPOINT,
+  signatureVersion: 'v4',
+  region: 'auto',
+});
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const OUTPUT_DIR = path.join(__dirname, '..', 'dist');
+  // /tmp/dist
+
+// 🧹 dist 폴더 초기화
 async function prepareOutputDir() {
   await fs.ensureDir(OUTPUT_DIR);
   console.log(`${OUTPUT_DIR} 폴더가 생성되었거나 이미 존재합니다.`);
 }
 
-prepareOutputDir();
 async function cleanOutput() {
   await fs.ensureDir(OUTPUT_DIR);
   await fs.emptyDir(OUTPUT_DIR);
   console.log('🧼 임시 dist 폴더 초기화 완료:', OUTPUT_DIR);
 }
 
+// 📄 정적 페이지 생성
 async function generatePages() {
   const { data: works, error } = await supabase.from('works').select('*');
   if (error) throw error;
@@ -45,9 +61,10 @@ async function generatePages() {
   }
 }
 
-// 나머지 코드 동일
+// 🚀 전체 실행
 (async () => {
   try {
+    await prepareOutputDir();
     await cleanOutput();
     await generatePages();
     console.log('🎉 모든 정적 페이지 생성 완료!');
@@ -60,7 +77,7 @@ async function generatePages() {
   }
 })();
 
-// 슬러그 생성 함수도 기존대로 유지
+// 🔤 슬러그 변환 함수
 function slugify(str) {
   return str
     .toLowerCase()
