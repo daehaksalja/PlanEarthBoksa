@@ -2,84 +2,99 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>관리자 대시보드</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <title>PLANEARTH 관리자 로그인</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@700&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: 'Nanum Gothic', Arial, sans-serif;
-      background: #f5f6fa;
+      background: linear-gradient(120deg, #232526, #414345);
       min-height: 100vh;
       margin: 0;
+      font-family: 'Nanum Gothic', 'Malgun Gothic', Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .login-container {
+      background: #191a1d;
+      border-radius: 20px;
+      box-shadow: 0 8px 32px 0 rgba(31,38,135,0.24);
+      padding: 44px 40px 34px 40px;
+      width: 340px;
+      max-width: 92vw;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
+      gap: 24px;
+      margin-top: 60px;
+      border: 1px solid #2d2e31;
     }
-    .dashboard-container {
-      margin-top: 70px;
-      background: #fff;
-      border-radius: 18px;
-      box-shadow: 0 2px 14px #d4e6ff40;
-      padding: 36px 40px 30px 40px;
-      min-width: 320px;
-      max-width: 95vw;
-      text-align: center;
-      border: 1.5px solid #dbe5ee;
+    .login-title {
+      font-size: 2rem;
+      color: #00bfff;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+      font-family: 'Nanum Gothic', Arial, sans-serif;
     }
-    .user-email {
-      color: #0075c4;
-      font-weight: bold;
-      margin-bottom: 20px;
-      font-size: 1.1rem;
+    .login-desc {
+      font-size: 1rem;
+      color: #b1b3b7;
+      margin-bottom: 12px;
+      letter-spacing: 0.3px;
     }
-    .logout-btn {
-      padding: 10px 24px;
+    .login-form {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .login-form input {
+      background: #25262b;
+      border: 1.2px solid #33343a;
       border-radius: 9px;
-      border: none;
-      background: linear-gradient(93deg, #92e4ff 30%, #00bfff 100%);
+      padding: 13px 15px;
+      font-size: 1rem;
+      color: #f2f5fa;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .login-form input:focus {
+      border-color: #00bfff;
+    }
+    .login-form button {
+      margin-top: 2px;
+      padding: 13px 0;
+      background: linear-gradient(90deg, #00bfff 60%, #24c6dc 100%);
       color: #fff;
-      font-size: 1.07rem;
+      border: none;
+      border-radius: 9px;
+      font-size: 1.1rem;
       font-weight: bold;
       cursor: pointer;
-      box-shadow: 0 2px 10px #aee7ff60;
+      box-shadow: 0 3px 14px rgba(24, 160, 255, 0.11);
+      letter-spacing: 0.4px;
       transition: background 0.18s;
     }
-    .logout-btn:hover {
-      background: linear-gradient(93deg, #a3f3fe 10%, #1690c6 100%);
+    .login-form button:hover {
+      background: linear-gradient(90deg, #19c5e0 60%, #0070ba 100%);
+    }
+    @media (max-width: 420px) {
+      .login-container { padding: 26px 6vw 22px 6vw; }
+      .login-title { font-size: 1.3rem; }
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
-  <div class="dashboard-container">
-    <div class="user-email" id="user-email">관리자 확인 중...</div>
-    <button class="logout-btn" id="logout-btn">로그아웃</button>
+  <div class="login-container">
+    <div class="login-title">PLANEARTH</div>
+    <div class="login-desc">관리자 로그인</div>
+    <form id="login-form" class="login-form">
+      <input type="email" id="email" placeholder="이메일" autocomplete="username" required />
+      <input type="password" id="password" placeholder="비밀번호" autocomplete="current-password" required />
+      <button type="submit">로그인</button>
+    </form>
   </div>
-  <script>
-    // Supabase 연결
-    const SUPABASE_URL = "https://feprvneoartflrnmefxz.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_LW3f112nFPSSUUNvrXl19A__y73y2DE";
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // 현재 로그인된 유저 정보 가져오기
-    async function checkLogin() {
-      const { data, error } = await supabase.auth.getUser();
-      if (!data || !data.user) {
-        // 로그인 안 되어 있으면 로그인 페이지로 이동
-        window.location.href = "login.html";
-        return;
-      }
-      // 이메일 표시
-      document.getElementById("user-email").textContent =
-        "환영합니다! " + data.user.email + " 님";
-    }
-
-    checkLogin();
-
-    // 로그아웃 버튼
-    document.getElementById("logout-btn").addEventListener("click", async () => {
-      await supabase.auth.signOut();
-      window.location.href = "login.html";
-    });
-  </script>
+  <script src="login.js"></script>
 </body>
 </html>
