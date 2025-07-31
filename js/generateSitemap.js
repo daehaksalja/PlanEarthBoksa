@@ -25,7 +25,8 @@ console.error(`❌ 대상 폴더가 존재하지 않습니다: ${DIST_DIR}`);
     return;
   }
 
-  const files = fs.readdirSync(DIST_DIR).filter(f => f.endsWith('.html'));
+  const files = fs.readdirSync(DIST_DIR).filter(f => /^[0-9]{4}-.+\.html$/.test(f));
+
   const dynamicUrls = files.map(filename => ({
     loc: `${DOMAIN}/${filename}`,
     priority: '0.6',
