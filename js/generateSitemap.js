@@ -2,15 +2,15 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');  // 추가
 
-const DOMAIN = 'https://www.moongsoon.xyz';
+const DOMAIN = 'https://www.planearth.co.kr';
 // 임시 폴더 내 dist 경로로 변경
-const DIST_DIR = path.join(os.tmpdir(), 'dist');  // /tmp/dist (윈도우는 %TEMP%)
-const SITEMAP_PATH = path.join(__dirname, '..', 'sitemap.xml');
+const DIST_DIR = path.join(__dirname, '..'); // HTML은 루트에 있으니까!
+const SITEMAP_PATH = path.join(__dirname, '..', 'sitemap.xml'); // 루트에 바로 저장
 
 console.log('✅ sitemap 생성 대상 경로:', SITEMAP_PATH);
 
 function generateSitemap() {
-  // public 폴더 없으면 생성
+  // public 폴더 없으면 생성 해보자
   fs.mkdirSync(path.dirname(SITEMAP_PATH), { recursive: true });
 
   // 기존 sitemap 삭제
@@ -21,13 +21,13 @@ function generateSitemap() {
 
   // dist 폴더가 존재하지 않으면 에러 방지용 처리
   if (!fs.existsSync(DIST_DIR)) {
-    console.error(`❌ dist 폴더가 존재하지 않습니다: ${DIST_DIR}`);
+console.error(`❌ 대상 폴더가 존재하지 않습니다: ${DIST_DIR}`);
     return;
   }
 
   const files = fs.readdirSync(DIST_DIR).filter(f => f.endsWith('.html'));
   const dynamicUrls = files.map(filename => ({
-    loc: `${DOMAIN}/works/${filename}`,
+    loc: `${DOMAIN}/${filename}`,
     priority: '0.6',
   }));
 
