@@ -35,8 +35,7 @@ console.error(`❌ 대상 폴더가 존재하지 않습니다: ${DIST_DIR}`);
   const staticUrls = [
     { loc: `${DOMAIN}/`, priority: '1.0' },
     { loc: `${DOMAIN}/works`, priority: '0.8' },
-    { loc: `${DOMAIN}/workshop`, priority: '0.8' },
-    { loc: `${DOMAIN}/works-detail`, priority: '0.7' },
+    { loc: `${DOMAIN}/workshop`, priority: '0.8' }
   ];
 
   const allUrls = [...staticUrls, ...dynamicUrls];
