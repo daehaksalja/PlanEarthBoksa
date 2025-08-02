@@ -10,17 +10,30 @@ let startX = 0;
 let currentTranslate = 0;
 let isDragging = false;
 function sendPageView(work) {
-  if (typeof gtag !== 'function') {
-    console.warn('⏳ gtag 아직 준비 안 됨. 재시도 예정...');
-    setTimeout(() => sendPageView(work), 200);
-    return;
+  const maxRetries = 10;
+  let attempt = 0;
+
+  function trySend() {
+    if (typeof gtag !== 'function') {
+      attempt++;
+      if (attempt < maxRetries) {
+        console.warn('⏳ gtag 아직 준비 안 됨. 재시도', attempt);
+        return setTimeout(trySend, 300);  // 0.3초 간격으로 최대 10번 재시도
+      } else {
+        console.error('❌ gtag 준비 실패. page_view 전송 못함');
+        return;
+      }
+    }
+
+    gtag('event', 'page_view', {
+      page_title: `${work.title} | PLANEARTH`,
+      page_path: `/works-detail.html?id=${workId}`
+    });
+    console.log('✅ page_view 전송됨:', work.title);
   }
 
-  gtag('event', 'page_view', {
-    page_title: `${work.title} | PLANEARTH`,
-    page_path: `/works-detail.html?id=${workId}`
-  });
-}
+  trySend();
+}       
 
 async function loadWorkAndImages() {
   // 1. works 정보 불러오기
