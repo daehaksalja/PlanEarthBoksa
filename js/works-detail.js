@@ -28,6 +28,14 @@ async function loadWorkAndImages() {
   document.getElementById('work-subtitle').textContent = work.subtitle || '';
   document.getElementById('work-since').textContent = work.since || '';
 
+
+
+  // ✅ GA4 페이지뷰 수동 전송
+  gtag('event', 'page_view', {
+    page_title: `${work.title} | PLANEARTH`,
+    page_path: `/works-detail.html?id=${workId}`
+  });
+
   // 2. images 정보 불러오기
   const { data: imgs, error: imgError } = await supabase
     .from('images')
