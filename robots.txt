@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
-
+Disallow: /works-detail.html
 Sitemap: https://www.planearth.co.kr/sitemap.xml
