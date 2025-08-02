@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8" />
   <title>K 글램핑 리조트 | PLANEARTH</title>
@@ -15,12 +16,12 @@
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-R3JKJ43QRD"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
-    function gtag(){ dataLayer.push(arguments); }
+    function gtag() { dataLayer.push(arguments); }
     gtag('js', new Date());
 
-    // ✅ 구글 애널리틱스에서 페이지 경로를 정적 페이지처럼 명시적으로 지정
     gtag('config', 'G-R3JKJ43QRD', {
-      page_path: '/7-{{slug}}.html'
+      page_path: '/7-{{slug}}.html',
+      page_title: 'K 글램핑 리조트 | PLANEARTH'
     });
   </script>
 
@@ -28,7 +29,7 @@
   <script>
     const isBot = /bot|crawl|slurp|spider/i.test(navigator.userAgent);
     if (!isBot) {
-       document.documentElement.classList.add('notbot');
+      document.documentElement.classList.add('notbot');
       setTimeout(() => {
         window.location.replace("https://www.planearth.co.kr/works-detail.html?id=7");
       }, 500); // 0.5초 기다려서 GA 실행되게 함
@@ -37,16 +38,17 @@
 
 
 
-  
+
   <!-- ✅ 사용자 화면 깜빡임 방지 -->
   <style>
-  /* 봇 아닌 유저만 화면 숨기기 */
-  html.notbot body {
-    display: none;
-  }
-</style>
-  
+    /* 봇 아닌 유저만 화면 숨기기 */
+    html.notbot body {
+      display: none;
+    }
+  </style>
+
 </head>
+
 <body>
   <!-- ✅ SEO를 위한 크롤링 대상 콘텐츠 -->
   <h1>K 글램핑 리조트</h1>
@@ -55,9 +57,10 @@
   <img src="https://object.planearth.co.kr/works/0007_K_Glamping_Resort1.png" alt="K 글램핑 리조트" style="max-width:100%; height:auto;" />
 
   <p>
-   PLANEARTH Architects, founded by architect Park Jun-hyun in Seoul,<br />
-  creates brand-driven spaces that blend into everyday life through integrated design.
+    PLANEARTH Architects, founded by architect Park Jun-hyun in Seoul,<br />
+    creates brand-driven spaces that blend into everyday life through integrated design.
     <a href="https://www.planearth.co.kr/works-detail.html?id=7">click here</a>.
-</p>
+  </p>
 </body>
+
 </html>
