@@ -11,29 +11,41 @@
   <link rel="canonical" href="https://www.planearth.co.kr/works-detail.html?id=16" />
   <meta name="robots" content="noindex, nofollow">
 
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3JKJ43QRD"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+  <!-- ✅ Google Analytics 코드 삽입 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-R3JKJ43QRD"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    gtag('js', new Date());
 
-  gtag('config', 'G-R3JKJ43QRD');
-</script>
+    // ✅ 구글 애널리틱스에서 페이지 경로를 정적 페이지처럼 명시적으로 지정
+    gtag('config', 'G-R3JKJ43QRD', {
+      page_path: '/16-{{slug}}.html'
+    });
+  </script>
+
+  <!-- ✅ 봇이 아니면 리디렉션 (딜레이 포함) -->
+  <script>
+    const isBot = /bot|crawl|slurp|spider/i.test(navigator.userAgent);
+    if (!isBot) {
+       document.documentElement.classList.add('notbot');
+      setTimeout(() => {
+        window.location.replace("https://www.planearth.co.kr/works-detail.html?id=16");
+      }, 500); // 0.5초 기다려서 GA 실행되게 함
+    }
+  </script>
 
 
 
   
   <!-- ✅ 사용자 화면 깜빡임 방지 -->
-  <style>body { display: none; }</style>
-
-  <!-- ✅ 봇이 아니면 디테일 페이지로 즉시 이동 -->
-  <script>
-    const isBot = /bot|crawl|slurp|spider/i.test(navigator.userAgent);
-    if (!isBot) {
-      window.location.replace("https://www.planearth.co.kr/works-detail.html?id=16");
-    }
-  </script>
+  <style>
+  /* 봇 아닌 유저만 화면 숨기기 */
+  html.notbot body {
+    display: none;
+  }
+</style>
+  
 </head>
 <body>
   <!-- ✅ SEO를 위한 크롤링 대상 콘텐츠 -->
