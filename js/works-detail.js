@@ -9,33 +9,7 @@ let currentIndex = 0;
 let startX = 0;
 let currentTranslate = 0;
 let isDragging = false;
-function sendPageView(work) {
-  console.log('🔥 sendPageView 진입', work.title);
 
-  const maxRetries = 10;
-  let attempt = 0;
-
-  function trySend() {
-    console.log(`🔁 gtag 체크중... attempt ${attempt}`);
-    if (typeof gtag !== 'function') {
-      attempt++;
-      if (attempt < maxRetries) {
-        return setTimeout(trySend, 300);
-      } else {
-        console.error('❌ gtag 준비 실패. page_view 전송 못함');
-        return;
-      }
-    }
-
-    console.log('✅ gtag 준비됨! page_view 전송!');
-    gtag('event', 'page_view', {
-      page_title: `${work.title} | PLANEARTH`,
-      page_path: `/works-detail.html?id=${workId}`
-    });
-  }
-
-  trySend();
-}
 
 
 async function loadWorkAndImages() {
@@ -58,7 +32,7 @@ async function loadWorkAndImages() {
   document.getElementById('work-subtitle').textContent = work.subtitle || '';
   document.getElementById('work-since').textContent = work.since || '';
 
-  sendPageView(work);
+
 
   // 2. images 정보 불러오기
   const { data: imgs, error: imgError } = await supabase
