@@ -9,6 +9,18 @@ let currentIndex = 0;
 let startX = 0;
 let currentTranslate = 0;
 let isDragging = false;
+function sendPageView(work) {
+  if (typeof gtag !== 'function') {
+    console.warn('⏳ gtag 아직 준비 안 됨. 재시도 예정...');
+    setTimeout(() => sendPageView(work), 200);
+    return;
+  }
+
+  gtag('event', 'page_view', {
+    page_title: `${work.title} | PLANEARTH`,
+    page_path: `/works-detail.html?id=${workId}`
+  });
+}
 
 async function loadWorkAndImages() {
   // 1. works 정보 불러오기
@@ -27,23 +39,8 @@ async function loadWorkAndImages() {
   document.getElementById('work-title').textContent = work.title || '';
   document.getElementById('work-subtitle').textContent = work.subtitle || '';
   document.getElementById('work-since').textContent = work.since || '';
+sendPageView(work);
 
-sendPageView(work); // ← 이거 까먹으면 안 됨
-
-
-function sendPageView(work) {
-  // gtag가 아직 준비 안 됐으면 대기
-  if (typeof gtag !== 'function') {
-    console.warn('⏳ gtag 아직 준비 안 됨. 재시도 예정...');
-    setTimeout(() => sendPageView(work), 200); // 0.2초 뒤 재시도
-    return;
-  }
-  // ✅ GA4 페이지뷰 수동 전송
-  gtag('event', 'page_view', {
-    page_title: `${work.title} | PLANEARTH`,
-    page_path: `/works-detail.html?id=${workId}`
-  });
-}
   // 2. images 정보 불러오기
   const { data: imgs, error: imgError } = await supabase
     .from('images')
