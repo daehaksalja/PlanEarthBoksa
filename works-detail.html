@@ -13,7 +13,13 @@
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
-  
+    // ✅ 반드시 아래 설정 추가!
+  gtag('js', new Date());
+
+  // ✅ 요거! 자동 전송 막고 우리가 직접 보내게끔 설정
+  gtag('config', 'G-R3JKJ43QRD', {
+    send_page_view: false
+  });
 </script>
 
   <meta name="robots" content="noindex, nofollow">
