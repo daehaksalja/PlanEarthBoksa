@@ -10,33 +10,37 @@ let startX = 0;
 let currentTranslate = 0;
 let isDragging = false;
 function sendPageView(work) {
+  console.log('🔥 sendPageView 진입', work.title);
+
   const maxRetries = 10;
   let attempt = 0;
 
   function trySend() {
+    console.log(`🔁 gtag 체크중... attempt ${attempt}`);
     if (typeof gtag !== 'function') {
       attempt++;
       if (attempt < maxRetries) {
-        console.warn('⏳ gtag 아직 준비 안 됨. 재시도', attempt);
-        return setTimeout(trySend, 300);  // 0.3초 간격으로 최대 10번 재시도
+        return setTimeout(trySend, 300);
       } else {
         console.error('❌ gtag 준비 실패. page_view 전송 못함');
         return;
       }
     }
 
+    console.log('✅ gtag 준비됨! page_view 전송!');
     gtag('event', 'page_view', {
       page_title: `${work.title} | PLANEARTH`,
       page_path: `/works-detail.html?id=${workId}`
     });
-    console.log('✅ page_view 전송됨:', work.title);
   }
 
   trySend();
-}       
+}
+
 
 async function loadWorkAndImages() {
-  // 1. works 정보 불러오기
+  console.log('📡 loadWorkAndImages 시작됨');
+
   const { data: work, error: workError } = await supabase
     .from('works')
     .select('*')
@@ -48,11 +52,13 @@ async function loadWorkAndImages() {
     return;
   }
 
-  // 타이틀 영역에 텍스트 삽입
+  console.log('✅ 프로젝트 불러오기 성공', work);
+
   document.getElementById('work-title').textContent = work.title || '';
   document.getElementById('work-subtitle').textContent = work.subtitle || '';
   document.getElementById('work-since').textContent = work.since || '';
-sendPageView(work);
+
+  sendPageView(work);
 
   // 2. images 정보 불러오기
   const { data: imgs, error: imgError } = await supabase
