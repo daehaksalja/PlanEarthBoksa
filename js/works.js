@@ -44,7 +44,7 @@ async function loadWorks() {
   const { data, error } = await supabase
     .from('works')
     .select('*')
-    .order('id', { ascending: true });
+    .order('works_order_index', { ascending: true });
 
   if (error) {
     alert('DB 로드 오류! ' + error.message);
