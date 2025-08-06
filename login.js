@@ -15,7 +15,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     });
 
     if (error) {
-      alert("로그인 실패! " + error.message);
+      alert("로그인 실패다!" + error.message);
       return;
     }
 
