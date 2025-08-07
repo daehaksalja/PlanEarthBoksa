@@ -39,7 +39,7 @@ async function loadWorkAndImages() {
     .from('images')
     .select('*')
     .eq('work_id', workId)
-    .order('id', { ascending: true });
+    .order('images_order_index', { ascending: true });
 
   if (imgError || !imgs || imgs.length === 0) {
     document.getElementById('gallery').innerHTML = '이미지 없음';
