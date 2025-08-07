@@ -8,22 +8,14 @@
   <meta property="og:title" content="진지앙호텔 | PLANEARTH" />
   <meta property="og:description" content="JinjiangInn Hotel - 진지앙호텔" />
   <meta property="og:image" content="https://object.planearth.co.kr/works/0040_JinjiangInn_Hotel1.png" />
-  <meta property="og:url" content="https://www.planearth.co.kr/works-detail.html?id=40" />
-  <link rel="canonical" href="https://www.planearth.co.kr/works-detail.html?id=40" />
+
+  <meta property="og:url" content="https://www.planearth.co.kr/0040-jinjianginn-hotel.html" />
+<link rel="canonical" href="https://www.planearth.co.kr/0040-jinjianginn-hotel.html" />
+
   <meta name="robots" content="index, follow">
 
 
-  <!-- ✅ Google Analytics 코드 삽입
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-R3JKJ43QRD"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  // ✅ 자동 전송만 사용!
-  gtag('config', 'G-R3JKJ43QRD');
-</script> -->
-
+ 
 <script data-goatcounter="https://jmlee710000.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
 
@@ -32,7 +24,9 @@
 
   <!-- ✅ 봇이 아니면 리디렉션 (딜레이 포함) -->
   <script>
-    const isBot = /bot|crawl|slurp|spider/i.test(navigator.userAgent);
+    const ua = navigator.userAgent || "";
+const isBot = /(bot|crawl|slurp|spider|google|baidu|yandex|facebook|twitter|embedly|pinterest|whatsapp|preview|linkedin|quora|reddit|vk)/i.test(ua) || ua.length < 10;
+
     if (!isBot) {
       document.documentElement.classList.add('notbot');
       setTimeout(() => {
