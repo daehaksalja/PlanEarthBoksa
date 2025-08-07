@@ -1,0 +1,417 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Nanum Gothic', 'Malgun Gothic', 'Dotum', 'AppleGothic', 'gulim', sans-serif;
+  font-size: 13px;
+  font-weight: normal;
+  color: #6d6e71;
+  background-color: #fff;
+  line-height: 1.48;
+  -webkit-text-size-adjust: none;
+}
+
+/*{
+  outline: 1px solid red !important;
+} */
+.container {
+  width: 100%;
+  max-width: 898px;
+
+  margin: 0 auto;
+  padding: 0;
+  opacity: 0;
+  transform: translateY(15px);
+  animation: fadeInAll 1s ease-out forwards;
+  box-sizing: border-box;
+  /* 이거 무조건! */
+  padding: 0 24px;
+  /* 양옆 24px 패딩! */
+}
+
+
+
+@keyframes fadeInAll {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+h1 {
+  text-align: center;
+  font-size: clamp(8px, 6vw, 28px);
+  letter-spacing: 0.1em;
+  color: #222;
+  margin: 46px 0 20px 0;
+  white-space: nowrap;
+     font-family: 'Nanum Gothic', 'Malgun Gothic', 'Dotum', 'AppleGothic', sans-serif;
+
+}
+
+@font-face {
+  font-family: 'Nanum Gothic ExtraBold';
+  src: url('/assets/fonts/NanumGothic-ExtraBold.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+}
+
+
+.earth-bold {
+  font-size: 1em;
+  /* h1보다 30% 더 크게 */
+  font-family: 'Nanum Gothic ExtraBold';
+  font-weight: 800;
+}
+
+
+
+/* works.css 파일 마지막에 붙여넣기! */
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: color .2s;
+}
+
+
+
+section {
+  margin-bottom: 40px;
+}
+
+p {
+  margin: 0 0 10px 0;
+}
+
+.contact {
+  margin-top: 45px;
+  font-size: 13px;
+  color: #666;
+}
+
+.email a {
+  color: #0073e6;
+  text-decoration: none;
+}
+
+.email a:hover {
+  text-decoration: underline;
+}
+
+
+
+
+
+
+
+
+.works-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 10px 0px;
+  width: 100%;
+  margin: 0 auto;
+  justify-items: center;
+}
+
+
+
+.work-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #ffffff;
+  border-radius: 15px;
+  padding: 8px 5px 10px 5px;
+  transition: box-shadow .22s, transform .20s cubic-bezier(.23, 1.12, .55, .98);
+  /* <-- 추가 */
+  width: 100%;
+  max-width: 136px;
+  min-width: 0;
+}
+
+.work-item:hover {
+  box-shadow: 0 8px 28px 0 rgba(0, 0, 0, 0.14)!important;
+  /* 그림자 더 진하게 */
+  transform: translateY(-4px) scale(1.09);
+  /* 살짝 위로+확대 */
+  z-index: 2;
+  /* 겹쳤을 때 위로 */
+}
+
+.work-item img {
+  width: 136px;
+  height: 136px;
+  object-fit: cover;
+  border-radius: 0px;
+  margin-bottom: 13px;
+  background: #ffffff;
+ 
+  display: block;
+}
+
+.work-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #5d5d5d;
+  text-align: center;
+  margin-bottom: 0;
+}
+/* * {
+  outline: 1px solid red !important;
+} */
+.work-title span {
+  display: block;
+  font-size: 12px;
+  font-weight: normal;
+  color: #888;
+  margin-top: 2px;
+}
+
+
+@media (max-width: 338px) {
+  .work-item {
+    transform: scale(1.4); /* ✅ 전체 박스 크기 증가 */
+    transform-origin: center top;
+    transition: transform 0.3s ease;
+  }
+.works-grid {
+    gap: 100px 0px; /* ← 세로 간격 늘림 */
+  }
+   /* ✅ 폰트만 줄이기 */
+
+  .work-title {
+    font-size: 8px !important;
+  }
+
+  .work-title span {
+    font-size: 5px !important;
+  }
+
+  .work-item img {
+    transform: none !important; /* ❌ 중복 스케일 방지 */
+  }
+}
+
+/* 포커스(파란 테두리, 그림자) 완전 OFF */
+
+/* 모바일 터치 잉크(파란 터치) 완전 OFF */
+  * {
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+
+*:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}  
+
+
+
+
+
+
+
+/* 순서저장버튼 */
+
+
+.save-order-btn {
+  color: rgb(0, 0, 0);
+  text-transform: uppercase;
+  text-decoration: none;
+  border: 2px solid rgb(0, 0, 0);
+  padding: 10px 20px;
+  font-size: 17px;
+  cursor: pointer;
+  font-weight: bold;
+  background: transparent;
+  position: relative;
+  transition: all 1s;
+  overflow: hidden;
+  
+  position: fixed;
+  left: 50%;
+  bottom: 24px;    /* 화면 아래에서 24px 위 */
+  transform: translateX(-50%);
+  z-index: 99999;  /* 무조건 맨 위에 올라오게 */
+  min-width: 180px;
+  max-width: 300px;
+  white-space: nowrap; /* 줄바꿈 절대 방지 */
+  box-shadow: 0 8px 32px 0 #bbb6;
+}
+
+.save-order-bg {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.08);   /* 살짝 투명 */
+  backdrop-filter: blur(10px);          /* ✨ 블러효과 */
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 1;
+  transition: background 0.3s;
+}
+.save-order-btn:hover {
+  color: white;
+}
+.save-order-text {
+     font-family: 'Nanum Gothic', 'Malgun Gothic', 'Dotum', 'AppleGothic', sans-serif;
+  position: relative;
+   top: 2px;   /* ← 2px~5px 정도로 조절해봐! */ 
+  z-index: 2; /* 블러보다 위로! */
+}
+
+.save-order-btn::before {
+  content: "";
+  position: absolute;
+  height: 100%;
+  width: 0%;
+  top: 0;
+  left: 0px;
+ 
+  background-color: rgb(0, 0, 0);
+  z-index: -1;
+  transition: all 0.7s;
+}
+
+.save-order-btn:hover::before {
+  width: 100%;
+}
+
+
+
+.logout-btn {
+  color: rgb(0, 0, 0);
+  text-transform: uppercase;
+  text-decoration: none;
+  border: 2px solid rgb(0, 0, 0);
+  padding: 5px 18px;   /* ← 요기 padding 바꿔줌 */
+  font-size: 15px;
+  cursor: pointer;
+  font-weight: bold;
+  background: transparent;
+  position: fixed;
+  right: 24px;    /* ← 오른쪽 위로! */
+  top: 24px;
+  transform: none;
+  z-index: 99999;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px 0 #bbb3;
+  transition: all 0.4s;
+}
+.logout-blur-bg {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.08);   /* 살짝 투명 */
+  backdrop-filter: blur(10px);          /* ✨ 블러효과 */
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 1;
+  transition: background 0.3s;
+}
+.logout-btn:hover {
+  color: white;
+}
+.logout-text {
+  position: relative;
+  z-index: 2; /* 블러보다 위로! */
+    top: 2px;   /* ← 2px~5px 정도로 조절해봐! */ 
+  font-family: 'Nanum Gothic', 'Malgun Gothic', 'Dotum', 'AppleGothic', sans-serif;
+}
+
+.logout-btn::before {
+  content: "";
+  position: absolute;
+  height: 100%;
+  width: 0%;
+  top: 0;
+  left: 0px;
+ 
+  background-color: rgb(0, 0, 0);
+  z-index: -1;
+  transition: all 0.7s;
+}
+
+.logout-btn:hover::before {
+  width: 100%;
+}
+
+    
+
+
+
+
+
+
+
+
+#loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255,255,255,0.85);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 스피너 자체는 네가 준 코드 그대로! */
+.loader {
+  width: 120px;
+  height: 150px;
+  background-color: #fff;
+  background-repeat: no-repeat;
+  background-image: linear-gradient(#ddd 50%, #bbb 51%),
+    linear-gradient(#ddd, #ddd), linear-gradient(#ddd, #ddd),
+    radial-gradient(ellipse at center, #aaa 25%, #eee 26%, #eee 50%, #0000 55%),
+    radial-gradient(ellipse at center, #aaa 25%, #eee 26%, #eee 50%, #0000 55%),
+    radial-gradient(ellipse at center, #aaa 25%, #eee 26%, #eee 50%, #0000 55%);
+  background-position: 0 20px, 45px 0, 8px 6px, 55px 3px, 75px 3px, 95px 3px;
+  background-size: 100% 4px, 1px 23px, 30px 8px, 15px 15px, 15px 15px, 15px 15px;
+  position: relative;
+  border-radius: 6%;
+  animation: shake 3s ease-in-out infinite;
+  transform-origin: 60px 180px;
+}
+.loader:before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 100%;
+  width: 7px;
+  height: 5px;
+  background: #aaa;
+  border-radius: 0 0 4px 4px;
+  box-shadow: 102px 0 #aaa;
+}
+.loader:after {
+  content: "";
+  position: absolute;
+  width: 95px;
+  height: 95px;
+  left: 0;
+  right: 0;
+  margin: auto;
+  bottom: 20px;
+  background-color: #bbdefb;
+  background-image: 
+    linear-gradient( to right, #0004 0%, #0004 49%, #0000 50%, #0000 100% ),
+    linear-gradient(135deg, #64b5f6 50%, #607d8b 51%);
+  background-size: 30px 100%, 90px 80px;
+  border-radius: 50%;
+  background-repeat: repeat, no-repeat;
+  background-position: 0 0;
+  box-sizing: border-box;
+  border: 10px solid #DDD;
+  box-shadow: 0 0 0 4px #999 inset, 0 0 6px 6px #0004 inset;
+  animation: spin 3s ease-in-out infinite;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg) }
+  50% { transform: rotate(360deg) }
+  75% { transform: rotate(750deg) }
+  100% { transform: rotate(1800deg) }
+}
+@keyframes shake {
+  65%, 80%, 88%, 96% { transform: rotate(0.5deg) }
+  50%, 75%, 84%, 92% { transform: rotate(-0.5deg) }
+  0%, 50%, 100%  { transform: rotate(0) }
+}
