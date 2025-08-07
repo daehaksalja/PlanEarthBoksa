@@ -351,7 +351,95 @@ p {
   display: flex;
   align-items: center;
   justify-content: center;
+   opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.38s cubic-bezier(.4,0,.2,1), backdrop-filter 0.38s cubic-bezier(.4,0,.2,1);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
 }
+#loading-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 56px;
+  transform: translateX(-50%) scale(1);
+  min-width: 210px;
+  max-width: 92vw;
+  padding: 18px 30px;
+  color: #181818;
+  font-size: 1.13rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow:
+    0 8px 24px 0 #a5b6d81c,
+    0 2px 8px #b8c4dd66,
+    0 1px 1px #eef3fc;
+  border: 2.7px solid #111; /* <-- 찐 검은 테두리! */
+  opacity: 0;
+  pointer-events: none;
+  z-index: 999999;
+  transition: opacity .27s cubic-bezier(.7,0,.3,1), transform .27s cubic-bezier(.7,0,.3,1);
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  user-select: none;
+  overflow: hidden;
+  font-family: 'Nanum Gothic', 'Jua', Arial, sans-serif;
+  backdrop-filter: blur(1.5px);
+ 
+}
+
+.toast.show {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) scale(1.07);
+}
+.toast .toast-icon {
+  font-size: 2.05rem;
+  filter: drop-shadow(0 2px 8px #b9e1ff55);
+  animation: pop 0.36s cubic-bezier(.7,0,.3,1);
+  margin-right: 8px;
+  z-index: 1;
+}
+.toast .toast-message {
+  z-index: 1;
+  text-shadow: 0 1px 0 rgb(255, 255, 255)rgba(0, 0, 0, 0.2)0px #00000033;
+}
+@keyframes pop {
+  0%   { transform: scale(0.13) rotate(-10deg);}
+  60%  { transform: scale(1.20) rotate(4deg);}
+  100% { transform: scale(1.0) rotate(0);}
+}
+
+
+/* 성공(초록) 토스트 아이콘 배경 */
+.colored-toast.swal2-icon-success {
+  background-color: #000000 !important;
+}
+.colored-toast .swal2-title {
+  color: #ffffff !important; /* 원하는 텍스트 색상! */
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+.swal2-timer-progress-bar {
+  background:#ffffff;
+  height: 4px !important;
+  opacity: 1 !important;
+  display: block !important;
+    border-radius: 0 !important;
+}
+.swal2-popup.colored-toast {
+  border-radius: 0 !important;
+}
+
+
 
 /* 스피너 자체는 네가 준 코드 그대로! */
 .loader {

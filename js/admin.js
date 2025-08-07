@@ -2,6 +2,17 @@ const supabase = window.supabase.createClient(
   'https://feprvneoartflrnmefxz.supabase.co',
   'sb_publishable_LW3f112nFPSSUUNvrXl19A__y73y2DE'
 );
+// 20개 단위로 안전하게 병렬 업데이트
+async function updateInChunks(updates, chunkSize = 20) {
+  for (let i = 0; i < updates.length; i += chunkSize) {
+    const chunk = updates.slice(i, i + chunkSize);
+    await Promise.all(chunk.map(row =>
+      supabase.from('works')
+        .update({ works_order_index: row.works_order_index })
+        .eq('id', row.id)
+    ));
+  }
+}
 
 async function loadWorks() {
   const { data, error } = await supabase
@@ -44,10 +55,39 @@ function setTitleFontSizeByLength(selector, baseFontSize = 15, minFontSize = 10)
 }
 
 function showLoading() {
-  document.getElementById('loading-overlay').style.display = 'flex';
+  const overlay = document.getElementById('loading-overlay'); // 꼭 선언!
+  overlay.style.display = 'flex';
+  setTimeout(() => overlay.classList.add('active'), 10);
 }
+
 function hideLoading() {
-  document.getElementById('loading-overlay').style.display = 'none';
+  const overlay = document.getElementById('loading-overlay'); // 꼭 선언!
+  overlay.classList.remove('active');
+  setTimeout(() => { overlay.style.display = 'none'; }, 400);
+}
+// function showToast(message, icon = "") {
+//   const toast = document.getElementById('toast');
+//   toast.innerHTML = `<span class="toast-icon">${icon}</span>${message}`;
+//   toast.classList.add('show');
+//   clearTimeout(toast._timer);
+//   toast._timer = setTimeout(() => {
+//     toast.classList.remove('show');
+//   }, 2100); // 2.1초 보여주고 사라짐
+// }
+function showSweetToast(message = "Success!", icon = "success", time = 1500) {
+  Swal.fire({
+    toast: true,
+    position: 'center',
+    icon: icon,             // 'success' | 'info' | 'warning' | 'error' | 'question'
+    title: message,
+    iconColor: 'white',     // 아이콘 흰색
+    customClass: {
+      popup: 'colored-toast'
+    },
+    showConfirmButton: false,
+    timer: time,
+    timerProgressBar: true
+  });
 }
 
 
@@ -57,6 +97,7 @@ new Sortable(document.getElementById('works-grid'), {
   ghostClass: 'sortable-ghost',
 });
 
+// ✅ 순서 저장
 // ✅ 순서 저장
 document.getElementById('save-order').addEventListener('click', async () => {
   console.log('🟡 순서 저장 버튼 클릭됨');
@@ -72,23 +113,23 @@ document.getElementById('save-order').addEventListener('click', async () => {
     updates.push({ id, works_order_index: indexNum });
   });
 
-  for (const row of updates) {
-    const { error } = await supabase
-      .from('works')
-      .update({ works_order_index: row.works_order_index })
-      .eq('id', row.id);
 
-    if (error) {
-      console.error(`❌ 업데이트 실패 (id: ${row.id})`, error);
-    } else {
-      console.log(`✅ 업데이트 성공 (id: ${row.id})`);
-    }
-  }
+    // 2. 전부 널로 초기화! (이거는 한 번에 보내도 안전함)
+  await Promise.all(updates.map(row =>
+    supabase.from('works')
+      .update({ works_order_index: null })
+      .eq('id', row.id)
+  ));
+
+  // 🟡 이 한줄! 20개 단위로 병렬 업데이트
+  await updateInChunks(updates, 20);
 
 
-  alert('✅ 순서 저장 완료!');
-   hideLoading();
+
+  showSweetToast("Operation complete.");
+  hideLoading();
 });
+
 
 // ✅ 로그아웃
 document.getElementById('logout-btn').addEventListener('click', async () => {
