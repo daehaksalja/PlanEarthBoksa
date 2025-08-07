@@ -22,8 +22,7 @@
 
   <!-- ✅ 봇이 아니면 리디렉션 (딜레이 포함) -->
   <script>
-    const ua = navigator.userAgent || "";
-const isBot = /(bot|crawl|slurp|spider|google|baidu|yandex|facebook|twitter|embedly|pinterest|whatsapp|preview|linkedin|quora|reddit|vk)/i.test(ua) || ua.length < 10;
+    const isBot = /bot|crawl|slurp|spider/i.test(navigator.userAgent);
     if (!isBot) {
       document.documentElement.classList.add('notbot');
       setTimeout(() => {
