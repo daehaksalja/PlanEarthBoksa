@@ -103,6 +103,7 @@ body {
   .login-wrapper {
     width: 75vw;
     height: 60vw;
+    margin-top: -20vh; /* 이거 추가! 음수로 살짝 위로 당김 */
   }
 
   .login-title {
