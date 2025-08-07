@@ -48,7 +48,7 @@ async function generatePages() {
       .replace(/{{subtitle}}/g, item.subtitle || '')
       .replace(/{{image_url}}/g, item.image_url || '')
       .replace(/{{since}}/g, item.since || '')
-      .replace(/{{slug}}/g, slug); // ✅ 요줄 추가!
+
 
     const outputPath = path.join(OUTPUT_DIR, `${slug}.html`);
     await fs.writeFile(outputPath, html);
