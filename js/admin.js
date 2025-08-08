@@ -95,6 +95,11 @@ function showSweetToast(message = "Success!", icon = "success", time = 1500) {
 new Sortable(document.getElementById('works-grid'), {
   animation: 200,
   ghostClass: 'sortable-ghost',
+  autoScroll: {
+    scroll: true,
+    speed: 10,
+    sensitivity: 70,
+  }
 });
 
 // ✅ 순서 저장
