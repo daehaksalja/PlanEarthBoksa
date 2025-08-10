@@ -34,7 +34,7 @@ body {
   top: 0;
   z-index: 5;
   position: relative;
-  /* ✅ 기준점 */
+  /* 기준점 */
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -50,7 +50,7 @@ body {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  /* ✅ 진짜 중앙 */
+  /* 진짜 중앙 */
   margin: 0;
   font-size: 18px;
   letter-spacing: .04em;
@@ -102,13 +102,18 @@ body {
 }
 /* 모바일 더 타이트하게 */
 @media (max-width: 520px){
-  .wrap{ padding:12px 0 80px; }      /* 좌우 패딩 0으로 */
+  .wrap{ 
+    padding: 12px 16px 80px;  
+  }
   .row{
     grid-template-columns: minmax(2.2ch, 24px) 22px 52px 1fr auto;
-    gap:8px;
+    gap: 12px;  /*글자와 사진사이간격*/
     padding:8px 10px;
   }
-  .thumb{ width:48px; height:48px; }
+  .thumb{ 
+    width:48px; 
+    height:48px; 
+  }
 }
 .drag {
   background: transparent;
@@ -139,6 +144,7 @@ body {
 
 .meta {
   min-width: 0;
+  margin-top: 4px;  /* 타이틀과 서브타이틀 사이 간격 추가 */
 }
 
 .title {
@@ -148,6 +154,7 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--text);
+  margin-bottom: 3.5px;  /* 타이틀 아래 여백 추가 */
 }
 
 .sub {
@@ -358,4 +365,3 @@ body {
   opacity: .06;
   z-index: 2;
 }
-
