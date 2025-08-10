@@ -4,6 +4,22 @@ const supabase = window.supabase.createClient(
   'sb_publishable_LW3f112nFPSSUUNvrXl19A__y73y2DE'
 );
 
+// 👉 로그인 상태 체크 (페이지 로드 시 자동 실행)
+async function checkAuth() {
+  console.log('🔐 [checkAuth] 로그인 상태 확인 중...');
+  
+  const { data: { user }, error } = await supabase.auth.getUser();
+  
+  if (error || !user) {
+    console.log('❌ [checkAuth] 로그인되지 않음 → 로그인 페이지로 리다이렉트');
+    window.location.href = 'login.html';
+    return false;
+  }
+  
+  console.log('✅ [checkAuth] 로그인 확인됨:', user.email);
+  return true;
+}
+
 // 👉 UI helpers
 const $ = s => document.querySelector(s);
 
@@ -144,6 +160,20 @@ $('#logout-btn').addEventListener('click', async () => {
   location.href = 'login.html';
 });
 
+// 👉 페이지 초기화 (로그인 체크 후 실행)
+async function initPage() {
+  console.log('🚀 [Init] 페이지 초기화 시작');
+  
+  // 로그인 상태 확인
+  const isAuthenticated = await checkAuth();
+  if (!isAuthenticated) {
+    return; // 로그인 체크 실패 시 리다이렉트됨
+  }
+  
+  // 로그인 확인 후 페이지 기능 로드
+  console.log('✅ [Init] 인증 완료 → loadWorks 실행');
+  await loadWorks();
+}
+
 // 시작!
-console.log('🚀 [Init] 페이지 로드 완료 → loadWorks 실행');
-loadWorks();
+initPage();
