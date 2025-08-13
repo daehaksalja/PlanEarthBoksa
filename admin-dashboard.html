@@ -5,29 +5,20 @@
   <title>DASHBOARD WORKS</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   
-  <!-- 보안 강화 -->
+  <!-- 보안/캐시 -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <meta name="robots" content="noindex, nofollow">
 
   <link href="https://fonts.googleapis.com/css2?family=Jua&family=Nanum+Gothic:wght@700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/admin.css" />
+<link rel="stylesheet" href="css/admin.css" />
 
-  <!-- libs (기능은 admin.js에서 처리) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
 
 <body class="scan">
-  <!-- ✅ 메트릭스비(canvas) 제거 완료 -->
-  <!-- <canvas id="matrix" aria-hidden="true"></canvas> -->
-
   <!-- 터미널 타이핑 -->
   <div class="term" id="term"></div>
-
 
   <header class="header">
     <h1>DASHBOARD</h1>
@@ -40,107 +31,102 @@
 
   <button id="save-order" class="save-btn">순서 저장</button>
 
+  <!-- FAB: 추가 버튼 -->
+  <button id="add-work-btn" class="fab hacker-fab" aria-label="건물 추가" title="건물 추가">
+    <svg class="fab-plus" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+    <span class="fab-glitch"></span>
+  </button>
+
+  <!-- 🔽 우측 슬라이드 시트 -->
+  <aside id="edit-sheet" class="sheet" aria-hidden="true">
+    <header class="sheet-head">
+      <h2 id="sheet-title">작품 추가</h2>
+      <button class="sheet-close" id="sheet-close" title="닫기">✕</button>
+    </header>
+
+    <div class="sheet-body">
+      <label class="f">
+        <span>제목 *</span>
+        <input type="text" id="f-title" required>
+      </label>
+
+      <label class="f">
+        <span>부제</span>
+        <input type="text" id="f-subtitle">
+      </label>
+
+      <div class="f">
+        <span>대표 이미지 *</span>
+        <div id="thumb-drop" class="dropzone">
+          <input type="file" id="f-thumb" accept="image/*" hidden>
+          <button id="btn-thumb" type="button">파일 선택</button>
+          <p class="hint">이미지를 끌어다 놓거나, 버튼으로 선택!</p>
+          <img id="thumb-preview" class="thumb-preview" alt="" />
+        </div>
+      </div>
+
+      <div class="f">
+        <span>상세 이미지 (드래그로 순서 변경)</span>
+        <div id="gallery-drop" class="dropzone">
+          <input type="file" id="f-gallery" accept="image/*" multiple hidden>
+          <button id="btn-gallery" type="button">이미지 추가</button>
+          <p class="hint">여러 장 드롭 가능 / 클릭으로도 추가</p>
+        </div>
+        <ul id="gallery-list" class="gallery-list"></ul>
+      </div>
+    </div>
+
+    <footer class="sheet-foot">
+      <button id="sheet-cancel" class="btn ghost" type="button">취소</button>
+      <button id="sheet-save" class="btn primary" type="button">저장</button>
+    </footer>
+  </aside>
+
+  <!-- 시트 배경 -->
+  <div id="sheet-backdrop" class="sheet-backdrop" aria-hidden="true"></div>
+
   <!-- 로딩 오버레이 -->
-  <div id="loading-overlay" aria-hidden="true">
-    <span class="loader"></span>
-  </div>
+  <div id="loading-overlay" aria-hidden="true"><span class="loader"></span></div>
 
-  <!-- 네 기존 기능 JS -->
-  <script src="js/admin.js"></script>
+  <!-- CDN libs -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-  <!-- ✅ 터미널 타이핑만 유지 -->
   <script>
-    // ===== Terminal Typing (loop) =====
-    const term = document.getElementById('term');
-    const queue = [
-  '$ bootseq --init --safe',
-  '$ whoami',
-  '춘식이…인데 왜 불렀냥',
-  '$ nmap -A 10.0.0.42',
-  '호스트 살아있쥬 (0.0031s) — 숨 쉬는 소리 들림',
-  'PORT    STATE SERVICE VERSION',
-  '22/tcp  open  ssh     OpenSSH 9.6 (비밀번호는 "춘구마123")',
-  '80/tcp  open  http    냥진(nginx) — 쿠키 굽는 중',
-  '$ curl -s http://10.0.0.42/health',
-  '{"status":"쌩쌩함","uptime":1337,"lastSnack":"어제고구마냠냠"}',
-  '$ ssh root@10.0.0.42',
-  'ACCESS GRANTED ✔ (근데 발바닥 쿠션 신고 들어가쥬)',
-  '$ ls -la',
-  '간식.txt   낮잠.png   심심함.mp4',
-  '$ cat 간식.txt',
-  '고구마.., 츄르, 치킨... 냠',
-  '$ rm -rf 배고픔',
-  '배고픔: 삭제 완료 — (이제 낮잠 모드)',
-];
-
-
-    // 타이핑 속도 설정
-    const TYPE_BASE = 50;     // 기본 간격(ms)
-    const TYPE_JITTER = 70;  // 랜덤 가감(ms)
-    const LINE_PAUSE = 500;  // 한 줄 끝 휴식(ms)
-
-    let lineIdx = 0, charIdx = 0;
-    let typing = true;        // ✅ 스페이스로 토글
-    let showTerminal = true;  // T로 토글
-    let typeTimer = null;
-
-    function schedule(ms) {
-      if (typeTimer) clearTimeout(typeTimer);
-      typeTimer = setTimeout(typeLoop, ms);
-    }
-
-    function typeLoop(){
-      if (!typing || !showTerminal) { typeTimer = null; return; }
-
-      if (lineIdx >= queue.length){
-        lineIdx = 0; charIdx = 0; term.innerHTML = '';
-      }
-      const text = queue[lineIdx];
-
-      // 현재 줄 엘리먼트 준비
-      let lines = term.querySelectorAll('.line');
-      let el = lines[lines.length-1];
-      if (!el || el.dataset.done === '1'){
-        el = document.createElement('div');
-        el.className = 'line';
-        el.innerHTML = '';
-        term.appendChild(el);
-      }
-
-      // 한 글자씩 출력
-      el.innerHTML = text.slice(0, charIdx) + '<span class="cursor"></span>';
-      charIdx++;
-
-      if (charIdx > text.length){
-        el.innerHTML = text;
-        el.dataset.done = '1';
-        lineIdx++; charIdx = 0;
-        term.scrollTop = term.scrollHeight;
-        schedule(LINE_PAUSE); // 줄 끝나면 잠깐 쉬기
-      } else {
-        schedule(TYPE_BASE + Math.random() * TYPE_JITTER); // 기본+랜덤
-      }
-    }
-
-    // 처음 시작
-    schedule(TYPE_BASE);
-
-    // ===== Controls =====
-    addEventListener('keydown', (e)=>{
-      // ✅ SPACE: 타이핑 pause/resume
-      if (e.code === 'Space'){
-        typing = !typing;
-        if (typing && !typeTimer) schedule(TYPE_BASE);
-        e.preventDefault();
-      }
-      // ✅ T: 터미널 표시 토글
-      if (e.key.toLowerCase() === 't'){
-        showTerminal = !showTerminal;
-        term.style.display = showTerminal ? 'block' : 'none';
-        if (!showTerminal && typeTimer) { clearTimeout(typeTimer); typeTimer = null; }
-        if (showTerminal && typing && !typeTimer) schedule(TYPE_BASE);
-      }
-    });
+  // ===== 터미널 타이핑(데모) =====
+  const term = document.getElementById('term');
+  const queue = [
+    '$ bootseq --init --safe', '$ whoami', '춘식이…인데 왜 불렀냥', '$ nmap -A 10.0.0.42',
+    '호스트 살아있쥬 (0.0031s) — 숨 쉬는 소리 들림', 'PORT    STATE SERVICE VERSION',
+    '22/tcp  open  ssh     OpenSSH 9.6 (비밀번호는 "춘구마123")',
+    '80/tcp  open  http    냥진(nginx) — 쿠키 굽는 중', '$ curl -s http://10.0.0.42/health',
+    '{"status":"쌩쌩함","uptime":1337,"lastSnack":"어제고구마냠냠"}', '$ ssh root@10.0.0.42',
+    'ACCESS GRANTED ✔ (근데 발바닥 쿠션 신고 들어가쥬)', '$ ls -la', '간식.txt   낮잠.png   심심함.mp4',
+    '$ cat 간식.txt', '고구마.., 츄르, 치킨... 냠', '$ rm -rf 배고픔', '배고픔: 삭제 완료 — (이제 낮잠 모드)'
+  ];
+  const TYPE_BASE = 50, TYPE_JITTER = 70, LINE_PAUSE = 500;
+  let lineIdx = 0, charIdx = 0, typing = true, showTerminal = true, typeTimer = null;
+  function schedule(ms){ if(typeTimer) clearTimeout(typeTimer); typeTimer = setTimeout(typeLoop, ms); }
+  function typeLoop(){
+    if(!typing || !showTerminal){ typeTimer = null; return; }
+    if(lineIdx >= queue.length){ lineIdx = 0; charIdx = 0; term.innerHTML=''; }
+    const text = queue[lineIdx];
+    let lines = term.querySelectorAll('.line'); let el = lines[lines.length-1];
+    if(!el || el.dataset.done==='1'){ el = document.createElement('div'); el.className='line'; el.innerHTML=''; term.appendChild(el); }
+    el.innerHTML = text.slice(0, charIdx) + '<span class="cursor"></span>'; charIdx++;
+    if(charIdx > text.length){ el.innerHTML = text; el.dataset.done='1'; lineIdx++; charIdx=0; term.scrollTop = term.scrollHeight; schedule(LINE_PAUSE); }
+    else { schedule(TYPE_BASE + Math.random()*TYPE_JITTER); }
+  }
+  schedule(TYPE_BASE);
+  addEventListener('keydown', (e)=>{ if(e.code==='Space'){ typing=!typing; if(typing && !typeTimer) schedule(TYPE_BASE); e.preventDefault(); } if(e.key.toLowerCase()==='t'){ showTerminal=!showTerminal; term.style.display = showTerminal ? 'block' : 'none'; if(!showTerminal && typeTimer){ clearTimeout(typeTimer); typeTimer=null; } if(showTerminal && typing && !typeTimer) schedule(TYPE_BASE); } });
   </script>
+
+  <script>
+ 
+  </script>
+  <script src="js/admin.js"></script>
 </body>
 </html>
