@@ -85,7 +85,7 @@
 
   // Sheet 열기/닫기
   function openSheet(mode='create', workId=null){
-    SHEET_MODE = mode; CURRENT_ID = workId; $S('#sheet-title').textContent = (mode==='create') ? '작품 추가' : '작품 편집';
+    SHEET_MODE = mode; CURRENT_ID = workId; $S('#sheet-title').textContent = (mode==='create') ? '춘식이 추가' : '춘식이 편집';
     resetSheetForm();
     $S('#edit-sheet').classList.add('open');
     $S('#sheet-backdrop').classList.add('open');
@@ -142,7 +142,9 @@
   async function loadWorkIntoForm(id){
     const { data: work, error: wErr } = await supabase.from('works').select('*').eq('id', id).single();
     if(wErr||!work){ console.error(wErr); return toast('불러오기 실패','error'); }
-    $S('#f-title').value = work.title||''; $S('#f-subtitle').value = work.subtitle||'';
+  $S('#f-title').value = work.title||'';
+  $S('#f-subtitle').value = work.subtitle||'';
+  $S('#f-since').value = work.since||'';
     if(work.image_url){ const img = $S('#thumb-preview'); img.src = work.image_url; img.style.display='block'; thumbFile = null; }
     const { data: imgs, error: iErr } = await supabase.from('work_images').select('*').eq('work_id', id).order('order_index', { ascending: true });
     if(iErr){ console.error(iErr); return; }
@@ -156,17 +158,19 @@
   addEventListener('keydown', (e)=>{ if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){ if($S('#edit-sheet').classList.contains('open')){ e.preventDefault(); saveAll(); } } });
 
   async function saveAll(){
-    const title = $S('#f-title').value.trim(); const subtitle = $S('#f-subtitle').value.trim();
+  const title = $S('#f-title').value.trim();
+  const subtitle = $S('#f-subtitle').value.trim();
+  const since = $S('#f-since').value.trim();
     if(!title) return Swal.fire({ icon:'warning', title:'제목을 입력해줘!' });
     if(SHEET_MODE==='create' && !thumbFile) return Swal.fire({ icon:'info', title:'대표 이미지를 넣어줘!' });
     showLoading();
     try {
       let workId = CURRENT_ID;
       if(SHEET_MODE==='create'){
-        const { data, error } = await supabase.from('works').insert([{ title, subtitle }]).select('id').single();
+        const { data, error } = await supabase.from('works').insert([{ title, subtitle, since }]).select('id').single();
         if(error) throw error; workId = data.id;
       } else {
-        const { error } = await supabase.from('works').update({ title, subtitle }).eq('id', workId);
+        const { error } = await supabase.from('works').update({ title, subtitle, since }).eq('id', workId);
         if(error) throw error;
       }
 
