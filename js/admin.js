@@ -1,4 +1,4 @@
- // ===== Supabase 초기화 =====
+// ===== Supabase 초기화 =====
   const supabase = window.supabase.createClient(
     'https://feprvneoartflrnmefxz.supabase.co',
     'sb_publishable_LW3f112nFPSSUUNvrXl19A__y73y2DE'
@@ -34,11 +34,36 @@
           <div class="title">${it.title||''}</div>
           <div class="sub">${it.subtitle||''}</div>
         </div>
-        <div class="right">${it.duration||''}</div>`;
+        <div class="right">${it.duration||''}</div>
+        <button class="del-work" title="삭제">🗑️</button>`;
       list.appendChild(li);
     });
     initSortable();
   }
+
+  // 행 삭제(이벤트 위임)
+  document.getElementById('works-list').addEventListener('click', async (e) => {
+    const btn = e.target.closest('.del-work'); if(!btn) return;
+    const li = btn.closest('.row'); if(!li) return; const id = li.dataset.id;
+    const res = await Swal.fire({ title: '정말 삭제할래?', text: '이 작업은 복구할 수 없어.', icon: 'warning', showCancelButton: true, confirmButtonText: '삭제', cancelButtonText: '취소' });
+    if(!res.isConfirmed) return;
+    showLoading();
+    try {
+      // 연관 이미지 삭제
+      const { error: delImgsErr } = await supabase.from('images').delete().eq('work_id', id);
+      if(delImgsErr) throw delImgsErr;
+      // 작품 자체 삭제
+      const { error } = await supabase.from('works').delete().eq('id', id);
+      if(error) throw error;
+      // 삭제 후 목록 로드 및 인덱스 재정렬 저장
+      await loadWorks();
+      await persistOrderFromDOM();
+      // 삭제 성공 안내 토스트
+      toast('삭제 완료', 'success');
+    } catch(err){
+      console.error('삭제 실패', err); Swal.fire({ icon: 'error', title: '삭제 실패', text: err.message || '' });
+    } finally { hideLoading(); }
+  });
 
   // Sortable 활성화(행)
   let sortable;
@@ -52,20 +77,31 @@
   }
   function renumber(){ $('#works-list').querySelectorAll('.row .idx').forEach((el, i)=> el.textContent = i+1 ); }
 
-  // 순서 저장
-  $('#save-order').addEventListener('click', async ()=>{
+  // 순서 저장 (공유 함수로 추출)
+  // 알림은 호출자에서 처리하도록 변경: 이 함수는 성공 시 리턴, 실패 시 예외를 throw합니다.
+  async function persistOrderFromDOM(){
     showLoading();
-    try {
+    try{
       const rows = Array.from($('#works-list').querySelectorAll('.row'));
       const updates = rows.map((row, i) => ({ id: row.dataset.id, works_order_index: i+1 }));
+      // 먼저 모두 null로 초기화 (중복 인덱스 방지)
       await Promise.all(updates.map(u => supabase.from('works').update({ works_order_index: null }).eq('id', u.id)));
+      // 20개씩 나눠서 업데이트
       for(let i=0; i<updates.length; i+=20){
         const chunk = updates.slice(i, i+20);
         await Promise.all(chunk.map(u => supabase.from('works').update({ works_order_index: u.works_order_index }).eq('id', u.id)));
       }
-      toast('COMPLETE');
-    } catch(e){ console.error(e); toast('저장 실패…','error'); }
-    finally { hideLoading(); }
+    } finally {
+      hideLoading();
+    }
+  }
+
+  // 순서 저장 버튼
+  $('#save-order').addEventListener('click', async ()=>{
+    try{
+      await persistOrderFromDOM();
+      toast('순서 저장 완료', 'success');
+    }catch(e){ console.error('순서 저장 실패', e); toast('순서 저장 실패','error'); }
   });
 
   // 로그아웃
@@ -146,7 +182,7 @@
   $S('#f-subtitle').value = work.subtitle||'';
   $S('#f-since').value = work.since||'';
     if(work.image_url){ const img = $S('#thumb-preview'); img.src = work.image_url; img.style.display='block'; thumbFile = null; }
-    const { data: imgs, error: iErr } = await supabase.from('work_images').select('*').eq('work_id', id).order('order_index', { ascending: true });
+    const { data: imgs, error: iErr } = await supabase.from('images').select('*').eq('work_id', id).order('order_index', { ascending: true });
     if(iErr){ console.error(iErr); return; }
     galleryItems.length = 0;
     (imgs||[]).forEach(row=> galleryItems.push({ id: row.id, url: row.url, caption: row.caption||'', _key: 'db-'+row.id }));
@@ -167,8 +203,15 @@
     try {
       let workId = CURRENT_ID;
       if(SHEET_MODE==='create'){
-        const { data, error } = await supabase.from('works').insert([{ title, subtitle, since }]).select('id').single();
-        if(error) throw error; workId = data.id;
+        // 현재 최대 works_order_index를 먼저 조회해서 삽입 시 인덱스를 부여
+        try{
+          const { data: maxRows, error: maxErr } = await supabase.from('works').select('works_order_index').order('works_order_index', { ascending: false }).limit(1);
+          if(maxErr) console.warn('순서 조회 실패', maxErr);
+          let maxIndex = 0;
+          if(Array.isArray(maxRows) && maxRows.length && typeof maxRows[0].works_order_index === 'number') maxIndex = maxRows[0].works_order_index;
+          const { data, error } = await supabase.from('works').insert([{ title, subtitle, since, works_order_index: maxIndex + 1 }]).select('id').single();
+          if(error) throw error; workId = data.id;
+        }catch(e){ console.error('새 항목 생성 및 순서 자동 부여 중 오류', e); throw e; }
       } else {
         const { error } = await supabase.from('works').update({ title, subtitle, since }).eq('id', workId);
         if(error) throw error;
@@ -186,25 +229,30 @@
       }
 
       // 갤러리 diff
-      const { data: dbImgs } = await supabase.from('work_images').select('id').eq('work_id', workId);
+      const { data: dbImgs } = await supabase.from('images').select('id').eq('work_id', workId);
       const keepIds = new Set(galleryItems.filter(x=>x.id).map(x=>x.id));
       const toDelete = (dbImgs||[]).map(r=>r.id).filter(id=>!keepIds.has(id));
-      if(toDelete.length){ await supabase.from('work_images').delete().in('id', toDelete); }
+      if(toDelete.length){ await supabase.from('images').delete().in('id', toDelete); }
 
       for(let i=0;i<galleryItems.length;i++){
         const it = galleryItems[i];
         if(it.file){
           const url = await uploadToR2(it.file, `works/${workId}/gallery_${Date.now()}_${i}.jpg`);
           if(url.startsWith('blob:')){ console.warn('갤러리도 blob: URL은 임시입니다.'); }
-          const { error } = await supabase.from('work_images').insert([{ work_id: workId, url, caption: it.caption||'', order_index: i+1 }]);
+          const { error } = await supabase.from('images').insert([{ work_id: workId, url, caption: it.caption||'', order_index: i+1 }]);
           if(error) throw error;
         } else if(it.id){
-          const { error } = await supabase.from('work_images').update({ caption: it.caption||'', order_index: i+1 }).eq('id', it.id);
+          const { error } = await supabase.from('images').update({ caption: it.caption||'', order_index: i+1 }).eq('id', it.id);
           if(error) throw error;
         }
       }
 
-      Swal.fire({ icon:'success', title:'저장 완료!' }); closeSheet(); await loadWorks();
+      // 비차단 토스트로 완료 알림, 시트 닫기 및 목록 갱신
+      toast('저장 완료!', 'success'); closeSheet(); await loadWorks();
+      // 저장 후 인덱스 재정렬 저장 (알림은 호출부에서 처리하지 않음)
+      try{
+        await persistOrderFromDOM();
+      }catch(e){ console.error('인덱스 저장 실패', e); /* 실패시 별도 UX는 생략 */ }
     } catch(e){ console.error(e); Swal.fire({ icon:'error', title:'저장 실패', text: e.message||'오류' }); }
     finally { hideLoading(); }
   }
