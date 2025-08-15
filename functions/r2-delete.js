@@ -1,6 +1,5 @@
 // Cloudflare Pages Functions: /functions/r2-delete.js
 // body: { urls?: string[], paths?: string[] } -> R2 객체 삭제
-
 export const onRequest = async ({ request, env }) => {
   const origin = request.headers.get('Origin') || '';
 
@@ -9,29 +8,32 @@ export const onRequest = async ({ request, env }) => {
 
   try {
     const body = await request.json();
-    const paths = Array.isArray(body?.paths) ? body.paths : [];
     const urls  = Array.isArray(body?.urls)  ? body.urls  : [];
+    const paths = Array.isArray(body?.paths) ? body.paths : [];
 
-    const root = String(env.R2_PUBLIC_URL || '').replace(/\/+$/, ''); // https://object.planearth.co.kr
     const toDelete = new Set();
 
-    // 명시 경로(works/..., images/...)
-    for (const p of paths) {
-      if (!p) continue;
-      toDelete.add(String(p).replace(/^\/+/, ''));
-    }
-    // 풀 URL → 루트 제거 → 상대 경로
+    // 1) 풀 URL → pathname만 추출 (예: /works/0001_xxx.jpg)
     for (const u of urls) {
       if (!u) continue;
-      const rel = String(u).replace(root, '').replace(/^\/+/, '');
-      if (rel) toDelete.add(rel);
+      const key = urlToKey(u);      // => works/0001_xxx.jpg
+      if (key) toDelete.add(key);
+    }
+
+    // 2) 이미 키(상대경로)로 들어온 경우도 처리
+    for (const p of paths) {
+      if (!p) continue;
+      toDelete.add(String(p).replace(/^\/+/, '')); // 앞의 / 제거
     }
 
     const deleted = [];
-    for (const p of toDelete) {
-      await env.BUCKET.delete(p);
-      deleted.push({ path: p, ok: true });
+    for (const key of toDelete) {
+      // 존재여부 체크(선택) → 통계에 포함
+      const head = await env.BUCKET.head(key);
+      await env.BUCKET.delete(key);
+      deleted.push({ key, existed: !!head });
     }
+
     return cors(json({ deleted }), origin);
   } catch (e) {
     return cors(json({ error: e?.message || 'delete fail' }, 500), origin);
@@ -49,4 +51,17 @@ function cors(res, origin) {
   h.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
   h.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   return new Response(res.body, { status: res.status, headers: h });
+}
+function urlToKey(u) {
+  try {
+    // http(s)://... 인 경우
+    if (/^https?:\/\//i.test(u)) {
+      const { pathname } = new URL(u);
+      return decodeURIComponent(pathname.replace(/^\/+/, '')); // => works/..., images/...
+    }
+    // 이미 키인 경우
+    return String(u).replace(/^\/+/, '');
+  } catch {
+    return String(u).replace(/^\/+/, '');
+  }
 }

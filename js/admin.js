@@ -110,8 +110,8 @@ if (window.__ADMIN_INIT__) {
     const li = btn.closest('.row'); if (!li) return; const id = li.dataset.id;
 
     const res = await Swal.fire({
-      title: '정말 삭제할래?',
-      text: '이 작업은 복구할 수 없어.',
+      title: '정말 삭제할끼?',
+      text: '신중하게 하라냥.',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: '삭제',
