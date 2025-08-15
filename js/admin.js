@@ -386,7 +386,9 @@ async function saveAll(){
 
     // 2) 대표 이미지 업로드 → works.image_url 업데이트
     if(thumbFile){
-      const coverUrl = await uploadToR2(thumbFile, { workId, slug, kind:'cover' });
+      // 파일명에 works/ 프리픽스 없이 파일명만 생성
+      const coverFilename = `${workId}_${slug}_cover.jpg`;
+      const coverUrl = await uploadToR2(thumbFile, { workId, slug, kind:'cover', filename: coverFilename });
       const { error } = await supabase.from('works').update({ image_url: coverUrl }).eq('id', workId);
       if(error) throw error;
     }
@@ -403,7 +405,9 @@ async function saveAll(){
       const it = galleryItems[i];
       const orderIdx = i+1;
       if(it.file){
-        const url = await uploadToR2(it.file, { workId, slug, kind:'gallery', index: orderIdx });
+        // works/ 없이 파일명만 생성
+        const galleryFilename = `${workId}_${slug}_gallery_${orderIdx}.jpg`;
+        const url = await uploadToR2(it.file, { workId, slug, kind:'gallery', index: orderIdx, filename: galleryFilename });
         const { error } = await supabase.from('images').insert([{
           work_id: workId,
           url,
@@ -442,13 +446,14 @@ async function saveAll(){
  *  업로드 훅 — Cloudflare Pages Functions로 교체됨
  *  /functions/r2-upload.js 엔드포인트 호출
  * ========================= */
-async function uploadToR2(file, { workId, slug, kind='cover', index=0 }){
+async function uploadToR2(file, { workId, slug, kind='cover', index=0, filename }){
   const fd = new FormData();
   fd.append('file', file);
   fd.append('workId', String(workId));
   fd.append('slug', slug);
   fd.append('kind', kind);
   if(kind === 'gallery') fd.append('index', String(index));
+  if(filename) fd.append('filename', filename); // works/ 없이 파일명만 전달
 
   const res = await fetch('/r2-upload', { method: 'POST', body: fd });
   const json = await res.json();
