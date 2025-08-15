@@ -1,3 +1,6 @@
+// Cloudflare Pages Functions: /functions/r2-upload.js
+// FormData(file, workId, slug, kind='cover'|'gallery', index?) 받아 R2에 저장하고 퍼블릭 URL 반환
+
 export const onRequest = async ({ request, env }) => {
   const origin = request.headers.get('Origin') || '';
 
@@ -22,11 +25,18 @@ export const onRequest = async ({ request, env }) => {
     const ext  = extFromFile(file) || 'jpg';
     const mime = contentTypeFromExt(ext);
     const id4  = workId.padStart(4, '0');
-    const name = (kind === 'cover') ? `${id4}_${slug}.${ext}` : `${id4}_${slug}${index}.${ext}`;
-    const path = (kind === 'cover') ? `works/${name}`         : `images/${name}`;
+
+    const name = (kind === 'cover')
+      ? `${id4}_${slug}.${ext}`
+      : `${id4}_${slug}${index}.${ext}`;
+
+    const path = (kind === 'cover')
+      ? `works/${name}`
+      : `images/${name}`;
 
     await env.BUCKET.put(path, file.stream(), { httpMetadata: { contentType: mime } });
 
+    // NOTE: R2_PUBLIC_URL은 버킷 루트(예: https://object.planearth.co.kr/)로 설정!
     const url = joinUrl(env.R2_PUBLIC_URL, path);
     return cors(json({ url, path }), origin);
   } catch (e) {
@@ -69,5 +79,5 @@ function contentTypeFromExt(ext) {
   }
 }
 function joinUrl(prefix, path) {
-  return `${prefix.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
+  return `${String(prefix || '').replace(/\/+$/, '')}/${String(path || '').replace(/^\/+/, '')}`;
 }

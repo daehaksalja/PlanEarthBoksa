@@ -1,3 +1,6 @@
+// Cloudflare Pages Functions: /functions/r2-delete.js
+// body: { urls?: string[], paths?: string[] } -> R2 객체 삭제
+
 export const onRequest = async ({ request, env }) => {
   const origin = request.headers.get('Origin') || '';
 
@@ -6,16 +9,21 @@ export const onRequest = async ({ request, env }) => {
 
   try {
     const body = await request.json();
-    const paths = body?.paths ?? [];
-    const urls  = body?.urls  ?? [];
+    const paths = Array.isArray(body?.paths) ? body.paths : [];
+    const urls  = Array.isArray(body?.urls)  ? body.urls  : [];
 
-    const root = (env.R2_PUBLIC_URL || '').replace(/\/+$/, '');
+    const root = String(env.R2_PUBLIC_URL || '').replace(/\/+$/, ''); // https://object.planearth.co.kr
     const toDelete = new Set();
 
-    for (const p of paths) if (p) toDelete.add(p.replace(/^\/+/, ''));
+    // 명시 경로(works/..., images/...)
+    for (const p of paths) {
+      if (!p) continue;
+      toDelete.add(String(p).replace(/^\/+/, ''));
+    }
+    // 풀 URL → 루트 제거 → 상대 경로
     for (const u of urls) {
       if (!u) continue;
-      const rel = u.replace(root, '').replace(/^\/+/, '');
+      const rel = String(u).replace(root, '').replace(/^\/+/, '');
       if (rel) toDelete.add(rel);
     }
 
