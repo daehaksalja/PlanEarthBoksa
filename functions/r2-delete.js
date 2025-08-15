@@ -1,5 +1,6 @@
 // Cloudflare Pages Functions: /functions/r2-delete.js
 // body: { urls?: string[], paths?: string[] } -> R2 객체 삭제
+
 export const onRequest = async ({ request, env }) => {
   const origin = request.headers.get('Origin') || '';
 
@@ -7,29 +8,28 @@ export const onRequest = async ({ request, env }) => {
   if (request.method !== 'POST')   return cors(json({ error: 'POST only' }, 405), origin);
 
   try {
-    const body = await request.json();
+    const body  = await request.json();
     const urls  = Array.isArray(body?.urls)  ? body.urls  : [];
     const paths = Array.isArray(body?.paths) ? body.paths : [];
 
     const toDelete = new Set();
 
-    // 1) 풀 URL → pathname만 추출 (예: /works/0001_xxx.jpg)
+    // 1) 풀 URL → key 추출 (예: works/0001_xxx.jpg)
     for (const u of urls) {
       if (!u) continue;
-      const key = urlToKey(u);      // => works/0001_xxx.jpg
+      const key = urlToKey(u);
       if (key) toDelete.add(key);
     }
 
-    // 2) 이미 키(상대경로)로 들어온 경우도 처리
+    // 2) 상대 경로로 직접 전달된 경우
     for (const p of paths) {
       if (!p) continue;
-      toDelete.add(String(p).replace(/^\/+/, '')); // 앞의 / 제거
+      toDelete.add(String(p).replace(/^\/+/, ''));
     }
 
     const deleted = [];
     for (const key of toDelete) {
-      // 존재여부 체크(선택) → 통계에 포함
-      const head = await env.BUCKET.head(key);
+      const head = await env.BUCKET.head(key); // 존재 여부 통계용
       await env.BUCKET.delete(key);
       deleted.push({ key, existed: !!head });
     }
@@ -54,12 +54,10 @@ function cors(res, origin) {
 }
 function urlToKey(u) {
   try {
-    // http(s)://... 인 경우
     if (/^https?:\/\//i.test(u)) {
       const { pathname } = new URL(u);
-      return decodeURIComponent(pathname.replace(/^\/+/, '')); // => works/..., images/...
+      return decodeURIComponent(pathname.replace(/^\/+/, '')); // works/... or images/...
     }
-    // 이미 키인 경우
     return String(u).replace(/^\/+/, '');
   } catch {
     return String(u).replace(/^\/+/, '');

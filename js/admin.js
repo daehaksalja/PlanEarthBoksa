@@ -121,18 +121,18 @@ if (window.__ADMIN_INIT__) {
 
     showLoading();
     try {
-      // 1) 삭제 대상 URL 수집
-      const { data: workRow } = await supabase.from('works').select('image_url').eq('id', id).single();
+      // 삭제 대상 URL 수집
+      const { data: workRow }  = await supabase.from('works').select('image_url').eq('id', id).single();
       const { data: imgsRows } = await supabase.from('images').select('url').eq('work_id', id);
       const delUrls = [
         ...(workRow?.image_url ? [workRow.image_url] : []),
         ...((imgsRows || []).map(r => r.url).filter(Boolean))
       ];
 
-      // 2) R2 먼저 삭제
+      // R2 먼저 삭제
       await r2Delete({ urls: delUrls });
 
-      // 3) DB 삭제
+      // DB 삭제
       const { error: delImgsErr } = await supabase.from('images').delete().eq('work_id', id);
       if (delImgsErr) throw delImgsErr;
       const { error } = await supabase.from('works').delete().eq('id', id);
@@ -200,7 +200,7 @@ if (window.__ADMIN_INIT__) {
   let SHEET_MODE = 'create';
   let CURRENT_ID = null;
   let thumbFile = null;
-  const galleryItems = [];  // { id?, url?, file?, caption, _key }
+  const galleryItems = [];  // { id?, url?, file?, _key }  // caption 제거
   const $S = (s) => document.querySelector(s);
   let IS_SAVING = false;
 
@@ -262,7 +262,7 @@ if (window.__ADMIN_INIT__) {
 
   function addGalleryFiles(fileList) {
     if (!fileList || !fileList.length) return;
-    [...fileList].forEach(file => galleryItems.push({ file, caption: '', _key: crypto.randomUUID() }));
+    [...fileList].forEach(file => galleryItems.push({ file, _key: crypto.randomUUID() }));
     renderGallery();
   }
 
@@ -272,9 +272,6 @@ if (window.__ADMIN_INIT__) {
       const li = document.createElement('li'); li.className = 'gallery-item'; li.dataset.key = it._key;
       const img = document.createElement('img'); img.className = 'g-thumb';
       img.src = it.url ? it.url : URL.createObjectURL(it.file);
-      const cap = document.createElement('input'); cap.type = 'text'; cap.className = 'g-cap';
-      cap.placeholder = '캡션(선택)'; cap.value = it.caption || '';
-      cap.addEventListener('input', (e) => it.caption = e.target.value);
       const handle = document.createElement('button'); handle.className = 'g-handle'; handle.innerHTML = '≡'; handle.title = '드래그로 순서 변경';
       const del = document.createElement('button'); del.className = 'g-del'; del.textContent = '삭제';
       del.addEventListener('click', () => {
@@ -282,7 +279,7 @@ if (window.__ADMIN_INIT__) {
         if (idx >= 0) galleryItems.splice(idx, 1);
         renderGallery();
       });
-      li.append(img, cap, handle, del);
+      li.append(img, handle, del);
       ul.appendChild(li);
     });
 
@@ -316,7 +313,7 @@ if (window.__ADMIN_INIT__) {
     if (iErr) { console.error(iErr); return; }
 
     galleryItems.length = 0;
-    (imgs || []).forEach(row => galleryItems.push({ id: row.id, url: row.url, caption: row.caption || '', _key: 'db-' + row.id }));
+    (imgs || []).forEach(row => galleryItems.push({ id: row.id, url: row.url, _key: 'db-' + row.id }));
     renderGallery();
   }
 
@@ -359,7 +356,7 @@ if (window.__ADMIN_INIT__) {
         if (error) throw error;
         workId = data.id;
 
-        // ✅ insert 이후 edit 모드로 고정(중복 insert 방지)
+        // insert 이후 edit 모드로 고정(중복 insert 방지)
         SHEET_MODE = 'edit';
         CURRENT_ID = workId;
       } else {
@@ -384,27 +381,27 @@ if (window.__ADMIN_INIT__) {
 
       // 3) 갤러리 diff (R2도 같이 삭제)
       const { data: dbImgs } = await supabase.from('images').select('id,url').eq('work_id', workId);
-      const keepIds = new Set(galleryItems.filter(x => x.id).map(x => x.id));
-      const toDelete = (dbImgs || []).map(r => r.id).filter(id => !keepIds.has(id));
+      const keepIds   = new Set(galleryItems.filter(x => x.id).map(x => x.id));
+      const toDelete  = (dbImgs || []).map(r => r.id).filter(id => !keepIds.has(id));
       if (toDelete.length) {
         const delUrls = (dbImgs || []).filter(r => toDelete.includes(r.id)).map(r => r.url).filter(Boolean);
         if (delUrls.length) await r2Delete({ urls: delUrls });
         await supabase.from('images').delete().in('id', toDelete);
       }
 
-      // 4) 갤러리 추가/수정
+      // 4) 갤러리 추가/수정 (caption 제거)
       for (let i = 0; i < galleryItems.length; i++) {
         const it = galleryItems[i];
         const orderIdx = i + 1;
         if (it.file) {
           const url = await uploadToR2(it.file, { workId, slug, kind: 'gallery', index: orderIdx });
           const { error } = await supabase.from('images').insert([{
-            work_id: workId, url, caption: it.caption || '', order_index: orderIdx
+            work_id: workId, url, order_index: orderIdx
           }]);
           if (error) throw error;
         } else if (it.id) {
           const { error } = await supabase.from('images')
-            .update({ caption: it.caption || '', order_index: orderIdx }).eq('id', it.id);
+            .update({ order_index: orderIdx }).eq('id', it.id);
           if (error) throw error;
         }
       }
