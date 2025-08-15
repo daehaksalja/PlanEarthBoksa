@@ -111,7 +111,7 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <script>
-  // ===== 터미널 타이핑(데모) =====
+  // 🔥 해커 터미널: 항상 실행, 키보드 단축키 없음
   const term = document.getElementById('term');
   const queue = [
     '$ bootseq --init --safe', '$ whoami', '춘식이…인데 왜 불렀냥', '$ nmap -A 10.0.0.42',
@@ -122,22 +122,53 @@
     'ACCESS GRANTED ✔ (근데 발바닥 쿠션 신고 들어가쥬)', '$ ls -la', '간식.txt   낮잠.png   심심함.mp4',
     '$ cat 간식.txt', '고구마.., 츄르, 치킨... 냠', '$ rm -rf 배고픔', '배고픔: 삭제 완료 — (이제 낮잠 모드)'
   ];
+
   const TYPE_BASE = 50, TYPE_JITTER = 70, LINE_PAUSE = 500;
-  let lineIdx = 0, charIdx = 0, typing = true, showTerminal = true, typeTimer = null;
-  function schedule(ms){ if(typeTimer) clearTimeout(typeTimer); typeTimer = setTimeout(typeLoop, ms); }
+  let lineIdx = 0, charIdx = 0, timer = null;
+
+  function schedule(ms){ if (timer) clearTimeout(timer); timer = setTimeout(typeLoop, ms); }
   function typeLoop(){
-    if(!typing || !showTerminal){ typeTimer = null; return; }
-    if(lineIdx >= queue.length){ lineIdx = 0; charIdx = 0; term.innerHTML=''; }
+    // 항상 실행 (일시정지/토글 없음)
+    if (lineIdx >= queue.length){ lineIdx = 0; charIdx = 0; term.innerHTML = ''; }
     const text = queue[lineIdx];
-    let lines = term.querySelectorAll('.line'); let el = lines[lines.length-1];
-    if(!el || el.dataset.done==='1'){ el = document.createElement('div'); el.className='line'; el.innerHTML=''; term.appendChild(el); }
-    el.innerHTML = text.slice(0, charIdx) + '<span class="cursor"></span>'; charIdx++;
-    if(charIdx > text.length){ el.innerHTML = text; el.dataset.done='1'; lineIdx++; charIdx=0; term.scrollTop = term.scrollHeight; schedule(LINE_PAUSE); }
-    else { schedule(TYPE_BASE + Math.random()*TYPE_JITTER); }
+
+    let lines = term.querySelectorAll('.line');
+    let el = lines[lines.length-1];
+    if(!el || el.dataset.done === '1'){
+      el = document.createElement('div');
+      el.className = 'line';
+      el.innerHTML = '';
+      term.appendChild(el);
+    }
+
+    el.innerHTML = text.slice(0, charIdx) + '<span class="cursor"></span>';
+    charIdx++;
+
+    if (charIdx > text.length){
+      el.innerHTML = text;
+      el.dataset.done = '1';
+      lineIdx++;
+      charIdx = 0;
+      term.scrollTop = term.scrollHeight;
+      schedule(LINE_PAUSE);
+    } else {
+      schedule(TYPE_BASE + Math.random() * TYPE_JITTER);
+    }
   }
+
+  // 바로 시작!
   schedule(TYPE_BASE);
-  addEventListener('keydown', (e)=>{ if(e.code==='Space'){ typing=!typing; if(typing && !typeTimer) schedule(TYPE_BASE); e.preventDefault(); } if(e.key.toLowerCase()==='t'){ showTerminal=!showTerminal; term.style.display = showTerminal ? 'block' : 'none'; if(!showTerminal && typeTimer){ clearTimeout(typeTimer); typeTimer=null; } if(showTerminal && typing && !typeTimer) schedule(TYPE_BASE); } });
-  </script>
+
+  // (선택) 필요하면 JS에서 수동 제어할 수 있는 작은 API 남겨둠
+  window.terminal = {
+    start(){ schedule(TYPE_BASE); },
+    stop(){ if (timer) { clearTimeout(timer); timer = null; } },
+    clear(){ term.innerHTML=''; lineIdx=0; charIdx=0; },
+    show(){ term.style.display='block'; },
+    hide(){ term.style.display='none'; }
+  };
+</script>
+
 
   <script>
  

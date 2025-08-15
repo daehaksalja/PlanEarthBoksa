@@ -69,7 +69,7 @@ async function loadWorks(){
   initSortable();
 }
 
-// 행 삭제(이벤트 위임) — (현재는 DB만 삭제, 필요하면 R2도 삭제 훅 추가 가능)
+// 행 삭제(이벤트 위임)
 document.getElementById('works-list').addEventListener('click', async (e) => {
   const btn = e.target.closest('.del-work'); if(!btn) return;
   const li = btn.closest('.row'); if(!li) return; const id = li.dataset.id;
@@ -97,7 +97,6 @@ document.getElementById('works-list').addEventListener('click', async (e) => {
     await loadWorks();
     await persistOrderFromDOM();
 
-    // 삭제 성공 안내 토스트
     toast('삭제 완료', 'success');
   } catch(err){
     console.error('삭제 실패', err);
@@ -183,6 +182,7 @@ let CURRENT_ID = null;
 let thumbFile = null;
 const galleryItems = [];  // { id?, url?, file?, caption, _key }
 const $S = (s) => document.querySelector(s);
+let IS_SAVING = false;   // 🔒 중복 저장 가드
 
 // Sheet 열기/닫기
 function openSheet(mode='create', workId=null){
@@ -338,12 +338,25 @@ addEventListener('keydown', (e)=>{
 });
 
 async function saveAll(){
+  if (IS_SAVING) return;           // 🔒 재진입 방지
+  IS_SAVING = true;
+  const saveBtn = document.querySelector('#sheet-save');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.classList.add('disabled'); }
+
   const title = $S('#f-title').value.trim();
   const subtitle = $S('#f-subtitle').value.trim();
   const since = $S('#f-since').value.trim();
 
-  if(!title) return Swal.fire({ icon:'warning', title:'제목을 입력해줘!' });
-  if(SHEET_MODE==='create' && !thumbFile) return Swal.fire({ icon:'info', title:'대표 이미지를 넣어줘!' });
+  if(!title){
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.classList.remove('disabled'); }
+    IS_SAVING = false;
+    return Swal.fire({ icon:'warning', title:'제목을 입력해줘!' });
+  }
+  if(SHEET_MODE==='create' && !thumbFile){
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.classList.remove('disabled'); }
+    IS_SAVING = false;
+    return Swal.fire({ icon:'info', title:'대표 이미지를 넣어줘!' });
+  }
 
   showLoading();
   try {
@@ -351,7 +364,6 @@ async function saveAll(){
 
     // 1) works 생성/업데이트
     if(SHEET_MODE==='create'){
-      // 현재 최대 works_order_index 조회해서 삽입 시 인덱스 부여
       try{
         const { data: maxRows, error: maxErr } = await supabase
           .from('works')
@@ -386,9 +398,7 @@ async function saveAll(){
 
     // 2) 대표 이미지 업로드 → works.image_url 업데이트
     if(thumbFile){
-      // 파일명에 works/ 프리픽스 없이 파일명만 생성
-      const coverFilename = `${workId}_${slug}_cover.jpg`;
-      const coverUrl = await uploadToR2(thumbFile, { workId, slug, kind:'cover', filename: coverFilename });
+      const coverUrl = await uploadToR2(thumbFile, { workId, slug, kind:'cover' });
       const { error } = await supabase.from('works').update({ image_url: coverUrl }).eq('id', workId);
       if(error) throw error;
     }
@@ -405,9 +415,7 @@ async function saveAll(){
       const it = galleryItems[i];
       const orderIdx = i+1;
       if(it.file){
-        // works/ 없이 파일명만 생성
-        const galleryFilename = `${workId}_${slug}_gallery_${orderIdx}.jpg`;
-        const url = await uploadToR2(it.file, { workId, slug, kind:'gallery', index: orderIdx, filename: galleryFilename });
+        const url = await uploadToR2(it.file, { workId, slug, kind:'gallery', index: orderIdx });
         const { error } = await supabase.from('images').insert([{
           work_id: workId,
           url,
@@ -424,36 +432,37 @@ async function saveAll(){
       }
     }
 
-    // 비차단 토스트로 완료 알림, 시트 닫기 및 목록 갱신
     toast('저장 완료!', 'success');
     closeSheet();
     await loadWorks();
 
-    // 저장 후 인덱스 재정렬 저장
     try{
       await persistOrderFromDOM();
     }catch(e){
       console.error('인덱스 저장 실패', e);
-      // 실패시 별도 UX는 생략
     }
   } catch(e){
     console.error(e);
     Swal.fire({ icon:'error', title:'저장 실패', text: e.message||'오류' });
-  } finally { hideLoading(); }
+  } finally {
+    hideLoading();
+    IS_SAVING = false;
+    const saveBtn = document.querySelector('#sheet-save');
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.classList.remove('disabled'); }
+  }
 }
 
 /* =========================
- *  업로드 훅 — Cloudflare Pages Functions로 교체됨
- *  /functions/r2-upload.js 엔드포인트 호출
+ *  업로드 훅 — Cloudflare Pages Functions 호출
+ *  /functions/r2-upload.js → /r2-upload
  * ========================= */
-async function uploadToR2(file, { workId, slug, kind='cover', index=0, filename }){
+async function uploadToR2(file, { workId, slug, kind='cover', index=0 }){
   const fd = new FormData();
   fd.append('file', file);
   fd.append('workId', String(workId));
   fd.append('slug', slug);
   fd.append('kind', kind);
   if(kind === 'gallery') fd.append('index', String(index));
-  if(filename) fd.append('filename', filename); // works/ 없이 파일명만 전달
 
   const res = await fetch('/r2-upload', { method: 'POST', body: fd });
   const json = await res.json();
@@ -470,14 +479,6 @@ document.addEventListener('dblclick', (e)=>{
   if(!row) return;
   openSheet('edit', row.dataset.id);
 });
-
-// (선택) 단일 클릭으로도 편집 열기
-// document.addEventListener('click', (e)=>{
-//   if(e.target.closest('.drag')) return;
-//   const row = e.target.closest('.row');
-//   if(!row) return;
-//   openSheet('edit', row.dataset.id);
-// });
 
 // 시작
 initPage();
