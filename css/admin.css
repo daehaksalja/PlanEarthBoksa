@@ -245,7 +245,7 @@
   .gallery-item .g-cap{ width:100%; background:#061b14; color:var(--text); border:1px solid #0f3b2c; border-radius:8px; padding:8px; }
   .gallery-item .g-handle{ cursor:grab; color:#7fe4bf; border:0; background:linear-gradient(180deg,#071f18,#0a2e22); width:34px; height:34px; display:grid; place-items:center; font-size:16px; border-radius:8px; box-shadow:0 6px 14px rgba(0,255,156,0.06), inset 0 0 6px #00ff9c11; }
   .gallery-item .g-handle:active{ cursor:grabbing; transform:translateY(1px); }
-  .gallery-item .g-del{ background:transparent; border:1px solid #2b5c4b; color:#ffb4b4; border-radius:8px; padding:6px 10px; cursor:pointer; }
+  .gallery-item .g-del{ background:transparent; border:1px solid #2b5c4b; color:#ffb4b4; border-radius:8px; padding:6px 8px; cursor:pointer; font-size:13px; min-width:64px; justify-self:end; white-space:nowrap; }
   .btn{ border-radius:10px; padding:10px 14px; cursor:pointer; border:1px solid #0f3b2c; background:#0b241c; color:var(--text); }
   .btn.primary{ background:var(--acc); color:#032218; border:0; font-weight:800; box-shadow:0 8px 24px rgba(0,255,156,.25); }
   .btn.ghost{ background:transparent; color:#7fe4bf; }
