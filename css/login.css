@@ -20,6 +20,10 @@ body {
   align-items: center;
 }
 
+/* entry animation to match index page */
+.entry-animate { opacity: 0; transform: translateY(18px); animation: entryFade 1200ms cubic-bezier(.16,.84,.24,1) 80ms forwards; }
+@keyframes entryFade { to { opacity: 1; transform: translateY(0); } }
+
 .login-container {
   width: 100%;
   height: 100%;

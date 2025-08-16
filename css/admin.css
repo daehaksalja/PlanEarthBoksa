@@ -348,3 +348,6 @@
   .swal2-toast { max-width: 90vw !important; left: 5vw !important; right: 5vw !important; }
   .swal2-popup { margin: 12px; }
 }
+/* Entry animation reused from index.css */
+.entry-animate { opacity: 0; transform: translateY(18px); animation: entryFade 1200ms cubic-bezier(.16,.84,.24,1) 80ms forwards; }
+@keyframes entryFade { to { opacity: 1; transform: translateY(0); } }
