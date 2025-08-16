@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "HTML & Sitemap 생성 서버",
   "private": true,
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -17,10 +19,22 @@
     "aws-sdk": "^2.1692.0",
     "dotenv": "^17.2.1",
     "express": "^4.21.2",
-    "fs-extra": "^11.3.0"
+    "fs-extra": "^11.3.0",
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
     "live-server": "^1.2.2",
     "wrangler": "^4.26.1"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/daehaksalja/PlanEarthBoksa.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/daehaksalja/PlanEarthBoksa/issues"
+  },
+  "homepage": "https://github.com/daehaksalja/PlanEarthBoksa#readme"
 }
