@@ -1,43 +1,26 @@
-(async function () {
-  const elTotal  = document.getElementById('total');
-  const elUnique = document.getElementById('unique');
-  const elTop    = document.getElementById('top-pages');
-  const elRaw    = document.getElementById('raw');
-  const elSpark  = document.getElementById('spark');
-
-  const fmt = n => n == null ? '-' : String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-
-  // GoatCounter 프록시 호출 헬퍼
-  async function gc(pathAndQuery) {
-    // pathAndQuery 는 '/stats/total' 또는 '/stats/hits?limit=50' 형태
-    const r = await fetch('/api/goat-proxy?path=' + encodeURIComponent(pathAndQuery), { cache: 'no-store' });
-    const txt = await r.text();
-    if (!r.ok) throw new Error(txt);
-    try { return JSON.parse(txt); }
-    catch { throw new Error('Proxy returned non-JSON: ' + txt.slice(0, 400)); }
-  }
-
+// ...위쪽 동일
   try {
-    // 총계 + 상위 페이지를 병렬 조회
+    // 최근 30일 기준으로 조회
+    const HITS_QS   = '/stats/hits?from=-30d&limit=50';
+    const TOTAL_QS  = '/stats/total?from=-30d';
+
     const [totals, hits] = await Promise.all([
-      gc('/stats/total'),         // { total, stats: [{ day, daily, hourly }, ...] }
-      gc('/stats/hits?limit=50')  // 형식은 설치/버전에 따라 다를 수 있어 방어적으로 처리
+      gc(TOTAL_QS),
+      gc(HITS_QS)
     ]);
 
-    // 디버그 표시
+    // 디버그 보기
     elRaw.textContent = JSON.stringify({ totals, hits }, null, 2);
 
     // 총 방문수
     elTotal.textContent = fmt(totals.total ?? 0);
 
-    // unique 수는 이 엔드포인트 기본 JSON엔 없음 → 필요 시 다른 API 조합
-    elUnique.textContent = '-';
+    // unique 는 API가 주지 않으므로 ‘–’ 표시(또는 숨기기)
+    elUnique.textContent = '–';
 
-    // 상위 페이지 표
+    // ----- 상위 페이지 -----
     let rows = hits.hits?.data ?? hits.hits ?? hits.data ?? hits;
     if (!Array.isArray(rows)) rows = [];
-
-    // [path, count] 또는 {path, count} 모두 흡수
     const normalized = rows.map(it =>
       Array.isArray(it) ? { path: it[0], count: it[1] } :
       { path: it.path ?? it.name ?? '', count: it.count ?? it.views ?? 0 }
@@ -61,7 +44,7 @@
       elTop.appendChild(table);
     }
 
-    // 스파크라인: totals.stats[].daily 사용
+    // ----- 스파크라인 -----
     const dailyArr = Array.isArray(totals.stats)
       ? totals.stats.map(d => ({ date: d.day, count: d.daily ?? 0 }))
       : [];
@@ -86,4 +69,4 @@
     elTotal.textContent = '-';
     elUnique.textContent = '-';
   }
-})();
+// ...아래 동일
