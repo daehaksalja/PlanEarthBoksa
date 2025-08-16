@@ -103,6 +103,25 @@
   .header h1 { position: absolute; left: 50%; transform: translateX(-50%); margin: 0; font-size: 18px; letter-spacing: .04em; text-align: center; }
   .logout-btn { background: transparent; color: var(--text); border: 1px solid var(--line); padding: 6px 12px; border-radius: 8px; cursor: pointer; }
 
+  /* 방문자 대시보드 버튼 (좌상단) */
+  #open-stats-btn {
+    position: fixed; left: 16px; top: 12px; z-index: 9999;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 12px; border-radius: 10px; font-weight:700; font-size:13px;
+    text-decoration: none; color: #021a13; background: linear-gradient(180deg,#00ff9c,#13e7a1);
+    box-shadow: 0 14px 36px rgba(0,255,156,0.16), 0 0 20px #00ff9c33; border: 1px solid rgba(3,34,24,0.08);
+    transform: translateY(0); transition: transform .18s, box-shadow .18s, opacity .18s;
+  }
+  #open-stats-btn:hover{ transform: translateY(-2px); box-shadow: 0 18px 44px rgba(0,255,156,0.22), 0 0 28px #00ff9c44; }
+  #open-stats-btn:active{ transform: translateY(0); }
+  #open-stats-btn::after{ content: '\2197'; margin-left:6px; font-size:11px; opacity:0.9; }
+
+  /* 작은 화면에서 버튼 위치 조정 */
+  @media (max-width:520px){
+    #open-stats-btn{ left:10px; top:8px; padding:6px 10px; font-size:12px; }
+    .header h1{ left:50%; transform: translateX(-50%); }
+  }
+
   .wrap { max-width: 900px; margin: 0 auto; padding: 12px 8px 80px; }
   .playlist { list-style: none; margin: 0; padding: 0; }
   .row {
