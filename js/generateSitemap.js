@@ -21,7 +21,7 @@ function generateSitemap() {
 
   // 0001-...html 만 수집 + 이름 정렬
   const files = fs.readdirSync(DIST_DIR)
-    .filter(f => /^[0-9]{4}-.+\.html$/.test(f))
+    .filter(f => /^\d{4,}-.+\.html$/.test(f))
     .sort((a, b) => a.localeCompare(b, 'en'));
 
   const dynamicUrls = files.map(filename => {
