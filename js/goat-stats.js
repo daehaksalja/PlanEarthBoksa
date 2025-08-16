@@ -1,4 +1,3 @@
-// js/goat-stats.js
 (() => {
   const $  = (s) => document.querySelector(s);
   const setText = (sel, txt) => { const el = $(sel); if (el) el.textContent = txt; };
@@ -13,46 +12,56 @@
 
   periods.forEach(d => {
     const b = document.querySelector(`[data-days="${d}"]`);
-    if (!b) return;
-    b.classList.toggle('active', d === days);
-    b.addEventListener('click', () => {
+    if (b) b.classList.toggle('active', d === days);
+    if (b) b.addEventListener('click', () => {
       const u = new URL(location.href);
       u.searchParams.set('d', String(d));
       location.assign(u.toString());
     });
   });
 
+  // 날짜(YYYY-MM-DD)
   const toDateStr = (d) => d.toISOString().slice(0, 10);
+
+  // 기간 계산(오늘 포함)
   const end = new Date();
   const start = new Date();
-  start.setDate(end.getDate() - (days - 1));
+  start.setDate(end.getDate() - (days - 1)); // N일
 
-  // 프록시 호출
+  // 프록시 헬퍼 (/api/goat-proxy?path=...)
   const qs = (obj) => new URLSearchParams(obj).toString();
-  async function gc(path) {
+  const gc = async (path) => {
     const r = await fetch('/api/goat-proxy?path=' + encodeURIComponent(path), { cache: 'no-store' });
-    const text = await r.text();
-    if (!r.ok) throw new Error(text || `HTTP ${r.status}`);
-    try { return JSON.parse(text); } catch { throw new Error(text); }
-  }
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  };
 
-  // 일별 시계열 뽑기(필드 다양성 대응)
-  function extractSeries(totals) {
-    // 1) { stats: [{ daily, day, hourly:[] }...] }
-    if (Array.isArray(totals?.stats)) return totals.stats.map(d => d?.daily ?? 0);
-    // 2) { days: [{ count, day }...] }
-    if (Array.isArray(totals?.days))  return totals.days.map(d => d?.count ?? 0);
-    // 3) { daily: [n, n, ...] }
-    if (Array.isArray(totals?.daily)) return totals.daily.map(n => n ?? 0);
-    return [];
+  // 공통 테이블 렌더러
+  function renderTable(rows, containerSel, cols) {
+    const box = $(containerSel);
+    if (!box) return;
+    if (!rows.length) { box.textContent = '데이터 없음'; return; }
+
+    const table = document.createElement('table');
+    table.style.width = '100%';
+    table.style.borderCollapse = 'collapse';
+
+    rows.forEach((row, i) => {
+      const tr = document.createElement('tr');
+      const values = cols(row, i);
+      tr.innerHTML = values.map(v => `<td style="padding:8px 6px;${v.right ? 'text-align:right; color:#bfffe7; width:120px' : ''}">${v.text}</td>`).join('');
+      table.appendChild(tr);
+    });
+
+    box.innerHTML = '';
+    box.appendChild(table);
   }
 
   // 스파크라인
-  function drawSpark(sel, data) {
+  const drawSpark = (sel, data) => {
     const host = $(sel);
     if (!host) return;
-    let w = host.clientWidth;
-    if (!w) { w = (host.getBoundingClientRect().width || 360); }
+    const w = host.clientWidth || 360;
     const h = 64, pad = 6;
     const max = Math.max(1, ...data);
     const pts = data.map((v, i) => {
@@ -65,72 +74,94 @@
         <polyline fill="none" stroke="#13e7a1" stroke-width="2" points="${pts}"/>
       </svg>
     `);
-  }
+  };
 
   (async function run() {
     try {
-      const from = toDateStr(start);
-      const to   = toDateStr(end);
+      const startStr = toDateStr(start);
+      const endStr   = toDateStr(end);
 
-      // 총합 + 일별
-      const totals = await gc(`/api/v0/stats/total?${qs({ from, to })}`);
-      // 상위 페이지
-      const hits   = await gc(`/api/v0/stats/hits?${qs({ from, to, limit: 20, order: 'count:desc' })}`);
+      // /stats API는 start, end 사용
+      const [totals, hits, referrers, countries] = await Promise.all([
+        gc(`/stats/total?${qs({ start: startStr, end: endStr })}`),
+        gc(`/stats/hits?${qs({ start: startStr, end: endStr, limit: 20 })}`),
+        gc(`/stats/referrers?${qs({ start: startStr, end: endStr, limit: 20 })}`),
+        gc(`/stats/countries?${qs({ start: startStr, end: endStr, limit: 20 })}`),
+      ]);
 
       // 디버그
-      setText('#raw', JSON.stringify({ totals, hits }, null, 2));
+      setText('#raw', JSON.stringify({ totals, hits, referrers, countries }, null, 2));
 
-      // 시계열, 합계/평균/피크
-      const series = extractSeries(totals);
-      const sum = series.reduce((a,b)=>a+(+b||0), 0);
-
+      // 합계/평균/피크 + 스파크
+      const series = Array.isArray(totals?.stats) ? totals.stats.map(d => d.daily ?? d.count ?? 0) : [];
       const totalCount =
-        typeof totals.total === 'number' ? totals.total :
-        typeof totals.total_utc === 'number' ? totals.total_utc :
-        typeof totals.count === 'number' ? totals.count : sum;
+        typeof totals?.total === 'number' ? totals.total :
+        typeof totals?.total_utc === 'number' ? totals.total_utc :
+        typeof totals?.count === 'number' ? totals.count :
+        series.reduce((a,b)=>a+b,0);
 
-      const avg  = series.length ? Math.round(sum / series.length) : 0;
+      const avg  = series.length ? Math.round(series.reduce((a,b)=>a+b,0) / series.length) : 0;
       const peak = series.length ? Math.max(...series) : 0;
 
-      // unique(있으면 표시)
-      const unique =
-        (typeof totals.unique === 'number' && totals.unique) ??
-        (typeof totals.total?.unique === 'number' && totals.total.unique) ??
-        null;
-
       setText('#total', fmt(totalCount));
-      if (document.querySelector('#unique')) setText('#unique', unique == null ? '-' : fmt(unique));
-      if (document.querySelector('#avg'))    setText('#avg', fmt(avg));
-      if (document.querySelector('#peak'))   setText('#peak', fmt(peak));
+      setText('#avg',   fmt(avg));
+      setText('#peak',  fmt(peak));
       drawSpark('#spark', series.slice(-30));
 
       // 상위 페이지
-      const list =
-        (hits && (hits.hits?.data || hits.hits || hits.data)) ||
-        (Array.isArray(hits) ? hits : []);
-      if (!list.length) {
-        setText('#top-pages', '데이터 없음');
-      } else {
-        const table = document.createElement('table');
-        table.style.width = '100%';
-        table.style.borderCollapse = 'collapse';
-        list.slice(0, 20).forEach((row, i) => {
-          const path  = row.path || row.name || row[0] || '';
+      const pages = (hits?.data || hits?.hits || Array.isArray(hits) && hits) || [];
+      renderTable(
+        pages.slice(0, 20),
+        '#top-pages',
+        (row, i) => {
+          const path  = row.path ?? row.name ?? row[0] ?? '';
           const count = row.count ?? row.views ?? row[1] ?? 0;
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td style="padding:8px 6px; color:#9feccf; width:36px">${i + 1}</td>
-            <td style="padding:8px 6px;">${path}</td>
-            <td style="padding:8px 6px; text-align:right; color:#bfffe7; width:120px">${fmt(count)}</td>
-          `;
-          table.appendChild(tr);
-        });
-        const box = $('#top-pages'); if (box) { box.innerHTML = ''; box.appendChild(table); }
-      }
+          return [
+            { text: String(i + 1) },
+            { text: path },
+            { text: fmt(count), right: true },
+          ];
+        }
+      );
+
+      // 상위 유입
+      const refs = (referrers?.data || referrers?.refs || Array.isArray(referrers) && referrers) || [];
+      renderTable(
+        refs.slice(0, 20),
+        '#top-referrers',
+        (row, i) => {
+          const name  = row.name ?? row.ref ?? row[0] ?? '';
+          const count = row.count ?? row.views ?? row[1] ?? 0;
+          return [
+            { text: String(i + 1) },
+            { text: name },
+            { text: fmt(count), right: true },
+          ];
+        }
+      );
+
+      // 국가
+      const ctys = (countries?.data || countries?.countries || Array.isArray(countries) && countries) || [];
+      renderTable(
+        ctys.slice(0, 20),
+        '#top-countries',
+        (row, i) => {
+          const name  = row.name ?? row.country ?? row[0] ?? '';
+          const count = row.count ?? row.views ?? row[1] ?? 0;
+          return [
+            { text: String(i + 1) },
+            { text: name },
+            { text: fmt(count), right: true },
+          ];
+        }
+      );
+
     } catch (err) {
-      setText('#raw', '오류: ' + (err?.message || err));
-      setText('#top-pages', '데이터 로드 실패');
-      ['#total','#avg','#peak','#unique'].forEach(id => { if ($(id)) setText(id, '-'); });
+      setText('#raw', `오류: ${err?.message || err}`);
+      setText('#top-pages',     '데이터 로드 실패');
+      setText('#top-referrers', '데이터 로드 실패');
+      setText('#top-countries', '데이터 로드 실패');
+      setText('#total', '-'); setText('#avg', '-'); setText('#peak', '-');
     }
   })();
 })();
