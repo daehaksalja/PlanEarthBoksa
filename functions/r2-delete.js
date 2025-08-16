@@ -13,14 +13,11 @@ export const onRequest = async ({ request, env }) => {
 
     const toDelete = new Set();
 
-    // 1) 풀 URL → 키로 변환 (예: https://.../images/0001_xxx.jpg -> images/0001_xxx.jpg)
     for (const u of urls) {
       if (!u) continue;
-      const key = urlToKey(u);
+      const key = urlToKey(u);           // works/... or images/...
       if (key) toDelete.add(key);
     }
-
-    // 2) 이미 키(상대경로)로 들어온 경우
     for (const p of paths) {
       if (!p) continue;
       toDelete.add(String(p).replace(/^\/+/, ''));
@@ -28,11 +25,10 @@ export const onRequest = async ({ request, env }) => {
 
     const deleted = [];
     for (const key of toDelete) {
-      const head = await env.BUCKET.head(key); // 존재여부 체크(선택)
+      const head = await env.BUCKET.head(key);
       await env.BUCKET.delete(key);
       deleted.push({ key, existed: !!head });
     }
-
     return cors(json({ deleted }), origin);
   } catch (e) {
     return cors(json({ error: e?.message || 'delete fail' }, 500), origin);
@@ -55,7 +51,7 @@ function urlToKey(u) {
   try {
     if (/^https?:\/\//i.test(u)) {
       const { pathname } = new URL(u);
-      return decodeURIComponent(pathname.replace(/^\/+/, '')); // => works/... or images/...
+      return decodeURIComponent(pathname.replace(/^\/+/, ''));
     }
     return String(u).replace(/^\/+/, '');
   } catch {

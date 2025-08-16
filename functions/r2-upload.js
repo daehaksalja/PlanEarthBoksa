@@ -1,5 +1,5 @@
 // Cloudflare Pages Functions: /functions/r2-upload.js
-// FormData(file, workId, slug, kind='cover'|'gallery', index?) 받아 R2에 저장하고 퍼블릭 URL 반환
+// FormData(file, workId, slug, kind='cover'|'gallery', seq?) 받아 R2에 저장하고 퍼블릭 URL 반환
 
 export const onRequest = async ({ request, env }) => {
   const origin = request.headers.get('Origin') || '';
@@ -8,12 +8,14 @@ export const onRequest = async ({ request, env }) => {
   if (request.method !== 'POST')   return cors(json({ error: 'POST only' }, 405), origin);
 
   try {
-    const form = await request.formData();
-    const file   = form.get('file');
-    const workId = String(form.get('workId') || '').trim();
-    const slug   = String(form.get('slug')   || '').trim();
-    const kind   = String(form.get('kind')   || 'cover'); // 'cover' | 'gallery'
-    const index  = Number(form.get('index')  || 0);       // gallery는 1부터
+    const form  = await request.formData();
+    const file  = form.get('file');
+    const workId= String(form.get('workId') || '').trim();
+    const slug  = String(form.get('slug')   || '').trim();
+    const kind  = String(form.get('kind')   || 'cover'); // 'cover' | 'gallery'
+    // ✅ seq를 파일명에 사용(없으면 0)
+    const seqStr= String(form.get('seq') ?? form.get('index') ?? '').trim();
+    const seq   = seqStr ? Number(seqStr) : 0;
 
     if (!file)   return cors(json({ error: 'file 누락' }, 400), origin);
     if (!workId) return cors(json({ error: 'workId 누락' }, 400), origin);
@@ -28,15 +30,13 @@ export const onRequest = async ({ request, env }) => {
 
     const name = (kind === 'cover')
       ? `${id4}_${slug}.${ext}`
-      : `${id4}_${slug}${index}.${ext}`;
+      : `${id4}_${slug}_img${String(seq).padStart(3,'0')}.${ext}`;
 
-    const path = (kind === 'cover')
-      ? `works/${name}`
-      : `images/${name}`;
+    const path = (kind === 'cover') ? `works/${name}` : `images/${name}`;
 
     await env.BUCKET.put(path, file.stream(), { httpMetadata: { contentType: mime } });
 
-    // R2_PUBLIC_URL은 버킷 루트(예: https://object.planearth.co.kr/)로 설정!
+    // env.R2_PUBLIC_URL = https://object.planearth.co.kr/
     const url = joinUrl(env.R2_PUBLIC_URL, path);
     return cors(json({ url, path }), origin);
   } catch (e) {
@@ -79,5 +79,5 @@ function contentTypeFromExt(ext) {
   }
 }
 function joinUrl(prefix, path) {
-  return `${String(prefix || '').replace(/\/+$/, '')}/${String(path || '').replace(/^\/+/, '')}`;
+  return `${String(prefix||'').replace(/\/+$/, '')}/${String(path||'').replace(/^\/+/, '')}`;
 }
