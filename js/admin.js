@@ -93,82 +93,118 @@ if (window.__ADMIN_INIT__) {
     initSortable();
   }
 
-  // 행 삭제(이벤트 위임)
-  const PENDING_DELETES = new Map(); // id -> { timer, delUrls, originalHTML, cdTimer }
+  // 삭제 + 글로벌 undo bar (비영구, 즉시 시각적 제거)
+  const PENDING_DELETES = new Map(); // id -> { timer, workRow, imgsRows, delUrls, countTimer, started }
   const UNDO_WINDOW_MS = 8000;
 
-  // 기존 in-row undo 방식 복원
+  function ensureUndoBar(){
+    let bar = document.getElementById('undo-bar');
+    if(!bar){
+      bar = document.createElement('div');
+      bar.id='undo-bar';
+      bar.innerHTML = `
+        <div class="u-left">
+          <div class="u-icon">🗑</div>
+        </div>
+        <div class="u-body">
+          <div class="u-msg"><span class="u-title"></span> <span class="u-sub">삭제됨</span></div>
+          <div class="u-meta">되돌리기 가능 · <span class="u-count"></span>s</div>
+          <div class="u-prog-wrap"><div class="u-prog"></div></div>
+        </div>
+        <div class="u-actions">
+          <button class="u-undo">되돌리기</button>
+          <button class="u-close" title="닫기">✕</button>
+        </div>
+      `;
+      document.body.appendChild(bar);
+      bar.querySelector('.u-close').addEventListener('click', ()=> bar.classList.remove('show'));
+    }
+    return bar;
+  }
+
+  function showUndo(id){
+    const entry = PENDING_DELETES.get(id); if(!entry) return;
+    const bar = ensureUndoBar();
+    const titleEl = bar.querySelector('.u-title');
+    const countEl = bar.querySelector('.u-count');
+    const undoBtn = bar.querySelector('.u-undo');
+    const prog = bar.querySelector('.u-prog');
+
+    titleEl.textContent = entry.workRow?.title || '항목';
+    const totalSec = Math.ceil(UNDO_WINDOW_MS/1000);
+    countEl.textContent = totalSec;
+
+    let remain = UNDO_WINDOW_MS;
+    function tick(){
+      remain -= 1000;
+      if(remain <= 0){ countEl.textContent = 0; prog.style.width = '0%'; return; }
+      const sec = Math.ceil(remain/1000);
+      countEl.textContent = sec;
+      const pct = Math.max(0, Math.min(100, (remain/UNDO_WINDOW_MS)*100));
+      prog.style.width = pct + '%';
+      entry.countTimer = setTimeout(tick,1000);
+    }
+    clearTimeout(entry.countTimer);
+    prog.style.transition = 'width 1s linear';
+    prog.style.width = '100%';
+    entry.countTimer = setTimeout(tick,1000);
+    undoBtn.onclick = ()=> undoDelete(id);
+    bar.classList.add('show');
+  }
+
+  async function finalizeDelete(id){
+    const entry = PENDING_DELETES.get(id); if(!entry) return;
+    try{
+      await r2Delete({ urls: entry.delUrls });
+      const { error: e1 } = await supabase.from('images').delete().eq('work_id', id); if(e1) throw e1;
+      const { error: e2 } = await supabase.from('works').delete().eq('id', id); if(e2) throw e2;
+    }catch(err){ console.warn('최종 삭제 실패(무시)', err); }
+    finally{
+      PENDING_DELETES.delete(id);
+      // hide undo bar if visible
+      const bar = document.getElementById('undo-bar'); if(bar) bar.classList.remove('show');
+      try{ Swal.close(); }catch(e){}
+    }
+  }
+
+  function undoDelete(id){
+    const entry = PENDING_DELETES.get(id); if(!entry) return;
+  clearTimeout(entry.timer); clearTimeout(entry.countTimer);
+  // 숨겨진 toast/modal 닫기
+  try{ Swal.close(); }catch(e){}
+  // undo bar 숨기기
+  const bar = document.getElementById('undo-bar'); if(bar) bar.classList.remove('show');
+  // DB 삭제 아직 안됐으니 다시 목록 리로드
+  loadWorks();
+  PENDING_DELETES.delete(id);
+  // 사용자에게는 간단한 토스트로 알림
+  toast('삭제 취소됨','info');
+  }
 
   $('#works-list').addEventListener('click', async (e)=>{
     const btn = e.target.closest('.del-work'); if(!btn) return;
-    const li  = btn.closest('.row'); if(!li) return;
-    const id  = li.dataset.id;
-    if(PENDING_DELETES.has(id)) return; // already pending
+    const row = btn.closest('.row'); if(!row) return;
+    const id = row.dataset.id;
+    if(PENDING_DELETES.has(id)) return;
 
-    const res = await Swal.fire({
-      title:'삭제할까?', text:'되돌리기 가능 (8초)', icon:'warning',
-      showCancelButton:true, confirmButtonText:'삭제', cancelButtonText:'취소'
-    });
+    const res = await Swal.fire({ title:'삭제?', text:'되돌리기 8초 제공', icon:'warning', showCancelButton:true, confirmButtonText:'삭제', cancelButtonText:'취소' });
     if(!res.isConfirmed) return;
 
-    // 데이터 조회
+    // 원본 데이터 확보 (undo시 재표시 위해)
     let workRow, imgsRows;
     try {
       const wq = await supabase.from('works').select('*').eq('id', id).single(); workRow = wq.data;
       const iq = await supabase.from('images').select('*').eq('work_id', id); imgsRows = iq.data || [];
     } catch(err){ return Swal.fire({ icon:'error', title:'삭제 실패', text:'데이터 조회 오류' }); }
 
-    const originalHTML = li.innerHTML;
-    li.dataset.deleting = '1';
-    li.classList.add('pending-delete');
-    const undoSeconds = Math.round(UNDO_WINDOW_MS/1000);
-    li.innerHTML = `
-      <div class="idx">✖</div>
-      <div class="pending-msg">🗑 <span class="pm-text"><strong>${(workRow?.title||'항목')}</strong> 가 <span class="pm-count">${undoSeconds}</span>s 후 영구 삭제됩니다.</span> <button class="undo-btn" title="취소">되돌리기</button></div>
-    `;
+    // 즉시 목록에서 제거 (시각적)
+    row.remove();
+    toast('삭제됨','info');
 
-    const delUrls = [
-      ...(workRow?.image_url ? [workRow.image_url] : []),
-      ...imgsRows.map(r=>r.image_url).filter(Boolean)
-    ];
-
-    const finalize = async ()=>{
-      showLoading();
-      try{
-        await r2Delete({ urls: delUrls });
-        const { error: e1 } = await supabase.from('images').delete().eq('work_id', id); if(e1) throw e1;
-        const { error: e2 } = await supabase.from('works').delete().eq('id', id); if(e2) throw e2;
-        li.remove();
-        toast('삭제 완료','success');
-      }catch(err){
-        console.error('최종 삭제 실패, 복구', err);
-        li.innerHTML = originalHTML; delete li.dataset.deleting; li.classList.remove('pending-delete');
-        toast('네트워크 오류 - 삭제 취소','error');
-      }finally{
-        hideLoading();
-        PENDING_DELETES.delete(id);
-      }
-    };
-
-    const undo = ()=>{
-      clearTimeout(entry.timer);
-      clearTimeout(entry.cdTimer);
-      li.innerHTML = originalHTML; delete li.dataset.deleting; li.classList.remove('pending-delete');
-      PENDING_DELETES.delete(id);
-      toast('복구됨','info');
-    };
-
-    const entry = { delUrls, originalHTML, timer: setTimeout(finalize, UNDO_WINDOW_MS) };
-    PENDING_DELETES.set(id, entry);
-    li.querySelector('.undo-btn').addEventListener('click', undo, { once:true });
-
-    // 카운트다운
-    const countEl = li.querySelector('.pm-count');
-    let remain = UNDO_WINDOW_MS;
-    function tick(){
-      remain -= 1000; if(remain <= 0) return; if(countEl) countEl.textContent = Math.ceil(remain/1000); entry.cdTimer = setTimeout(tick,1000);
-    }
-    entry.cdTimer = setTimeout(tick,1000);
+    const delUrls = [ ...(workRow?.image_url ? [workRow.image_url] : []), ...imgsRows.map(r=>r.image_url).filter(Boolean) ];
+    const timer = setTimeout(()=> finalizeDelete(id), UNDO_WINDOW_MS);
+    PENDING_DELETES.set(id, { workRow, imgsRows, delUrls, timer, started: Date.now() });
+    showUndo(id);
   });
 
   // Sortable
@@ -424,6 +460,16 @@ if (window.__ADMIN_INIT__) {
   // 트리거
   $('#add-work-btn').addEventListener('click', ()=> openSheet('create'));
   document.addEventListener('dblclick',(e)=>{ const row=e.target.closest('.row'); if(!row) return; openSheet('edit', row.dataset.id); });
+
+  // 모바일: 더블클릭 대신 탭으로 편집 열기 (터치기기로 판단될 때만)
+  if(('ontouchstart' in window) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0)){
+    $('#works-list').addEventListener('click', (e)=>{
+      // 삭제 버튼, 드래그 핸들 등 제어 요소 클릭은 무시
+      if(e.target.closest('.del-work') || e.target.closest('.drag') || e.target.closest('button')) return;
+      const row = e.target.closest('.row'); if(!row) return;
+      openSheet('edit', row.dataset.id);
+    });
+  }
 
   // 시작!
   initPage();
