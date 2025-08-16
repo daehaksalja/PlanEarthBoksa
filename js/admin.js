@@ -296,9 +296,19 @@ if (window.__ADMIN_INIT__) {
       if(SHEET_MODE==='edit'){ const { data:old } = await supabase.from('works').select('image_url').eq('id', workId).single(); oldCoverUrl=old?.image_url||null; }
       if(thumbFile){
         const coverUrl = await uploadToR2(thumbFile, { workId, slug, kind:'cover' });
-        const { error } = await supabase.from('works').update({ image_url: coverUrl }).eq('id', workId);
+        const oldBase = oldCoverUrl ? oldCoverUrl.split('?')[0] : null;
+        const newBase = coverUrl; // r2-upload 반환값은 query 없음
+        let finalUrl = coverUrl;
+        // 같은 파일명 덮어쓰기면 캐시 무효화를 위해 버전 쿼리 부여
+        if(oldBase && oldBase === newBase){
+          finalUrl = `${coverUrl}?v=${Date.now()}`;
+        }
+        const { error } = await supabase.from('works').update({ image_url: finalUrl }).eq('id', workId);
         if(error) throw error;
-        if(oldCoverUrl && oldCoverUrl!==coverUrl) await r2Delete({ urls:[oldCoverUrl] });
+        // 경로(베이스)가 변경된 경우에만 이전 객체 삭제 (쿼리파라 차이만 있으면 삭제 X)
+        if(oldBase && oldBase !== newBase){
+          await r2Delete({ urls:[oldCoverUrl] });
+        }
       }
 
       // 갤러리: 삭제된 것 정리 (R2 포함)
