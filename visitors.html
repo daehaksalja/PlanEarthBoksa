@@ -3,72 +3,69 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Visitor Dashboard — PLANEARTH</title>
+  <title>방문자 통계 대시보드 — PLANEARTH</title>
   <link rel="stylesheet" href="css/admin.css">
   <style>
-    .cards{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0}
-    .card{flex:1 1 260px;padding:14px;border-radius:14px;background:#0d231c;border:1px solid #103027}
-    .k{opacity:.7;font-size:13px}
-    .kv{font-size:24px;margin-top:4px}
-    .controls{display:flex;gap:8px;align-items:center;margin:8px 0 6px}
-    .range-btn{padding:6px 10px;border:1px solid #174235;border-radius:10px;background:#0c1f19;cursor:pointer}
-    .range-btn.active{background:#123328}
-    table.v{width:100%;border-collapse:collapse}
-    table.v td{padding:8px 6px;border-bottom:1px solid #123328}
-    .delta.up{color:#75f1bf}
-    .delta.down{color:#ff8a8a}
-    .section{margin-top:22px}
-    .spark{height:70px;margin-top:8px}
-    details.raw{margin-top:18px}
+    .pill { display:inline-block; padding:6px 10px; border:1px solid #134; border-radius:999px; margin-right:6px; cursor:pointer; user-select:none }
+    .pill.active { background:#0f3; color:#00120d; border-color:#0f3; }
+    .cards { display:flex; gap:16px; flex-wrap:wrap; margin:12px 0 18px; }
+    .card { flex:1 1 260px; background:#061d18; border:1px solid #10302a; border-radius:12px; padding:14px; }
+    .metric { font-size:28px; font-weight:700; margin-top:4px }
+    #spark svg { width:100%; height:64px; }
+    table.simple { width:100%; border-collapse:collapse; }
+    table.simple td { padding:8px 6px; border-bottom:1px solid #0a2c25; }
+    table.simple tr:hover { background:#07231d; }
+    .rank { color:#9feccf; width:36px }
+    .right { text-align:right; color:#bfffe7; width:120px }
+    pre#raw { max-height:240px; overflow:auto; background:#021b14; color:#bfffe7; padding:10px; border-radius:8px; }
   </style>
 </head>
 <body>
-  <main class="wrap entry-animate" style="max-width:1100px; margin-top:24px;">
+  <main class="wrap entry-animate" style="max-width:1100px; margin-top:20px;">
     <h1>방문자 통계 대시보드</h1>
 
-    <div class="controls">
-      <span class="k">기간:</span>
-      <button class="range-btn" data-from="-7d">7일</button>
-      <button class="range-btn active" data-from="-30d">30일</button>
-      <button class="range-btn" data-from="-90d">90일</button>
+    <div style="margin:8px 0 6px;">
+      기간:
+      <span class="pill" data-days="7">7일</span>
+      <span class="pill" data-days="30">30일</span>
+      <span class="pill" data-days="90">90일</span>
     </div>
 
     <section class="cards">
       <div class="card">
-        <div class="k">총 방문수</div>
-        <div id="total" class="kv">-</div>
-        <div id="delta" class="k" style="margin-top:6px;">전기간 대비 <span>-</span></div>
+        총 방문수
+        <div class="metric" id="total">-</div>
       </div>
       <div class="card">
-        <div class="k">평균(일)</div>
-        <div id="avg" class="kv">-</div>
-        <div class="k">피크: <span id="peak-day">-</span> (<span id="peak-count">-</span>)</div>
+        평균(일)
+        <div class="metric" id="avg">-</div>
+        <div style="opacity:.7;font-size:12px">피크: <span id="peak">-</span></div>
       </div>
-      <div class="card" style="flex:2 1 360px;">
-        <div class="k">최근 방문 추이</div>
-        <div id="spark" class="spark"></div>
+      <div class="card">
+        최근 30일 방문 추이
+        <div id="spark" style="height:64px; margin-top:8px;"></div>
       </div>
     </section>
 
-    <section class="section">
+    <section style="margin-top:10px;">
       <h2>상위 페이지 (상위 20)</h2>
-      <div id="top-pages">로딩 중…</div>
+      <div id="top-pages">데이터 없음</div>
     </section>
 
-    <section class="section">
+    <section style="margin-top:10px;">
       <h2>상위 유입(Referrers)</h2>
-      <div id="top-refs" class="k">로딩 중…</div>
+      <div id="top-refs">데이터 없음</div>
     </section>
 
-    <section class="section">
+    <section style="margin-top:10px;">
       <h2>국가 / 지역 (가능 시)</h2>
-      <div id="top-locs" class="k">로딩 중…</div>
+      <div id="top-countries">데이터 없음</div>
     </section>
 
-    <details class="raw">
-      <summary>원시 응답 (디버그)</summary>
-      <pre id="raw" style="max-height:260px; overflow:auto; background:#021b14; color:#bfffe7; padding:10px; border-radius:8px;">-</pre>
-    </details>
+    <section style="margin-top:14px;">
+      <h2>원시 응답 (디버그)</h2>
+      <pre id="raw">-</pre>
+    </section>
   </main>
 
   <script src="js/goat-stats.js"></script>
