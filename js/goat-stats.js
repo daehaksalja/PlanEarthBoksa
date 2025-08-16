@@ -1,15 +1,13 @@
 (function () {
   const $ = (s) => document.querySelector(s);
 
-  // 숫자 포맷
   const fmt = (n) => (n == null ? '-' : String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ','));
 
-  // YYYY-MM-DD
   function ymd(d) {
     const z = (n) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
   }
-  // 기간 쿼리스트링 (v0 API는 from=-7d 불가 → start, end 필요)
+
   function makeRangeQS(days) {
     const end = new Date();
     const start = new Date(end);
@@ -17,9 +15,11 @@
     return `start=${ymd(start)}&end=${ymd(end)}`;
   }
 
-  // 서버 프록시 호출
   async function gc(pathWithQuery) {
-    const r = await fetch('/api/goat-proxy?path=' + encodeURIComponent(pathWithQuery), { cache: 'no-store' });
+    // pathWithQuery 예: "/stats/hits?start=YYYY-MM-DD&end=YYYY-MM-DD&limit=20"
+    const url = '/api/goat-proxy?path=' + encodeURIComponent(pathWithQuery);
+    console.log('[goat] GET', url, 'raw path:', pathWithQuery);  // ✅ 디버깅 포인트
+    const r = await fetch(url, { cache: 'no-store' });
     if (!r.ok) throw new Error(await r.text());
     return r.json();
   }
@@ -43,10 +43,7 @@
 
   function drawSparkline(series) {
     const container = $('#spark');
-    if (!series?.length) {
-      container.textContent = '—';
-      return;
-    }
+    if (!series?.length) { container.textContent = '—'; return; }
     const w = container.clientWidth || 420;
     const h = 64, pad = 4;
     const max = Math.max(...series, 1);
@@ -55,62 +52,67 @@
       const y = h - pad - (v / max) * (h - 2 * pad);
       return `${x},${y}`;
     }).join(' ');
-
     container.innerHTML =
       `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
          <polyline fill="none" stroke="#13e7a1" stroke-width="2" points="${pts}"/>
        </svg>`;
   }
 
+  let loading = false;
+
   async function load(days) {
-    const qs = makeRangeQS(days);
+    if (loading) return;               // ✅ 연타 방지(429 예방)
+    loading = true;
+    try {
+      const qs = makeRangeQS(days);
 
-    // v0 엔드포인트
-    const [totals, hits, refs, countries] = await Promise.all([
-      gc(`/stats/total?${qs}`),
-      gc(`/stats/hits?${qs}&limit=20`),
-      gc(`/stats/referrers?${qs}&limit=20`),
-      gc(`/stats/countries?${qs}`),
-    ]);
+      const [totals, hits, refs, countries] = await Promise.all([
+        gc(`/stats/total?${qs}`),
+        gc(`/stats/hits?${qs}&limit=20`),
+        gc(`/stats/referrers?${qs}&limit=20`),
+        gc(`/stats/countries?${qs}`),
+      ]);
 
-    // 디버그 출력
-    $('#raw').textContent = JSON.stringify({ totals, hits, refs, countries }, null, 2);
+      $('#raw').textContent = JSON.stringify({ totals, hits, refs, countries }, null, 2);
 
-    // ----- 총합·평균·스파크라인 -----
-    // totals.stats = [{ day, hourly:[...], daily: number }, ... ] 형태
-    const dailyArr = (totals.stats || []).map(d => (d.daily ?? d.count ?? 0));
-    const totalCount = totals.total?.count ?? totals.total ?? totals.count ?? dailyArr.reduce((a, b) => a + b, 0);
-    $('#total').textContent = fmt(totalCount);
+      const dailyArr = (totals.stats || []).map(d => (d.daily ?? d.count ?? 0));
+      const totalCount = totals.total?.count ?? totals.total ?? totals.count ?? dailyArr.reduce((a, b) => a + b, 0);
+      $('#total').textContent = fmt(totalCount);
 
-    const avg = dailyArr.length ? (totalCount / dailyArr.length) : 0;
-    $('#avg').textContent = fmt(avg);
-    $('#peak').textContent = fmt(Math.max(...dailyArr, 0));
-    drawSparkline(dailyArr);
+      const avg = dailyArr.length ? (totalCount / dailyArr.length) : 0;
+      $('#avg').textContent = fmt(avg);
 
-    // ----- 상위 페이지 -----
-    // hits.data 또는 hits.hits 또는 배열
-    const pagesData = hits.data ?? hits.hits ?? hits;
-    const pages = Array.isArray(pagesData)
-      ? pagesData.map(p => ({ path: p.path ?? p.name ?? p[0], count: p.count ?? p.views ?? p[1] ?? 0 }))
-      : [];
-    renderTable($('#top-pages'), pages, (r) => [r.path || '(unknown)', r.count]);
+      const peak = Math.max(...dailyArr, 0);
+      $('#peak')?.textContent = fmt(peak);
 
-    // ----- 리퍼러 -----
-    const refsData = refs.data ?? refs.referrers ?? refs;
-    const refRows = Array.isArray(refsData)
-      ? refsData.map(p => ({ name: p.name ?? p.referrer ?? p[0], count: p.count ?? p.views ?? p[1] ?? 0 }))
-      : [];
-    renderTable($('#top-refs'), refRows, (r) => [r.name || '(direct/none)', r.count]);
+      drawSparkline(dailyArr);
 
-    // ----- 국가 -----
-    const cData = countries.data ?? countries.countries ?? countries;
-    const cRows = Array.isArray(cData)
-      ? cData.map(p => ({ name: p.name ?? p.country ?? p.code ?? p[0], count: p.count ?? p.views ?? p[1] ?? 0 }))
-      : [];
-    renderTable($('#top-countries'), cRows, (r) => [r.name || '(unknown)', r.count]);
+      const pagesData = hits.data ?? hits.hits ?? hits;
+      const pages = Array.isArray(pagesData)
+        ? pagesData.map(p => ({ path: p.path ?? p.name ?? p[0], count: p.count ?? p.views ?? p[1] ?? 0 }))
+        : [];
+      renderTable($('#top-pages'), pages, (r) => [r.path || '(unknown)', r.count]);
+
+      const refsData = refs.data ?? refs.referrers ?? refs;
+      const refRows = Array.isArray(refsData)
+        ? refsData.map(p => ({ name: p.name ?? p.referrer ?? p[0], count: p.count ?? p.views ?? p[1] ?? 0 }))
+        : [];
+      renderTable($('#top-refs'), refRows, (r) => [r.name || '(direct/none)', r.count]);
+
+      const cData = countries.data ?? countries.countries ?? countries;
+      const cRows = Array.isArray(cData)
+        ? cData.map(p => ({ name: p.name ?? p.country ?? p.code ?? p[0], count: p.count ?? p.views ?? p[1] ?? 0 }))
+        : [];
+      renderTable($('#top-countries'), cRows, (r) => [r.name || '(unknown)', r.count]);
+
+    } catch (e) {
+      $('#raw').textContent = '오류: ' + e.message;
+      console.error(e);
+    } finally {
+      loading = false;
+    }
   }
 
-  // 기간 선택 핸들링
   function initPills() {
     const pills = Array.from(document.querySelectorAll('.pill'));
     const setActive = (el) => pills.forEach(p => p.classList.toggle('active', p === el));
@@ -123,26 +125,16 @@
         if (days === current) return;
         current = days;
         setActive(p);
-        try {
-          await load(days);
-        } catch (e) {
-          $('#raw').textContent = '오류: ' + e.message;
-        }
+        await load(days);             // 로딩 상태 내에서 429 방지
       });
     });
 
-    // 초기값(30일)
     const initial = pills.find(p => Number(p.dataset.days) === defaultDays) || pills[0];
     setActive(initial);
   }
 
-  // 시작
   window.addEventListener('DOMContentLoaded', async () => {
     initPills();
-    try {
-      await load(30);
-    } catch (e) {
-      $('#raw').textContent = '오류: ' + e.message;
-    }
+    await load(30);
   });
 })();
