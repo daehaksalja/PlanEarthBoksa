@@ -2,10 +2,15 @@
   "name": "planearth-generator",
   "version": "1.0.0",
   "description": "HTML & Sitemap 생성 서버",
+  "private": true,
+  "engines": { "node": ">=18" },
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "npx live-server --port=3000 --open=index.html"
+    "dev": "npx live-server --port=3000 --open=index.html",
+    "gen:html": "node js/generateHtml.js",
+    "gen:sitemap": "node js/generateSitemap.js",
+    "build": "npm run gen:html"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.53.0",

@@ -1,3 +1,4 @@
+
 // ===== 안전 가드(중복 로드 방지) =====
 if (window.__ADMIN_INIT__) {
   console.warn('admin.js loaded twice — skip');
@@ -10,6 +11,25 @@ if (window.__ADMIN_INIT__) {
     'sb_publishable_LW3f112nFPSSUUNvrXl19A__y73y2DE'
   );
 
+  // ===== 배포 큐 (Cloudflare Pages Functions 프록시 호출) =====
+  // 클라이언트에 Hook URL 노출 금지! /deploy 로만 POST
+  let __deployTimer = null;
+  async function __triggerDeploy(reason = 'update') {
+    try {
+      const res = await fetch('/deploy', { method: 'POST', credentials: 'include' });
+      if (!res.ok) throw new Error('deploy queue failed');
+      console.log('[deploy] queued:', reason);
+      // toast('배포 요청 전송됨', 'success');
+    } catch (e) {
+      console.warn('[deploy] queue fail:', e);
+      // toast('배포 요청 실패', 'error');
+    }
+  }
+  function queueDeploy(reason = 'update') {
+    clearTimeout(__deployTimer);
+    __deployTimer = setTimeout(() => __triggerDeploy(reason), 2000);
+  }
+
   // ===== Helpers =====
   const $ = (s) => document.querySelector(s);
   const toast = (msg='완료!', icon='success') =>
@@ -18,7 +38,10 @@ if (window.__ADMIN_INIT__) {
   const $S = (s) => document.querySelector(s);
   function makeSlug(t){
     return (t||'').toString().trim().toLowerCase()
-      .replace(/[^\p{L}\p{N}\s_-]+/gu,'').replace(/\s+/g,'_').replace(/_+/g,'_').replace(/^_+|_+$/g,'');
+      .replace(/[^\p{L}\p{N}\s_-]+/gu,'')
+      .replace(/\s+/g,'_')
+      .replace(/_+/g,'_')
+      .replace(/^_+|_+$/g,'');
   }
 
   // 로그인 체크
@@ -28,15 +51,9 @@ if (window.__ADMIN_INIT__) {
     return true;
   }
 
-  // 로딩 오버레이 (즉시 페인트)
-  function showLoading(){
-    const o = $('#loading-overlay'); if(!o) return;
-    o.style.display='flex'; void o.offsetHeight; o.classList.add('active');
-  }
-  function hideLoading(){
-    const o = $('#loading-overlay'); if(!o) return;
-    o.classList.remove('active'); setTimeout(()=>{ o.style.display='none'; }, 380);
-  }
+  // 로딩 오버레이
+  function showLoading(){ const o = $('#loading-overlay'); if(!o) return; o.style.display='flex'; void o.offsetHeight; o.classList.add('active'); }
+  function hideLoading(){ const o = $('#loading-overlay'); if(!o) return; o.classList.remove('active'); setTimeout(()=>{ o.style.display='none'; }, 380); }
 
   /* =========================
    *  R2 업/삭제 HTTP 헬퍼
@@ -49,7 +66,7 @@ if (window.__ADMIN_INIT__) {
     fd.append('kind', kind);
     if (kind==='gallery' && seq!=null) fd.append('seq', String(seq));
 
-    const res = await fetch('/r2-upload', { method:'POST', body: fd });
+    const res = await fetch('/r2-upload', { method:'POST', body: fd, credentials: 'include' });
     const json = await res.json();
     if(!res.ok) throw new Error(json.error || '업로드 실패');
     return json.url;
@@ -61,7 +78,8 @@ if (window.__ADMIN_INIT__) {
       const res = await fetch('/r2-delete', {
         method:'POST',
         headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ urls, paths })
+        body: JSON.stringify({ urls, paths }),
+        credentials: 'include'
       });
       if(!res.ok) throw new Error(await res.text());
       await res.json();
@@ -93,7 +111,7 @@ if (window.__ADMIN_INIT__) {
     initSortable();
   }
 
-  // 삭제 + 글로벌 undo bar (비영구, 즉시 시각적 제거)
+  // 삭제 + 글로벌 undo bar
   const PENDING_DELETES = new Map(); // id -> { timer, workRow, imgsRows, delUrls, countTimer, started }
   const UNDO_WINDOW_MS = 8000;
 
@@ -158,10 +176,11 @@ if (window.__ADMIN_INIT__) {
       await r2Delete({ urls: entry.delUrls });
       const { error: e1 } = await supabase.from('images').delete().eq('work_id', id); if(e1) throw e1;
       const { error: e2 } = await supabase.from('works').delete().eq('id', id); if(e2) throw e2;
+      // ✅ 실제 삭제가 끝난 시점에만 배포 훅
+      queueDeploy('work deleted');
     }catch(err){ console.warn('최종 삭제 실패(무시)', err); }
     finally{
       PENDING_DELETES.delete(id);
-      // hide undo bar if visible
       const bar = document.getElementById('undo-bar'); if(bar) bar.classList.remove('show');
       try{ Swal.close(); }catch(e){}
     }
@@ -169,16 +188,12 @@ if (window.__ADMIN_INIT__) {
 
   function undoDelete(id){
     const entry = PENDING_DELETES.get(id); if(!entry) return;
-  clearTimeout(entry.timer); clearTimeout(entry.countTimer);
-  // 숨겨진 toast/modal 닫기
-  try{ Swal.close(); }catch(e){}
-  // undo bar 숨기기
-  const bar = document.getElementById('undo-bar'); if(bar) bar.classList.remove('show');
-  // DB 삭제 아직 안됐으니 다시 목록 리로드
-  loadWorks();
-  PENDING_DELETES.delete(id);
-  // 사용자에게는 간단한 토스트로 알림
-  toast('삭제 취소됨','info');
+    clearTimeout(entry.timer); clearTimeout(entry.countTimer);
+    try{ Swal.close(); }catch(e){}
+    const bar = document.getElementById('undo-bar'); if(bar) bar.classList.remove('show');
+    loadWorks();
+    PENDING_DELETES.delete(id);
+    toast('삭제 취소됨','info');
   }
 
   $('#works-list').addEventListener('click', async (e)=>{
@@ -187,10 +202,10 @@ if (window.__ADMIN_INIT__) {
     const id = row.dataset.id;
     if(PENDING_DELETES.has(id)) return;
 
-    const res = await Swal.fire({ title:'삭제?', text:'되돌리기 8초 제공', icon:'warning', showCancelButton:true, confirmButtonText:'삭제', cancelButtonText:'취소' });
+    const res = await Swal.fire({ title:'삭제ㄱㄱ?', text:'다시 확인하시오', icon:'warning', showCancelButton:true, confirmButtonText:'삭제', cancelButtonText:'취소' });
     if(!res.isConfirmed) return;
 
-    // 원본 데이터 확보 (undo시 재표시 위해)
+    // 원본 데이터 확보
     let workRow, imgsRows;
     try {
       const wq = await supabase.from('works').select('*').eq('id', id).single(); workRow = wq.data;
@@ -237,6 +252,7 @@ if (window.__ADMIN_INIT__) {
       const min = 450; const elapsed = performance.now()-started;
       if(elapsed < min) await new Promise(r=>setTimeout(r, min-elapsed));
       toast('순서 저장 완료','success');
+      queueDeploy('works order updated');
     }catch(e){ console.error(e); toast('순서 저장 실패','error'); }
     finally{ hideLoading(); btn.disabled=false; }
   });
@@ -355,10 +371,10 @@ if (window.__ADMIN_INIT__) {
     if(SHEET_MODE==='create' && !thumbFile){ if(saveBtn){saveBtn.disabled=false;saveBtn.classList.remove('disabled');} IS_SAVING=false; return Swal.fire({icon:'info', title:'대표 이미지를 넣어줘!'}); }
 
     showLoading();
-  // 롤백 추적
-  let createdWorkId = null;
-  const uploadedUrls = [];
-  try{
+    // 롤백 추적
+    let createdWorkId = null;
+    const uploadedUrls = [];
+    try{
       let workId = CURRENT_ID;
 
       // works 생성/수정
@@ -383,20 +399,18 @@ if (window.__ADMIN_INIT__) {
         const oldBase = oldCoverUrl ? oldCoverUrl.split('?')[0] : null;
         const newBase = coverUrl; // r2-upload 반환값은 query 없음
         let finalUrl = coverUrl;
-        // 같은 파일명 덮어쓰기면 캐시 무효화를 위해 버전 쿼리 부여
         if(oldBase && oldBase === newBase){
           finalUrl = `${coverUrl}?v=${Date.now()}`;
         }
         const { error } = await supabase.from('works').update({ image_url: finalUrl }).eq('id', workId);
         if(error) throw error;
-        // 경로(베이스)가 변경된 경우에만 이전 객체 삭제 (쿼리파라 차이만 있으면 삭제 X)
         if(oldBase && oldBase !== newBase){
           await r2Delete({ urls:[oldCoverUrl] });
         }
         uploadedUrls.push(coverUrl);
       }
 
-      // 갤러리: 삭제된 것 정리 (R2 포함)
+      // 갤러리: 삭제된 것 정리
       const { data: dbImgs } = await supabase.from('images').select('id,image_url').eq('work_id', workId);
       const keepIds = new Set(galleryItems.filter(x=>x.id).map(x=>x.id));
       const toDelete = (dbImgs||[]).map(r=>r.id).filter(id=>!keepIds.has(id));
@@ -406,32 +420,27 @@ if (window.__ADMIN_INIT__) {
         await supabase.from('images').delete().in('id', toDelete);
       }
 
-      // 갤러리: 새 항목 INSERT -> 업로드 -> URL 업데이트 (순서는 RPC에서 한 번에)
-  for(const it of galleryItems){
+      // 갤러리: INSERT -> 업로드 -> URL 업데이트
+      for(const it of galleryItems){
         if(!it.file) continue;
 
-        // 1) placeholder insert (order_index = NULL) => seq 자동 배정 트리거
         const { data: ins, error: insErr } = await supabase
           .from('images')
           .insert([{ work_id: workId, image_url: null, images_order_index: null }])
           .select('id, seq').single();
         if(insErr) throw insErr;
 
-        // 2) seq 기반 파일명으로 업로드(충돌 없음)
-  const url = await uploadToR2(it.file, { workId, slug, kind:'gallery', seq: ins.seq });
-  uploadedUrls.push(url);
+        const url = await uploadToR2(it.file, { workId, slug, kind:'gallery', seq: ins.seq });
+        uploadedUrls.push(url);
 
-        // 3) URL 세팅
-        const { error: upErr } = await supabase.from  ('images').update({ image_url: url }).eq('id', ins.id);
+        const { error: upErr } = await supabase.from('images').update({ image_url: url }).eq('id', ins.id);
         if(upErr) throw upErr;
 
         it.id = ins.id; it.url = url; delete it.file;
       }
 
-      // 최종 순서 == 화면 순서대로 id 배열
+      // 최종 순서 == 화면 순서
       const orderArr = galleryItems.filter(x=>x.id).map((x,i)=>({ id:x.id, idx:i+1 }));
-
-      // 원자적 재정렬 (NULL → 순번 재부여)
       if(orderArr.length){
         const { error } = await supabase.rpc('reorder_images', { p_work_id: workId, arr: orderArr });
         if(error) throw error;
@@ -440,9 +449,9 @@ if (window.__ADMIN_INIT__) {
       toast('저장 완료!','success');
       closeSheet();
       await loadWorks();
+      queueDeploy('work saved/updated');
     }catch(e){
       console.error('저장 실패 - 롤백 시도', e);
-      // 롤백: 새로 만든 work와 업로드된 이미지 제거
       try {
         if(uploadedUrls.length) await r2Delete({ urls: uploadedUrls });
         if(createdWorkId){
@@ -461,10 +470,9 @@ if (window.__ADMIN_INIT__) {
   $('#add-work-btn').addEventListener('click', ()=> openSheet('create'));
   document.addEventListener('dblclick',(e)=>{ const row=e.target.closest('.row'); if(!row) return; openSheet('edit', row.dataset.id); });
 
-  // 모바일: 더블클릭 대신 탭으로 편집 열기 (터치기기로 판단될 때만)
+  // 모바일: 더블클릭 대신 탭으로 편집 열기
   if(('ontouchstart' in window) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0)){
     $('#works-list').addEventListener('click', (e)=>{
-      // 삭제 버튼, 드래그 핸들 등 제어 요소 클릭은 무시
       if(e.target.closest('.del-work') || e.target.closest('.drag') || e.target.closest('button')) return;
       const row = e.target.closest('.row'); if(!row) return;
       openSheet('edit', row.dataset.id);
