@@ -4,25 +4,41 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Visitor Dashboard — PLANEARTH</title>
-  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/admin.css"><!-- 가진 스타일이 있으면 사용 -->
+  <style>
+    /* 최소 스타일 (없다면 사용) */
+    body{background:#020E0A;color:#BFFFE7;font-family:system-ui,Arial,Helvetica,sans-serif}
+    .wrap{max-width:980px;margin:24px auto;padding:0 16px}
+    h1{font-size:28px;margin:0 0 20px}
+    h2{font-size:18px;margin:18px 0 8px}
+    .card{background:#041A13;border-radius:12px;box-shadow:0 0 0 1px #083e2b inset}
+    strong{font-size:22px}
+    table td{border-bottom:1px solid #0a2c21}
+    .hint{opacity:.7}
+    pre{border:1px solid #083e2b}
+  </style>
 </head>
 <body>
-  <main class="wrap entry-animate" style="max-width:980px; margin-top:24px;">
+  <main class="wrap">
     <h1>방문자 통계 대시보드</h1>
+
     <section id="summary" style="display:flex; gap:18px; flex-wrap:wrap;">
       <div class="card" style="flex:1 1 220px; padding:14px;">총 방문수<br><strong id="total">–</strong></div>
       <div class="card" style="flex:1 1 220px; padding:14px;">고유 방문자<br><strong id="unique">–</strong></div>
       <div class="card" style="flex:2 1 360px; padding:14px;">최근 30일 방문 추이<br><div id="spark" style="height:64px; margin-top:8px;"></div></div>
     </section>
+
     <section style="margin-top:18px;">
       <h2>상위 페이지 (상위 20)</h2>
-      <div id="top-pages">로딩 중…</div>
+      <div id="top-pages" class="hint">로딩 중…</div>
     </section>
+
     <section style="margin-top:18px;">
       <h2>원시 응답 (디버그)</h2>
       <pre id="raw" style="max-height:220px; overflow:auto; background:#021b14; color:#bfffe7; padding:10px; border-radius:8px;">-</pre>
     </section>
   </main>
+
   <script src="js/goat-stats.js"></script>
 </body>
 </html>

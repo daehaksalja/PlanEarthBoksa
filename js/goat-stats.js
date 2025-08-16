@@ -1,100 +1,78 @@
-(async function(){
-  const elTotal = document.getElementById('total');
+(async function () {
+  const elTotal  = document.getElementById('total');
   const elUnique = document.getElementById('unique');
-  const elTop = document.getElementById('top-pages');
-  const elRaw = document.getElementById('raw');
-  const elSpark = document.getElementById('spark');
+  const elTop    = document.getElementById('top-pages');
+  const elRaw    = document.getElementById('raw');
+  const elSpark  = document.getElementById('spark');
 
-  const fmt = n => n==null?'-':String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const fmt = n => n == null ? '-' : String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
-  // proxy strategy:
-  // 1) prefer server-side proxy at /api/goat-proxy?path=... (Cloudflare Pages Function)
-  // 2) if that fails, try local dev proxy at http://127.0.0.1:8787/proxy?url=...
-  // 3) as last resort, try direct fetch to the GoatCounter JSON URL (may fail due to CORS)
-
-  const bodyApi = document.body.dataset.goat; // may be undefined now
-
-  const serverGc = async (p) => {
-    const url = '/api/goat-proxy?path=' + encodeURIComponent(p);
-    const r = await fetch(url, { cache: 'no-store' });
-    if(!r.ok) throw new Error(await r.text());
-    return r.json();
-  };
-
-  async function tryAll(url){
-    // try server proxy -> local proxy -> direct fetch
-    try{
-      return await serverGc(url);
-    }catch(serverErr){
-      // try local dev proxy
-      const local = 'http://127.0.0.1:8787/proxy?url=' + encodeURIComponent(url);
-      try{
-        const r2 = await fetch(local, { cache: 'no-store' });
-        if(!r2.ok) throw new Error(await r2.text());
-        return r2.json();
-      }catch(localErr){
-        // final attempt: direct fetch (CORS likely)
-        try{
-          const r3 = await fetch(url, { cache: 'no-store' });
-          if(!r3.ok) throw new Error(await r3.text());
-          return r3.json();
-        }catch(directErr){
-          throw new Error('Server: '+serverErr.message+' | Local: '+localErr.message+' | Direct: '+directErr.message);
-        }
-      }
-    }
+  // GoatCounter 프록시 호출 헬퍼
+  async function gc(pathAndQuery) {
+    // pathAndQuery 는 '/stats/total' 또는 '/stats/hits?limit=50' 형태
+    const r = await fetch('/api/goat-proxy?path=' + encodeURIComponent(pathAndQuery), { cache: 'no-store' });
+    const txt = await r.text();
+    if (!r.ok) throw new Error(txt);
+    try { return JSON.parse(txt); }
+    catch { throw new Error('Proxy returned non-JSON: ' + txt.slice(0, 400)); }
   }
 
-  const gc = bodyApi ? (p => tryAll(bodyApi)) : (p => tryAll(p));
-
   try {
-    // 병렬 호출: totals + hits(경로별)
+    // 총계 + 상위 페이지를 병렬 조회
     const [totals, hits] = await Promise.all([
-      gc('/api/v0/stats/total'),
-      gc('/api/v0/stats/hits')
+      gc('/stats/total'),         // { total, stats: [{ day, daily, hourly }, ...] }
+      gc('/stats/hits?limit=50')  // 형식은 설치/버전에 따라 다를 수 있어 방어적으로 처리
     ]);
 
-    // 디버그 보기
+    // 디버그 표시
     elRaw.textContent = JSON.stringify({ totals, hits }, null, 2);
 
-    // 총계(필드명이 버전에 따라 조금 다를 수 있어 방어적으로 매핑)
-    const total = totals.total?.count ?? totals.total ?? totals.count ?? 0;
-    const unique = totals.total?.unique ?? totals.unique ?? 0;
-    elTotal.textContent = fmt(total);
-    elUnique.textContent = fmt(unique);
+    // 총 방문수
+    elTotal.textContent = fmt(totals.total ?? 0);
 
-    // 상위 페이지
-    const pagesArr =
-      hits.hits?.data || hits.hits || hits.data || Array.isArray(hits) ? hits : [];
-    const top = (Array.isArray(pagesArr) ? pagesArr : []).slice(0, 20);
+    // unique 수는 이 엔드포인트 기본 JSON엔 없음 → 필요 시 다른 API 조합
+    elUnique.textContent = '-';
+
+    // 상위 페이지 표
+    let rows = hits.hits?.data ?? hits.hits ?? hits.data ?? hits;
+    if (!Array.isArray(rows)) rows = [];
+
+    // [path, count] 또는 {path, count} 모두 흡수
+    const normalized = rows.map(it =>
+      Array.isArray(it) ? { path: it[0], count: it[1] } :
+      { path: it.path ?? it.name ?? '', count: it.count ?? it.views ?? 0 }
+    );
+    const top = normalized.slice(0, 20);
 
     if (!top.length) {
       elTop.textContent = '데이터 없음';
     } else {
       const table = document.createElement('table');
-      table.style.width='100%'; table.style.borderCollapse='collapse';
-      top.forEach((p,i) => {        const path = p.path || p.name || p[0] || '';
-        const count = p.count ?? p.views ?? p[1] ?? 0;
+      table.style.width = '100%'; table.style.borderCollapse = 'collapse';
+      top.forEach((p, i) => {
         const tr = document.createElement('tr');
         tr.innerHTML =
-          `<td style="padding:8px 6px; color:#9feccf; width:36px">${i+1}</td>
-           <td style="padding:8px 6px;">${path}</td>
-           <td style="padding:8px 6px; text-align:right; color:#bfffe7; width:120px">${fmt(count)}</td>`;
+          `<td style="padding:8px 6px; color:#9feccf; width:36px">${i + 1}</td>
+           <td style="padding:8px 6px;">${p.path}</td>
+           <td style="padding:8px 6px; text-align:right; color:#bfffe7; width:120px">${fmt(p.count)}</td>`;
         table.appendChild(tr);
       });
-      elTop.innerHTML = ''; elTop.appendChild(table);
+      elTop.innerHTML = '';
+      elTop.appendChild(table);
     }
 
-    // 최근 30일 스파크라인(일별 배열 필드명을 최대한 폭넓게 대응)
-    const daily = totals.daily || totals.by_day || totals.days || totals.timeline || [];
-    const last30 = daily.slice(-30);
+    // 스파크라인: totals.stats[].daily 사용
+    const dailyArr = Array.isArray(totals.stats)
+      ? totals.stats.map(d => ({ date: d.day, count: d.daily ?? 0 }))
+      : [];
+    const last30 = dailyArr.slice(-30);
+
     if (last30.length) {
-      const max = Math.max(...last30.map(d => d.count ?? d.views ?? d[1] ?? 0), 1);
-      const w = 420, h = 64, pad=4;
-      const pts = last30.map((d,idx) => {
-        const x = pad + (idx*(w-2*pad)/(last30.length-1||1));
-        const yv = d.count ?? d.views ?? d[1] ?? 0;
-        const y = h - pad - (yv/max)*(h-2*pad);
+      const max = Math.max(...last30.map(d => d.count), 1);
+      const w = 420, h = 64, pad = 4;
+      const pts = last30.map((d, idx) => {
+        const x = pad + (idx * (w - 2 * pad) / (last30.length - 1 || 1));
+        const y = h - pad - (d.count / max) * (h - 2 * pad);
         return `${x},${y}`;
       }).join(' ');
       elSpark.innerHTML =
@@ -105,6 +83,7 @@
   } catch (err) {
     elRaw.textContent = '오류: ' + err.message;
     elTop.textContent = '데이터 로드 실패';
-    elTotal.textContent = '-'; elUnique.textContent = '-';
+    elTotal.textContent = '-';
+    elUnique.textContent = '-';
   }
 })();
