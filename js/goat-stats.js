@@ -1,147 +1,120 @@
-(function () {
-  const $ = (s) => document.querySelector(s);
-  const fmt = (n) => (n == null ? '-' : String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ','));
+// js/goat-stats.js
+(() => {
+  const $  = (s) => document.querySelector(s);
+  const $$ = (s) => Array.from(document.querySelectorAll(s));
+
+  const setText = (sel, txt) => { const el = $(sel); if (el) el.textContent = txt; };
+  const setHTML = (sel, html) => { const el = $(sel); if (el) el.innerHTML = html; };
+
+  const fmt = (n) => (n == null ? '-' : String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','));
+
+  // 기간 버튼
+  const periods = [7, 30, 90];
+  const url = new URL(location.href);
+  let days = Number(url.searchParams.get('d')) || 30;
+  if (!periods.includes(days)) days = 30;
+
+  // 버튼 active
+  periods.forEach(d => {
+    const b = $(`[data-days="${d}"]`);
+    if (b) b.classList.toggle('active', d === days);
+    if (b) b.addEventListener('click', () => {
+      const u = new URL(location.href);
+      u.searchParams.set('d', String(d));
+      location.assign(u.toString());
+    });
+  });
 
   // YYYY-MM-DD
-  function ymd(d) {
-    const z = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
-  }
+  const toDateStr = (d) => d.toISOString().slice(0, 10);
 
-  // 기간 쿼리스트링 만들기 (start/end)
-  function makeRangeQS(days) {
-    const end = new Date();
-    const start = new Date(end);
-    start.setDate(end.getDate() - (days - 1));
-    return `start=${ymd(start)}&end=${ymd(end)}`;
-  }
+  // 기간 계산(오늘 포함)
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - (days - 1)); // N일 구간
 
-  // 안전한 path 빌더: '/stats/{kind}?{qs}&{extra}'
-  function buildPath(kind, days, extra = '') {
-    const qs = makeRangeQS(days);
-    const tail = [qs, extra].filter(Boolean).join('&');
-    return `/stats/${kind}?${tail}`;
-  }
-
-  // 프록시 호출 (필수: path 전체를 encodeURIComponent)
-  async function gc(pathWithQuery) {
-    const url = '/api/goat-proxy?path=' + encodeURIComponent(pathWithQuery);
-    console.log('[goat] GET', url, '\n  raw path:', pathWithQuery);
-    const r = await fetch(url, { cache: 'no-store' });
+  // 서버 프록시 호출 헬퍼 (/api/goat-proxy?path=...)
+  const qs = (obj) => new URLSearchParams(obj).toString();
+  const gc = async (path) => {
+    const r = await fetch('/api/goat-proxy?path=' + encodeURIComponent(path), { cache: 'no-store' });
     if (!r.ok) throw new Error(await r.text());
     return r.json();
-  }
+  };
 
-  // 테이블/스파크라인 유틸
-  function renderTable(target, rows, getRowHtml) {
-    if (!rows?.length) { target.textContent = '데이터 없음'; return; }
-    const table = document.createElement('table');
-    table.className = 'simple';
-    table.innerHTML = rows.map((row, i) => {
-      const [c1, c2] = getRowHtml(row, i);
-      return `<tr><td class="rank">${i + 1}</td><td>${c1}</td><td class="right">${fmt(c2)}</td></tr>`;
-    }).join('');
-    target.innerHTML = '';
-    target.appendChild(table);
-  }
-  function drawSparkline(series) {
-    const container = $('#spark');
-    if (!series?.length) { container.textContent = '—'; return; }
-    const w = container.clientWidth || 420, h = 64, pad = 4;
-    const max = Math.max(...series, 1);
-    const pts = series.map((v, i) => {
-      const x = pad + (i * (w - 2 * pad) / (series.length - 1 || 1));
+  // 스파크라인 렌더
+  const drawSpark = (sel, data) => {
+    const host = $(sel);
+    if (!host) return;
+    const w = host.clientWidth || 360;
+    const h = 64, pad = 6;
+    const max = Math.max(1, ...data);
+    const pts = data.map((v, i) => {
+      const x = pad + (i * (w - 2 * pad)) / Math.max(1, data.length - 1);
       const y = h - pad - (v / max) * (h - 2 * pad);
       return `${x},${y}`;
     }).join(' ');
-    container.innerHTML =
-      `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
-         <polyline fill="none" stroke="#13e7a1" stroke-width="2" points="${pts}"/>
-       </svg>`;
-  }
+    setHTML(sel, `
+      <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <polyline fill="none" stroke="#13e7a1" stroke-width="2" points="${pts}"/>
+      </svg>
+    `);
+  };
 
-  let loading = false;
-  async function load(days) {
-    if (loading) return;
-    loading = true;
+  // 메인 로직
+  (async function run() {
     try {
-      // ✅ 항상 /stats/... 로 보냄
-      const pTotal     = buildPath('total',     days);
-      const pHits      = buildPath('hits',      days, 'limit=20');
-      const pReferrers = buildPath('referrers', days, 'limit=20');
-      const pCountries = buildPath('countries', days);
+      const from = toDateStr(start);
+      const to   = toDateStr(end);
 
-      const [totals, hits, refs, countries] = await Promise.all([
-        gc(pTotal),
-        gc(pHits),
-        gc(pReferrers),
-        gc(pCountries),
-      ]);
+      // 1) 총합 + 일별
+      const totals = await gc(`/api/v0/stats/total?${qs({ from, to })}`);
 
-      // 디버그 원문
-      $('#raw').textContent = JSON.stringify({ totals, hits, refs, countries }, null, 2);
+      // 2) 상위 페이지
+      const hits = await gc(`/api/v0/stats/hits?${qs({ from, to, limit: 20, order: 'count:desc' })}`);
 
-      // 합계/평균/피크 & 스파크
-      const dailyArr = (totals.stats || []).map(d => (d.daily ?? d.count ?? 0));
-      const totalCount = totals.total?.count ?? totals.total ?? totals.count ?? dailyArr.reduce((a, b) => a + b, 0);
-      $('#total').textContent = fmt(totalCount);
-      const avg = dailyArr.length ? (totalCount / dailyArr.length) : 0;
-      $('#avg').textContent = fmt(avg);
-      const peak = Math.max(...dailyArr, 0);
-      if ($('#peak')) $('#peak').textContent = fmt(peak);
-      drawSparkline(dailyArr);
+      // ── 디버그(raw) ─────────────────────────────────────────
+      setText('#raw', JSON.stringify({ totals, hits }, null, 2));
 
-      // 상위 페이지
-      const pagesData = hits.data ?? hits.hits ?? hits;
-      const pages = Array.isArray(pagesData)
-        ? pagesData.map(p => ({ path: p.path ?? p.name ?? p[0], count: p.count ?? p.views ?? p[1] ?? 0 }))
-        : [];
-      renderTable($('#top-pages'), pages, (r) => [r.path || '(unknown)', r.count]);
+      // ── 카드: 총 방문수 / 평균 / 피크 / 스파크라인 ─────────
+      const series = (totals.stats || []).map(d => d.daily || 0);
+      const totalCount = (typeof totals.total === 'number') ? totals.total
+                        : (typeof totals.total_utc === 'number') ? totals.total_utc
+                        : (typeof totals.count === 'number') ? totals.count
+                        : series.reduce((a,b)=>a+b,0);
 
-      // 리퍼러
-      const refsData = refs.data ?? refs.referrers ?? refs;
-      const refRows = Array.isArray(refsData)
-        ? refsData.map(p => ({ name: p.name ?? p.referrer ?? p[0], count: p.count ?? p.views ?? p[1] ?? 0 }))
-        : [];
-      renderTable($('#top-refs'), refRows, (r) => [r.name || '(direct/none)', r.count]);
+      const avg = series.length ? Math.round(series.reduce((a,b)=>a+b,0) / series.length) : 0;
+      const peak = series.length ? Math.max(...series) : 0;
 
-      // 국가
-      const cData = countries.data ?? countries.countries ?? countries;
-      const cRows = Array.isArray(cData)
-        ? cData.map(p => ({ name: p.name ?? p.country ?? p.code ?? p[0], count: p.count ?? p.views ?? p[1] ?? 0 }))
-        : [];
-      renderTable($('#top-countries'), cRows, (r) => [r.name || '(unknown)', r.count]);
+      setText('#total', fmt(totalCount));
+      setText('#avg', fmt(avg));
+      setText('#peak', fmt(peak));
+      drawSpark('#spark', series.slice(-30));
 
-    } catch (e) {
-      $('#raw').textContent = '오류: ' + e.message;
-      console.error(e);
-    } finally {
-      loading = false;
+      // ── 상위 페이지 테이블 ────────────────────────────────
+      const list = (hits && (hits.hits?.data || hits.hits || hits.data)) || (Array.isArray(hits) ? hits : []);
+      if (!list.length) {
+        setText('#top-pages', '데이터 없음');
+      } else {
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        list.slice(0, 20).forEach((row, i) => {
+          const path = row.path || row.name || row[0] || '';
+          const count = row.count ?? row.views ?? row[1] ?? 0;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="padding:8px 6px; color:#9feccf; width:36px">${i + 1}</td>
+            <td style="padding:8px 6px;">${path}</td>
+            <td style="padding:8px 6px; text-align:right; color:#bfffe7; width:120px">${fmt(count)}</td>
+          `;
+          table.appendChild(tr);
+        });
+        const box = $('#top-pages'); if (box) { box.innerHTML = ''; box.appendChild(table); }
+      }
+    } catch (err) {
+      setText('#raw', '오류: ' + (err?.message || err));
+      setText('#top-pages', '데이터 로드 실패');
+      setText('#total', '-'); setText('#avg', '-'); setText('#peak', '-');
     }
-  }
-
-  function initPills() {
-    const pills = Array.from(document.querySelectorAll('.pill'));
-    const setActive = (el) => pills.forEach(p => p.classList.toggle('active', p === el));
-    const defaultDays = 30;
-    let current = defaultDays;
-
-    pills.forEach(p => {
-      p.addEventListener('click', async () => {
-        const days = Number(p.dataset.days || defaultDays);
-        if (days === current) return;
-        current = days;
-        setActive(p);
-        await load(days);
-      });
-    });
-
-    const initial = pills.find(p => Number(p.dataset.days) === defaultDays) || pills[0];
-    setActive(initial);
-  }
-
-  window.addEventListener('DOMContentLoaded', async () => {
-    initPills();
-    await load(30);
-  });
+  })();
 })();
