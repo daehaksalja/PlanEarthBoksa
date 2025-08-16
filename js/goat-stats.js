@@ -1,5 +1,7 @@
 (() => {
   const $  = (s) => document.querySelector(s);
+  const $$ = (s) => Array.from(document.querySelectorAll(s));
+
   const setText = (sel, txt) => { const el = $(sel); if (el) el.textContent = txt; };
   const setHTML = (sel, html) => { const el = $(sel); if (el) el.innerHTML = html; };
   const fmt = (n) => (n == null ? '-' : String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','));
@@ -11,7 +13,7 @@
   if (!periods.includes(days)) days = 30;
 
   periods.forEach(d => {
-    const b = document.querySelector(`[data-days="${d}"]`);
+    const b = $(`[data-days="${d}"]`);
     if (b) b.classList.toggle('active', d === days);
     if (b) b.addEventListener('click', () => {
       const u = new URL(location.href);
@@ -20,42 +22,22 @@
     });
   });
 
-  // 날짜(YYYY-MM-DD)
-  const toDateStr = (d) => d.toISOString().slice(0, 10);
+  // 날짜 문자열 (YYYY-MM-DD)
+  const toDateStr = (d) => d.toISOString().slice(0,10);
 
   // 기간 계산(오늘 포함)
   const end = new Date();
   const start = new Date();
-  start.setDate(end.getDate() - (days - 1)); // N일
+  start.setDate(end.getDate() - (days - 1));
 
-  // 프록시 헬퍼 (/api/goat-proxy?path=...)
-  const qs = (obj) => new URLSearchParams(obj).toString();
-  const gc = async (path) => {
-    const r = await fetch('/api/goat-proxy?path=' + encodeURIComponent(path), { cache: 'no-store' });
+  // 서버 프록시 호출: path 는 "경로만", params 는 쿼리
+  const gc = async (path, params = {}) => {
+    const sp = new URLSearchParams(params).toString();
+    const api = '/api/goat-proxy?path=' + encodeURIComponent(path) + (sp ? '&' + sp : '');
+    const r = await fetch(api, { cache: 'no-store' });
     if (!r.ok) throw new Error(await r.text());
     return r.json();
   };
-
-  // 공통 테이블 렌더러
-  function renderTable(rows, containerSel, cols) {
-    const box = $(containerSel);
-    if (!box) return;
-    if (!rows.length) { box.textContent = '데이터 없음'; return; }
-
-    const table = document.createElement('table');
-    table.style.width = '100%';
-    table.style.borderCollapse = 'collapse';
-
-    rows.forEach((row, i) => {
-      const tr = document.createElement('tr');
-      const values = cols(row, i);
-      tr.innerHTML = values.map(v => `<td style="padding:8px 6px;${v.right ? 'text-align:right; color:#bfffe7; width:120px' : ''}">${v.text}</td>`).join('');
-      table.appendChild(tr);
-    });
-
-    box.innerHTML = '';
-    box.appendChild(table);
-  }
 
   // 스파크라인
   const drawSpark = (sel, data) => {
@@ -76,29 +58,59 @@
     `);
   };
 
+  // 공통 테이블 렌더
+  const renderTable = (boxSel, rows, pathKey='path', countKey='count') => {
+    const box = $(boxSel);
+    if (!box) return;
+    if (!rows?.length) {
+      box.textContent = '데이터 없음';
+      return;
+    }
+    const tbl = document.createElement('table');
+    tbl.style.width = '100%';
+    tbl.style.borderCollapse = 'collapse';
+    rows.forEach((row, i) => {
+      const path  = row[pathKey] ?? row.name ?? row[0] ?? '';
+      const count = row[countKey] ?? row.views ?? row[1] ?? 0;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="padding:8px 6px; color:#9feccf; width:36px">${i + 1}</td>
+        <td style="padding:8px 6px;">${path}</td>
+        <td style="padding:8px 6px; text-align:right; color:#bfffe7; width:120px">${fmt(count)}</td>
+      `;
+      tbl.appendChild(tr);
+    });
+    box.innerHTML = '';
+    box.appendChild(tbl);
+  };
+
   (async function run() {
     try {
-      const startStr = toDateStr(start);
-      const endStr   = toDateStr(end);
+      const from = toDateStr(start);
+      const to   = toDateStr(end);
 
-      // /stats API는 start, end 사용
-      const [totals, hits, referrers, countries] = await Promise.all([
-        gc(`/stats/total?${qs({ start: startStr, end: endStr })}`),
-        gc(`/stats/hits?${qs({ start: startStr, end: endStr, limit: 20 })}`),
-        gc(`/stats/referrers?${qs({ start: startStr, end: endStr, limit: 20 })}`),
-        gc(`/stats/countries?${qs({ start: startStr, end: endStr, limit: 20 })}`),
-      ]);
+      // 1) 총합 + 일별
+      const totals = await gc('/stats/total', { start: from, end: to });
+
+      // 2) 상위 페이지
+      const hits = await gc('/stats/hits', { start: from, end: to, limit: 20, order: 'count:desc' });
+
+      // 3) 리퍼러
+      const refs = await gc('/stats/referrers', { start: from, end: to, limit: 20 });
+
+      // 4) 국가/지역
+      const countries = await gc('/stats/countries', { start: from, end: to, limit: 20 });
 
       // 디버그
-      setText('#raw', JSON.stringify({ totals, hits, referrers, countries }, null, 2));
+      setText('#raw', JSON.stringify({ totals, hits, refs, countries }, null, 2));
 
-      // 합계/평균/피크 + 스파크
-      const series = Array.isArray(totals?.stats) ? totals.stats.map(d => d.daily ?? d.count ?? 0) : [];
+      // 카드 계산
+      const series = (totals.stats || []).map(d => d.daily || 0);
       const totalCount =
-        typeof totals?.total === 'number' ? totals.total :
-        typeof totals?.total_utc === 'number' ? totals.total_utc :
-        typeof totals?.count === 'number' ? totals.count :
-        series.reduce((a,b)=>a+b,0);
+        typeof totals.total === 'number' ? totals.total :
+        typeof totals.total_utc === 'number' ? totals.total_utc :
+        typeof totals.count === 'number' ? totals.count :
+        series.reduce((a,b)=>a+b, 0);
 
       const avg  = series.length ? Math.round(series.reduce((a,b)=>a+b,0) / series.length) : 0;
       const peak = series.length ? Math.max(...series) : 0;
@@ -108,57 +120,18 @@
       setText('#peak',  fmt(peak));
       drawSpark('#spark', series.slice(-30));
 
-      // 상위 페이지
-      const pages = (hits?.data || hits?.hits || Array.isArray(hits) && hits) || [];
-      renderTable(
-        pages.slice(0, 20),
-        '#top-pages',
-        (row, i) => {
-          const path  = row.path ?? row.name ?? row[0] ?? '';
-          const count = row.count ?? row.views ?? row[1] ?? 0;
-          return [
-            { text: String(i + 1) },
-            { text: path },
-            { text: fmt(count), right: true },
-          ];
-        }
-      );
+      // 표 렌더
+      const hitsRows = (hits?.hits?.data || hits?.hits || hits?.data || (Array.isArray(hits) ? hits : [])) ?? [];
+      renderTable('#top-pages', hitsRows, 'path', 'count');
 
-      // 상위 유입
-      const refs = (referrers?.data || referrers?.refs || Array.isArray(referrers) && referrers) || [];
-      renderTable(
-        refs.slice(0, 20),
-        '#top-referrers',
-        (row, i) => {
-          const name  = row.name ?? row.ref ?? row[0] ?? '';
-          const count = row.count ?? row.views ?? row[1] ?? 0;
-          return [
-            { text: String(i + 1) },
-            { text: name },
-            { text: fmt(count), right: true },
-          ];
-        }
-      );
+      const refRows = (refs?.hits?.data || refs?.hits || refs?.data || (Array.isArray(refs) ? refs : [])) ?? [];
+      renderTable('#top-referrers', refRows, 'path', 'count');
 
-      // 국가
-      const ctys = (countries?.data || countries?.countries || Array.isArray(countries) && countries) || [];
-      renderTable(
-        ctys.slice(0, 20),
-        '#top-countries',
-        (row, i) => {
-          const name  = row.name ?? row.country ?? row[0] ?? '';
-          const count = row.count ?? row.views ?? row[1] ?? 0;
-          return [
-            { text: String(i + 1) },
-            { text: name },
-            { text: fmt(count), right: true },
-          ];
-        }
-      );
-
+      const ctrRows = (countries?.hits?.data || countries?.hits || countries?.data || (Array.isArray(countries) ? countries : [])) ?? [];
+      renderTable('#top-countries', ctrRows, 'country', 'count');
     } catch (err) {
       setText('#raw', `오류: ${err?.message || err}`);
-      setText('#top-pages',     '데이터 로드 실패');
+      setText('#top-pages', '데이터 로드 실패');
       setText('#top-referrers', '데이터 로드 실패');
       setText('#top-countries', '데이터 로드 실패');
       setText('#total', '-'); setText('#avg', '-'); setText('#peak', '-');

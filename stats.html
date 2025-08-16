@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>방문자 통계 대시보드 — PLANEARTH</title>
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+  <main class="wrap entry-animate" style="max-width:980px; margin-top:24px;">
+    <h1>방문자 통계 대시보드</h1>
+
+    <div class="periods">
+      <button data-days="7">7일</button>
+      <button data-days="30" class="active">30일</button>
+      <button data-days="90">90일</button>
+    </div>
+
+    <section id="summary" class="cards">
+      <div class="card">총 방문수<br><strong id="total">-</strong></div>
+      <div class="card">평균(일)<br><strong id="avg">-</strong><div class="muted">피크: <span id="peak">-</span></div></div>
+      <div class="card">최근 30일 방문 추이<br><div id="spark" style="height:64px; margin-top:8px;"></div></div>
+    </section>
+
+    <section style="margin-top:18px;">
+      <h2>상위 페이지 (상위 20)</h2>
+      <div id="top-pages">로딩 중…</div>
+    </section>
+
+    <section style="margin-top:18px;">
+      <h2>상위 유입 (Referrers)</h2>
+      <div id="top-referrers">로딩 중…</div>
+    </section>
+
+    <section style="margin-top:18px;">
+      <h2>국가 / 지역</h2>
+      <div id="top-countries">로딩 중…</div>
+    </section>
+
+    <section style="margin-top:18px;">
+      <h2>원시 응답 (디버그)</h2>
+      <pre id="raw" class="raw">-</pre>
+    </section>
+  </main>
+
+  <script src="js/goat-stats.js"></script>
+</body>
+</html>
