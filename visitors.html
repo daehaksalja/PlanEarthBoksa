@@ -4,39 +4,71 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Visitor Dashboard — PLANEARTH</title>
-  <link rel="stylesheet" href="css/admin.css"><!-- 가진 스타일이 있으면 사용 -->
+  <link rel="stylesheet" href="css/admin.css">
   <style>
-    /* 최소 스타일 (없다면 사용) */
-    body{background:#020E0A;color:#BFFFE7;font-family:system-ui,Arial,Helvetica,sans-serif}
-    .wrap{max-width:980px;margin:24px auto;padding:0 16px}
-    h1{font-size:28px;margin:0 0 20px}
-    h2{font-size:18px;margin:18px 0 8px}
-    .card{background:#041A13;border-radius:12px;box-shadow:0 0 0 1px #083e2b inset}
-    strong{font-size:22px}
-    table td{border-bottom:1px solid #0a2c21}
-    .hint{opacity:.7}
-    pre{border:1px solid #083e2b}
+    .cards{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0}
+    .card{flex:1 1 260px;padding:14px;border-radius:14px;background:#0d231c;border:1px solid #103027}
+    .k{opacity:.7;font-size:13px}
+    .kv{font-size:24px;margin-top:4px}
+    .controls{display:flex;gap:8px;align-items:center;margin:8px 0 6px}
+    .range-btn{padding:6px 10px;border:1px solid #174235;border-radius:10px;background:#0c1f19;cursor:pointer}
+    .range-btn.active{background:#123328}
+    table.v{width:100%;border-collapse:collapse}
+    table.v td{padding:8px 6px;border-bottom:1px solid #123328}
+    .delta.up{color:#75f1bf}
+    .delta.down{color:#ff8a8a}
+    .section{margin-top:22px}
+    .spark{height:70px;margin-top:8px}
+    details.raw{margin-top:18px}
   </style>
 </head>
 <body>
-  <main class="wrap">
+  <main class="wrap entry-animate" style="max-width:1100px; margin-top:24px;">
     <h1>방문자 통계 대시보드</h1>
 
-    <section id="summary" style="display:flex; gap:18px; flex-wrap:wrap;">
-      <div class="card" style="flex:1 1 220px; padding:14px;">총 방문수<br><strong id="total">–</strong></div>
-      <div class="card" style="flex:1 1 220px; padding:14px;">고유 방문자<br><strong id="unique">–</strong></div>
-      <div class="card" style="flex:2 1 360px; padding:14px;">최근 30일 방문 추이<br><div id="spark" style="height:64px; margin-top:8px;"></div></div>
+    <div class="controls">
+      <span class="k">기간:</span>
+      <button class="range-btn" data-from="-7d">7일</button>
+      <button class="range-btn active" data-from="-30d">30일</button>
+      <button class="range-btn" data-from="-90d">90일</button>
+    </div>
+
+    <section class="cards">
+      <div class="card">
+        <div class="k">총 방문수</div>
+        <div id="total" class="kv">-</div>
+        <div id="delta" class="k" style="margin-top:6px;">전기간 대비 <span>-</span></div>
+      </div>
+      <div class="card">
+        <div class="k">평균(일)</div>
+        <div id="avg" class="kv">-</div>
+        <div class="k">피크: <span id="peak-day">-</span> (<span id="peak-count">-</span>)</div>
+      </div>
+      <div class="card" style="flex:2 1 360px;">
+        <div class="k">최근 방문 추이</div>
+        <div id="spark" class="spark"></div>
+      </div>
     </section>
 
-    <section style="margin-top:18px;">
+    <section class="section">
       <h2>상위 페이지 (상위 20)</h2>
-      <div id="top-pages" class="hint">로딩 중…</div>
+      <div id="top-pages">로딩 중…</div>
     </section>
 
-    <section style="margin-top:18px;">
-      <h2>원시 응답 (디버그)</h2>
-      <pre id="raw" style="max-height:220px; overflow:auto; background:#021b14; color:#bfffe7; padding:10px; border-radius:8px;">-</pre>
+    <section class="section">
+      <h2>상위 유입(Referrers)</h2>
+      <div id="top-refs" class="k">로딩 중…</div>
     </section>
+
+    <section class="section">
+      <h2>국가 / 지역 (가능 시)</h2>
+      <div id="top-locs" class="k">로딩 중…</div>
+    </section>
+
+    <details class="raw">
+      <summary>원시 응답 (디버그)</summary>
+      <pre id="raw" style="max-height:260px; overflow:auto; background:#021b14; color:#bfffe7; padding:10px; border-radius:8px;">-</pre>
+    </details>
   </main>
 
   <script src="js/goat-stats.js"></script>
