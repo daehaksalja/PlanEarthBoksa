@@ -1,6 +1,5 @@
 // Cloudflare Pages Functions: /functions/r2-delete.js
 // body: { urls?: string[], paths?: string[] } -> R2 객체 삭제
-
 export const onRequest = async ({ request, env }) => {
   const origin = request.headers.get('Origin') || '';
 
@@ -14,14 +13,14 @@ export const onRequest = async ({ request, env }) => {
 
     const toDelete = new Set();
 
-    // 1) 풀 URL → key 추출 (예: works/0001_xxx.jpg)
+    // 1) 풀 URL → 키로 변환 (예: https://.../images/0001_xxx.jpg -> images/0001_xxx.jpg)
     for (const u of urls) {
       if (!u) continue;
       const key = urlToKey(u);
       if (key) toDelete.add(key);
     }
 
-    // 2) 상대 경로로 직접 전달된 경우
+    // 2) 이미 키(상대경로)로 들어온 경우
     for (const p of paths) {
       if (!p) continue;
       toDelete.add(String(p).replace(/^\/+/, ''));
@@ -29,7 +28,7 @@ export const onRequest = async ({ request, env }) => {
 
     const deleted = [];
     for (const key of toDelete) {
-      const head = await env.BUCKET.head(key); // 존재 여부 통계용
+      const head = await env.BUCKET.head(key); // 존재여부 체크(선택)
       await env.BUCKET.delete(key);
       deleted.push({ key, existed: !!head });
     }
@@ -56,7 +55,7 @@ function urlToKey(u) {
   try {
     if (/^https?:\/\//i.test(u)) {
       const { pathname } = new URL(u);
-      return decodeURIComponent(pathname.replace(/^\/+/, '')); // works/... or images/...
+      return decodeURIComponent(pathname.replace(/^\/+/, '')); // => works/... or images/...
     }
     return String(u).replace(/^\/+/, '');
   } catch {

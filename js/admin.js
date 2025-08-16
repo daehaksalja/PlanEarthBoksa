@@ -97,7 +97,7 @@ if (window.__ADMIN_INIT__) {
           <div class="title">${it.title || ''}</div>
           <div class="sub">${it.subtitle || ''}</div>
         </div>
-        <div class="right">${it.duration || ''}</div>
+        <div class="right">${it.since || ''}</div>
         <button class="del-work" title="삭제">🗑️</button>`;
       list.appendChild(li);
     });
@@ -123,10 +123,10 @@ if (window.__ADMIN_INIT__) {
     try {
       // 삭제 대상 URL 수집
       const { data: workRow }  = await supabase.from('works').select('image_url').eq('id', id).single();
-      const { data: imgsRows } = await supabase.from('images').select('url').eq('work_id', id);
+      const { data: imgsRows } = await supabase.from('images').select('image_url').eq('work_id', id);
       const delUrls = [
         ...(workRow?.image_url ? [workRow.image_url] : []),
-        ...((imgsRows || []).map(r => r.url).filter(Boolean))
+        ...((imgsRows || []).map(r => r.image_url).filter(Boolean))
       ];
 
       // R2 먼저 삭제
@@ -200,7 +200,7 @@ if (window.__ADMIN_INIT__) {
   let SHEET_MODE = 'create';
   let CURRENT_ID = null;
   let thumbFile = null;
-  const galleryItems = [];  // { id?, url?, file?, _key }  // caption 제거
+  const galleryItems = [];  // { id?, url?, file?, _key }
   const $S = (s) => document.querySelector(s);
   let IS_SAVING = false;
 
@@ -303,17 +303,17 @@ if (window.__ADMIN_INIT__) {
 
     $S('#f-title').value = work.title || '';
     $S('#f-subtitle').value = work.subtitle || '';
-    $S('#f-since').value = work.since || '';
+    $S('#f-since').value   = work.since   || '';
     if (work.image_url) {
       const img = $S('#thumb-preview'); img.src = work.image_url; img.style.display = 'block'; thumbFile = null;
     }
 
     const { data: imgs, error: iErr } = await supabase
-      .from('images').select('*').eq('work_id', id).order('order_index', { ascending: true });
+      .from('images').select('*').eq('work_id', id).order('images_order_index', { ascending: true });
     if (iErr) { console.error(iErr); return; }
 
     galleryItems.length = 0;
-    (imgs || []).forEach(row => galleryItems.push({ id: row.id, url: row.url, _key: 'db-' + row.id }));
+    (imgs || []).forEach(row => galleryItems.push({ id: row.id, url: row.image_url, _key: 'db-' + row.id }));
     renderGallery();
   }
 
@@ -380,28 +380,28 @@ if (window.__ADMIN_INIT__) {
       }
 
       // 3) 갤러리 diff (R2도 같이 삭제)
-      const { data: dbImgs } = await supabase.from('images').select('id,url').eq('work_id', workId);
-      const keepIds   = new Set(galleryItems.filter(x => x.id).map(x => x.id));
-      const toDelete  = (dbImgs || []).map(r => r.id).filter(id => !keepIds.has(id));
+      const { data: dbImgs } = await supabase.from('images').select('id,image_url').eq('work_id', workId);
+      const keepIds  = new Set(galleryItems.filter(x => x.id).map(x => x.id));
+      const toDelete = (dbImgs || []).map(r => r.id).filter(id => !keepIds.has(id));
       if (toDelete.length) {
-        const delUrls = (dbImgs || []).filter(r => toDelete.includes(r.id)).map(r => r.url).filter(Boolean);
+        const delUrls = (dbImgs || []).filter(r => toDelete.includes(r.id)).map(r => r.image_url).filter(Boolean);
         if (delUrls.length) await r2Delete({ urls: delUrls });
         await supabase.from('images').delete().in('id', toDelete);
       }
 
-      // 4) 갤러리 추가/수정 (caption 제거)
+      // 4) 갤러리 추가/수정
       for (let i = 0; i < galleryItems.length; i++) {
         const it = galleryItems[i];
         const orderIdx = i + 1;
         if (it.file) {
           const url = await uploadToR2(it.file, { workId, slug, kind: 'gallery', index: orderIdx });
           const { error } = await supabase.from('images').insert([{
-            work_id: workId, url, order_index: orderIdx
+            work_id: workId, image_url: url, images_order_index: orderIdx
           }]);
           if (error) throw error;
         } else if (it.id) {
           const { error } = await supabase.from('images')
-            .update({ order_index: orderIdx }).eq('id', it.id);
+            .update({ images_order_index: orderIdx }).eq('id', it.id);
           if (error) throw error;
         }
       }

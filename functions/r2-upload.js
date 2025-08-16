@@ -8,8 +8,8 @@ export const onRequest = async ({ request, env }) => {
   if (request.method !== 'POST')   return cors(json({ error: 'POST only' }, 405), origin);
 
   try {
-    const form  = await request.formData();
-    const file  = form.get('file');
+    const form = await request.formData();
+    const file   = form.get('file');
     const workId = String(form.get('workId') || '').trim();
     const slug   = String(form.get('slug')   || '').trim();
     const kind   = String(form.get('kind')   || 'cover'); // 'cover' | 'gallery'
@@ -24,20 +24,19 @@ export const onRequest = async ({ request, env }) => {
 
     const ext  = extFromFile(file) || 'jpg';
     const mime = contentTypeFromExt(ext);
-
-    // workId 패딩 (4자리 이상 자동 확장)
-    const padWidth = Math.max(4, String(workId).length);
-    const idp      = String(workId).padStart(padWidth, '0');
+    const id4  = workId.padStart(4, '0');
 
     const name = (kind === 'cover')
-      ? `${idp}_${slug}.${ext}`
-      : `${idp}_${slug}${index}.${ext}`;
+      ? `${id4}_${slug}.${ext}`
+      : `${id4}_${slug}${index}.${ext}`;
 
-    const path = (kind === 'cover') ? `works/${name}` : `images/${name}`;
+    const path = (kind === 'cover')
+      ? `works/${name}`
+      : `images/${name}`;
 
     await env.BUCKET.put(path, file.stream(), { httpMetadata: { contentType: mime } });
 
-    // ⚠️ R2_PUBLIC_URL = "https://object.planearth.co.kr" (뒤에 /works 붙이면 안됨)
+    // R2_PUBLIC_URL은 버킷 루트(예: https://object.planearth.co.kr/)로 설정!
     const url = joinUrl(env.R2_PUBLIC_URL, path);
     return cors(json({ url, path }), origin);
   } catch (e) {
