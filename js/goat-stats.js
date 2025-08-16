@@ -1,11 +1,8 @@
 // js/goat-stats.js
 (() => {
   const $  = (s) => document.querySelector(s);
-  const $$ = (s) => Array.from(document.querySelectorAll(s));
-
   const setText = (sel, txt) => { const el = $(sel); if (el) el.textContent = txt; };
   const setHTML = (sel, html) => { const el = $(sel); if (el) el.innerHTML = html; };
-
   const fmt = (n) => (n == null ? '-' : String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','));
 
   // 기간 버튼
@@ -14,38 +11,48 @@
   let days = Number(url.searchParams.get('d')) || 30;
   if (!periods.includes(days)) days = 30;
 
-  // 버튼 active
   periods.forEach(d => {
-    const b = $(`[data-days="${d}"]`);
-    if (b) b.classList.toggle('active', d === days);
-    if (b) b.addEventListener('click', () => {
+    const b = document.querySelector(`[data-days="${d}"]`);
+    if (!b) return;
+    b.classList.toggle('active', d === days);
+    b.addEventListener('click', () => {
       const u = new URL(location.href);
       u.searchParams.set('d', String(d));
       location.assign(u.toString());
     });
   });
 
-  // YYYY-MM-DD
   const toDateStr = (d) => d.toISOString().slice(0, 10);
-
-  // 기간 계산(오늘 포함)
   const end = new Date();
   const start = new Date();
-  start.setDate(end.getDate() - (days - 1)); // N일 구간
+  start.setDate(end.getDate() - (days - 1));
 
-  // 서버 프록시 호출 헬퍼 (/api/goat-proxy?path=...)
+  // 프록시 호출
   const qs = (obj) => new URLSearchParams(obj).toString();
-  const gc = async (path) => {
+  async function gc(path) {
     const r = await fetch('/api/goat-proxy?path=' + encodeURIComponent(path), { cache: 'no-store' });
-    if (!r.ok) throw new Error(await r.text());
-    return r.json();
-  };
+    const text = await r.text();
+    if (!r.ok) throw new Error(text || `HTTP ${r.status}`);
+    try { return JSON.parse(text); } catch { throw new Error(text); }
+  }
 
-  // 스파크라인 렌더
-  const drawSpark = (sel, data) => {
+  // 일별 시계열 뽑기(필드 다양성 대응)
+  function extractSeries(totals) {
+    // 1) { stats: [{ daily, day, hourly:[] }...] }
+    if (Array.isArray(totals?.stats)) return totals.stats.map(d => d?.daily ?? 0);
+    // 2) { days: [{ count, day }...] }
+    if (Array.isArray(totals?.days))  return totals.days.map(d => d?.count ?? 0);
+    // 3) { daily: [n, n, ...] }
+    if (Array.isArray(totals?.daily)) return totals.daily.map(n => n ?? 0);
+    return [];
+  }
+
+  // 스파크라인
+  function drawSpark(sel, data) {
     const host = $(sel);
     if (!host) return;
-    const w = host.clientWidth || 360;
+    let w = host.clientWidth;
+    if (!w) { w = (host.getBoundingClientRect().width || 360); }
     const h = 64, pad = 6;
     const max = Math.max(1, ...data);
     const pts = data.map((v, i) => {
@@ -58,40 +65,49 @@
         <polyline fill="none" stroke="#13e7a1" stroke-width="2" points="${pts}"/>
       </svg>
     `);
-  };
+  }
 
-  // 메인 로직
   (async function run() {
     try {
       const from = toDateStr(start);
       const to   = toDateStr(end);
 
-      // 1) 총합 + 일별
+      // 총합 + 일별
       const totals = await gc(`/api/v0/stats/total?${qs({ from, to })}`);
+      // 상위 페이지
+      const hits   = await gc(`/api/v0/stats/hits?${qs({ from, to, limit: 20, order: 'count:desc' })}`);
 
-      // 2) 상위 페이지
-      const hits = await gc(`/api/v0/stats/hits?${qs({ from, to, limit: 20, order: 'count:desc' })}`);
-
-      // ── 디버그(raw) ─────────────────────────────────────────
+      // 디버그
       setText('#raw', JSON.stringify({ totals, hits }, null, 2));
 
-      // ── 카드: 총 방문수 / 평균 / 피크 / 스파크라인 ─────────
-      const series = (totals.stats || []).map(d => d.daily || 0);
-      const totalCount = (typeof totals.total === 'number') ? totals.total
-                        : (typeof totals.total_utc === 'number') ? totals.total_utc
-                        : (typeof totals.count === 'number') ? totals.count
-                        : series.reduce((a,b)=>a+b,0);
+      // 시계열, 합계/평균/피크
+      const series = extractSeries(totals);
+      const sum = series.reduce((a,b)=>a+(+b||0), 0);
 
-      const avg = series.length ? Math.round(series.reduce((a,b)=>a+b,0) / series.length) : 0;
+      const totalCount =
+        typeof totals.total === 'number' ? totals.total :
+        typeof totals.total_utc === 'number' ? totals.total_utc :
+        typeof totals.count === 'number' ? totals.count : sum;
+
+      const avg  = series.length ? Math.round(sum / series.length) : 0;
       const peak = series.length ? Math.max(...series) : 0;
 
+      // unique(있으면 표시)
+      const unique =
+        (typeof totals.unique === 'number' && totals.unique) ??
+        (typeof totals.total?.unique === 'number' && totals.total.unique) ??
+        null;
+
       setText('#total', fmt(totalCount));
-      setText('#avg', fmt(avg));
-      setText('#peak', fmt(peak));
+      if (document.querySelector('#unique')) setText('#unique', unique == null ? '-' : fmt(unique));
+      if (document.querySelector('#avg'))    setText('#avg', fmt(avg));
+      if (document.querySelector('#peak'))   setText('#peak', fmt(peak));
       drawSpark('#spark', series.slice(-30));
 
-      // ── 상위 페이지 테이블 ────────────────────────────────
-      const list = (hits && (hits.hits?.data || hits.hits || hits.data)) || (Array.isArray(hits) ? hits : []);
+      // 상위 페이지
+      const list =
+        (hits && (hits.hits?.data || hits.hits || hits.data)) ||
+        (Array.isArray(hits) ? hits : []);
       if (!list.length) {
         setText('#top-pages', '데이터 없음');
       } else {
@@ -99,7 +115,7 @@
         table.style.width = '100%';
         table.style.borderCollapse = 'collapse';
         list.slice(0, 20).forEach((row, i) => {
-          const path = row.path || row.name || row[0] || '';
+          const path  = row.path || row.name || row[0] || '';
           const count = row.count ?? row.views ?? row[1] ?? 0;
           const tr = document.createElement('tr');
           tr.innerHTML = `
@@ -114,7 +130,7 @@
     } catch (err) {
       setText('#raw', '오류: ' + (err?.message || err));
       setText('#top-pages', '데이터 로드 실패');
-      setText('#total', '-'); setText('#avg', '-'); setText('#peak', '-');
+      ['#total','#avg','#peak','#unique'].forEach(id => { if ($(id)) setText(id, '-'); });
     }
   })();
 })();
