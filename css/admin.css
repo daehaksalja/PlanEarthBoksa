@@ -149,6 +149,19 @@
   .sub { font-size: 12px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .right { color: #7fe4bf; font-variant-numeric: tabular-nums; padding-left: 8px; }
 
+  /* pending delete (undo window) */
+  .row.pending-delete { position:relative; background: linear-gradient(90deg,#071f18,#092b20); border:1px solid #14533f; box-shadow:0 0 0 1px #0d3c2d,0 0 12px -2px #00ff9c55 inset; animation: fadePulse 1.4s infinite ease-in-out; }
+  .row.pending-delete .pending-msg { grid-column: 1 / -1; display:flex; align-items:center; gap:12px; font-size:13px; color:#7fe4bf; letter-spacing:.03em; }
+  .row.pending-delete .pending-msg .pm-text strong { color:#bfffe7; }
+  .row.pending-delete .pending-msg .pm-count { color:#00ff9c; font-weight:700; text-shadow:0 0 6px #00ff9caa; }
+  .row.pending-delete .undo-btn { background:#041f17; color:#00ffb4; border:1px solid #00ffb455; padding:6px 16px; border-radius:999px; cursor:pointer; font-weight:600; font-size:12px; box-shadow:0 0 0 1px #00ff9c33 inset,0 0 10px #00ff9c22; transition:background .18s, box-shadow .18s, transform .18s, color .18s; backdrop-filter: blur(2px); }
+  .row.pending-delete .undo-btn:hover { background:#00ff9c; color:#032218; box-shadow:0 0 18px #00ff9c,0 0 4px #00ff9c inset; }
+  .row.pending-delete .undo-btn:active { transform:scale(.94); }
+  @keyframes fadePulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+
+    /* Global undo bar */
+  /* 제거된 글로벌 undo-bar 스타일 삭제 */
+
   @media (max-width: 520px){
     .wrap{ padding: 12px 16px 80px; }
     .row{ grid-template-columns: minmax(2.2ch, 24px) 22px 52px 1fr auto; gap: 12px; padding: 8px 10px; }

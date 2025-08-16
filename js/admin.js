@@ -94,38 +94,81 @@ if (window.__ADMIN_INIT__) {
   }
 
   // 행 삭제(이벤트 위임)
+  const PENDING_DELETES = new Map(); // id -> { timer, delUrls, originalHTML, cdTimer }
+  const UNDO_WINDOW_MS = 8000;
+
+  // 기존 in-row undo 방식 복원
+
   $('#works-list').addEventListener('click', async (e)=>{
     const btn = e.target.closest('.del-work'); if(!btn) return;
     const li  = btn.closest('.row'); if(!li) return;
     const id  = li.dataset.id;
+    if(PENDING_DELETES.has(id)) return; // already pending
 
     const res = await Swal.fire({
-      title:'정말 삭제할끼?', text:'신중하게 하라냥.', icon:'warning',
+      title:'삭제할까?', text:'되돌리기 가능 (8초)', icon:'warning',
       showCancelButton:true, confirmButtonText:'삭제', cancelButtonText:'취소'
     });
     if(!res.isConfirmed) return;
 
-    showLoading();
-    try{
-      const { data: workRow }  = await supabase.from('works').select('image_url').eq('id', id).single();
-      const { data: imgsRows } = await supabase.from('images').select('image_url').eq('work_id', id);
-      const delUrls = [
-        ...(workRow?.image_url ? [workRow.image_url] : []),
-        ...((imgsRows||[]).map(r=>r.image_url).filter(Boolean))
-      ];
-      await r2Delete({ urls: delUrls });
+    // 데이터 조회
+    let workRow, imgsRows;
+    try {
+      const wq = await supabase.from('works').select('*').eq('id', id).single(); workRow = wq.data;
+      const iq = await supabase.from('images').select('*').eq('work_id', id); imgsRows = iq.data || [];
+    } catch(err){ return Swal.fire({ icon:'error', title:'삭제 실패', text:'데이터 조회 오류' }); }
 
-      const { error: e1 } = await supabase.from('images').delete().eq('work_id', id);
-      if(e1) throw e1;
-      const { error: e2 } = await supabase.from('works').delete().eq('id', id);
-      if(e2) throw e2;
+    const originalHTML = li.innerHTML;
+    li.dataset.deleting = '1';
+    li.classList.add('pending-delete');
+    const undoSeconds = Math.round(UNDO_WINDOW_MS/1000);
+    li.innerHTML = `
+      <div class="idx">✖</div>
+      <div class="pending-msg">🗑 <span class="pm-text"><strong>${(workRow?.title||'항목')}</strong> 가 <span class="pm-count">${undoSeconds}</span>s 후 영구 삭제됩니다.</span> <button class="undo-btn" title="취소">되돌리기</button></div>
+    `;
 
-      await loadWorks();
-      toast('삭제 완료','success');
-    }catch(err){
-      console.error(err);
-      Swal.fire({ icon:'error', title:'삭제 실패', text: err.message||'' });
-    }finally{ hideLoading(); }
+    const delUrls = [
+      ...(workRow?.image_url ? [workRow.image_url] : []),
+      ...imgsRows.map(r=>r.image_url).filter(Boolean)
+    ];
+
+    const finalize = async ()=>{
+      showLoading();
+      try{
+        await r2Delete({ urls: delUrls });
+        const { error: e1 } = await supabase.from('images').delete().eq('work_id', id); if(e1) throw e1;
+        const { error: e2 } = await supabase.from('works').delete().eq('id', id); if(e2) throw e2;
+        li.remove();
+        toast('삭제 완료','success');
+      }catch(err){
+        console.error('최종 삭제 실패, 복구', err);
+        li.innerHTML = originalHTML; delete li.dataset.deleting; li.classList.remove('pending-delete');
+        toast('네트워크 오류 - 삭제 취소','error');
+      }finally{
+        hideLoading();
+        PENDING_DELETES.delete(id);
+      }
+    };
+
+    const undo = ()=>{
+      clearTimeout(entry.timer);
+      clearTimeout(entry.cdTimer);
+      li.innerHTML = originalHTML; delete li.dataset.deleting; li.classList.remove('pending-delete');
+      PENDING_DELETES.delete(id);
+      toast('복구됨','info');
+    };
+
+    const entry = { delUrls, originalHTML, timer: setTimeout(finalize, UNDO_WINDOW_MS) };
+    PENDING_DELETES.set(id, entry);
+    li.querySelector('.undo-btn').addEventListener('click', undo, { once:true });
+
+    // 카운트다운
+    const countEl = li.querySelector('.pm-count');
+    let remain = UNDO_WINDOW_MS;
+    function tick(){
+      remain -= 1000; if(remain <= 0) return; if(countEl) countEl.textContent = Math.ceil(remain/1000); entry.cdTimer = setTimeout(tick,1000);
+    }
+    entry.cdTimer = setTimeout(tick,1000);
   });
 
   // Sortable
@@ -143,7 +186,9 @@ if (window.__ADMIN_INIT__) {
   // 목록 순서 저장(RPC, 로딩 최소 노출)
   async function persistOrderFromDOM(){
     const rows = Array.from($('#works-list').querySelectorAll('.row'));
-    const updates = rows.map((row,i)=>({ id:Number(row.dataset.id), idx:i+1 }));
+    const updates = rows
+      .filter(r=>!r.dataset.deleting)
+      .map((row,i)=>({ id:Number(row.dataset.id), idx:i+1 }));
     const { error } = await supabase.rpc('reorder_works', { arr: updates });
     if(error) throw error;
   }
@@ -274,7 +319,10 @@ if (window.__ADMIN_INIT__) {
     if(SHEET_MODE==='create' && !thumbFile){ if(saveBtn){saveBtn.disabled=false;saveBtn.classList.remove('disabled');} IS_SAVING=false; return Swal.fire({icon:'info', title:'대표 이미지를 넣어줘!'}); }
 
     showLoading();
-    try{
+  // 롤백 추적
+  let createdWorkId = null;
+  const uploadedUrls = [];
+  try{
       let workId = CURRENT_ID;
 
       // works 생성/수정
@@ -283,7 +331,7 @@ if (window.__ADMIN_INIT__) {
         let maxIndex = (Array.isArray(maxRows)&&maxRows.length&&typeof maxRows[0].works_order_index==='number') ? maxRows[0].works_order_index : 0;
         const { data, error } = await supabase.from('works').insert([{ title, subtitle, since, works_order_index: maxIndex+1 }]).select('id').single();
         if(error) throw error;
-        workId = data.id; SHEET_MODE='edit'; CURRENT_ID=workId;
+        workId = data.id; SHEET_MODE='edit'; CURRENT_ID=workId; createdWorkId = workId;
       }else{
         const { error } = await supabase.from('works').update({ title, subtitle, since }).eq('id', workId);
         if(error) throw error;
@@ -309,6 +357,7 @@ if (window.__ADMIN_INIT__) {
         if(oldBase && oldBase !== newBase){
           await r2Delete({ urls:[oldCoverUrl] });
         }
+        uploadedUrls.push(coverUrl);
       }
 
       // 갤러리: 삭제된 것 정리 (R2 포함)
@@ -322,7 +371,7 @@ if (window.__ADMIN_INIT__) {
       }
 
       // 갤러리: 새 항목 INSERT -> 업로드 -> URL 업데이트 (순서는 RPC에서 한 번에)
-      for(const it of galleryItems){
+  for(const it of galleryItems){
         if(!it.file) continue;
 
         // 1) placeholder insert (order_index = NULL) => seq 자동 배정 트리거
@@ -333,10 +382,11 @@ if (window.__ADMIN_INIT__) {
         if(insErr) throw insErr;
 
         // 2) seq 기반 파일명으로 업로드(충돌 없음)
-        const url = await uploadToR2(it.file, { workId, slug, kind:'gallery', seq: ins.seq });
+  const url = await uploadToR2(it.file, { workId, slug, kind:'gallery', seq: ins.seq });
+  uploadedUrls.push(url);
 
         // 3) URL 세팅
-        const { error: upErr } = await supabase.from('images').update({ image_url: url }).eq('id', ins.id);
+        const { error: upErr } = await supabase.from  ('images').update({ image_url: url }).eq('id', ins.id);
         if(upErr) throw upErr;
 
         it.id = ins.id; it.url = url; delete it.file;
@@ -355,8 +405,16 @@ if (window.__ADMIN_INIT__) {
       closeSheet();
       await loadWorks();
     }catch(e){
-      console.error(e);
-      Swal.fire({ icon:'error', title:'저장 실패', text:e.message||'오류' });
+      console.error('저장 실패 - 롤백 시도', e);
+      // 롤백: 새로 만든 work와 업로드된 이미지 제거
+      try {
+        if(uploadedUrls.length) await r2Delete({ urls: uploadedUrls });
+        if(createdWorkId){
+          await supabase.from('images').delete().eq('work_id', createdWorkId);
+          await supabase.from('works').delete().eq('id', createdWorkId);
+        }
+      } catch(rollbackErr){ console.warn('롤백 중 오류', rollbackErr); }
+      Swal.fire({ icon:'error', title:'저장 실패', text: e.message||'네트워크 오류' });
     }finally{
       hideLoading(); IS_SAVING=false;
       const b=$('#sheet-save'); if(b){ b.disabled=false; b.classList.remove('disabled'); }
