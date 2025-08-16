@@ -18,7 +18,54 @@ if (window.__ADMIN_INIT__) {
   const $S = (s) => document.querySelector(s);
   function makeSlug(t){
     return (t||'').toString().trim().toLowerCase()
-      .replace(/[^\p{L}\p{N}\s_-]+/gu,'').replace(/\s+/g,'_').replace(/_+/g,'_').replace(/^_+|_+$/g,'');
+      .replace(/[^\p{L}\p{N}\s_-]+/gu,'')
+      .replace(/\s+/g,'_')
+      .replace(/_+/g,'_')
+      .replace(/^_+|_+$/g,'');
+  }
+
+  // ✅ 영문란에서 '한글만' 차단 (붙여넣기/IME 포함 안전 처리)
+  function enforceNoHangul(input) {
+    if (!input) return;
+
+    // UX 힌트(모바일 키보드 등)
+    input.setAttribute('inputmode', 'latin');
+    input.setAttribute('autocomplete', 'off');
+    input.setAttribute('autocapitalize', 'none');
+    input.setAttribute('spellcheck', 'false');
+    input.setAttribute('lang', 'en');
+
+    let composing = false;
+    const HANGUL_REGEX = /[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7A3\uA960-\uA97F\uD7B0-\uD7FF]/g; // 자모/완성형 전부
+
+    const sanitize = () => {
+      const v = input.value || '';
+      const cleaned = v.replace(HANGUL_REGEX, '');
+      if (v !== cleaned) {
+        input.value = cleaned;
+        // 첫 위반에만 안내
+        if (!input.dataset.warnedOnce) {
+          input.dataset.warnedOnce = '1';
+          toast('이 입력란에는 한글을 넣을 수 없어요.', 'info');
+        }
+      }
+    };
+
+    input.addEventListener('compositionstart', () => { composing = true; });
+    input.addEventListener('compositionend', () => { composing = false; sanitize(); });
+    input.addEventListener('input', () => { if (!composing) sanitize(); });
+
+    input.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text') || '';
+      const cleaned = text.replace(HANGUL_REGEX, '');
+      // execCommand 미지원 브라우저 대비
+      const { selectionStart, selectionEnd, value } = input;
+      input.value = value.slice(0, selectionStart) + cleaned + value.slice(selectionEnd);
+      const pos = selectionStart + cleaned.length;
+      input.setSelectionRange(pos, pos);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
   }
 
   // 로그인 체크
@@ -246,7 +293,9 @@ if (window.__ADMIN_INIT__) {
     const { data: work, error: wErr } = await supabase.from('works').select('*').eq('id', id).single();
     if(wErr||!work){ console.error(wErr); return toast('불러오기 실패','error'); }
 
-    $S('#f-title').value=work.title||''; $S('#f-subtitle').value=work.subtitle||''; $S('#f-since').value=work.since||'';
+    $S('#f-title').value=work.title||'';
+    $S('#f-subtitle').value=work.subtitle||'';
+    $S('#f-since').value=work.since||'';
     if(work.image_url){ const img=$S('#thumb-preview'); img.src=work.image_url; img.style.display='block'; thumbFile=null; }
 
     const { data: imgs, error: iErr } = await supabase
@@ -260,7 +309,11 @@ if (window.__ADMIN_INIT__) {
 
   // 저장
   $S('#sheet-save').addEventListener('click', saveAll);
-  addEventListener('keydown',(e)=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){ if($S('#edit-sheet').classList.contains('open')){ e.preventDefault(); saveAll(); }}});
+  addEventListener('keydown',(e)=>{
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){
+      if($S('#edit-sheet').classList.contains('open')){ e.preventDefault(); saveAll(); }
+    }
+  });
 
   async function saveAll(){
     if(IS_SAVING) return; IS_SAVING=true;
@@ -270,8 +323,14 @@ if (window.__ADMIN_INIT__) {
     const subtitle=$S('#f-subtitle').value.trim();
     const since=$S('#f-since').value.trim();
 
-    if(!title){ if(saveBtn){saveBtn.disabled=false;saveBtn.classList.remove('disabled');} IS_SAVING=false; return Swal.fire({icon:'warning', title:'제목을 입력해줘!'}); }
-    if(SHEET_MODE==='create' && !thumbFile){ if(saveBtn){saveBtn.disabled=false;saveBtn.classList.remove('disabled');} IS_SAVING=false; return Swal.fire({icon:'info', title:'대표 이미지를 넣어줘!'}); }
+    if(!title){
+      if(saveBtn){saveBtn.disabled=false; saveBtn.classList.remove('disabled');}
+      IS_SAVING=false; return Swal.fire({icon:'warning', title:'제목을 입력해줘!'});
+    }
+    if(SHEET_MODE==='create' && !thumbFile){
+      if(saveBtn){saveBtn.disabled=false; saveBtn.classList.remove('disabled');}
+      IS_SAVING=false; return Swal.fire({icon:'info', title:'대표 이미지를 넣어줘!'});
+    }
 
     showLoading();
     try{
@@ -311,11 +370,11 @@ if (window.__ADMIN_INIT__) {
         await supabase.from('images').delete().in('id', toDelete);
       }
 
-      // 갤러리: 새 항목 INSERT -> 업로드 -> URL 업데이트 (순서는 RPC에서 한 번에)
+      // 갤러리: 새 항목 INSERT -> 업로드 -> URL 업데이트
       for(const it of galleryItems){
         if(!it.file) continue;
 
-        // 1) placeholder insert (order_index = NULL) => seq 자동 배정 트리거
+        // 1) placeholder insert (order_index = NULL) => seq 자동 배정(트리거)
         const { data: ins, error: insErr } = await supabase
           .from('images')
           .insert([{ work_id: workId, image_url: null, images_order_index: null }])
@@ -335,7 +394,7 @@ if (window.__ADMIN_INIT__) {
       // 최종 순서 == 화면 순서대로 id 배열
       const orderArr = galleryItems.filter(x=>x.id).map((x,i)=>({ id:x.id, idx:i+1 }));
 
-      // 원자적 재정렬 (NULL → 순번 재부여)
+      // 원자적 재정렬
       if(orderArr.length){
         const { error } = await supabase.rpc('reorder_images', { p_work_id: workId, arr: orderArr });
         if(error) throw error;
@@ -359,4 +418,7 @@ if (window.__ADMIN_INIT__) {
 
   // 시작!
   initPage();
+
+  // ✅ 영문 전용 입력란(#f-subtitle)에서 '한글'만 차단
+  enforceNoHangul($S('#f-subtitle'));
 }

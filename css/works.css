@@ -3,38 +3,25 @@ body {
   padding: 0;
   font-family: 'Nanum Gothic', 'Malgun Gothic', 'Dotum', 'AppleGothic', 'gulim', sans-serif;
   font-size: 13px;
-  font-weight: normal;
   color: #6d6e71;
   background-color: #fff;
   line-height: 1.48;
   -webkit-text-size-adjust: none;
 }
 
-/*{
-  outline: 1px solid red !important;
-} */
 .container {
   width: 100%;
   max-width: 898px;
-
   margin: 0 auto;
-  padding: 0;
+  padding: 0 24px;              /* 좌우 안전 패딩 */
   opacity: 0;
   transform: translateY(15px);
   animation: fadeInAll 1s ease-out forwards;
   box-sizing: border-box;
-  /* 이거 무조건! */
-  padding: 0 24px;
-  /* 양옆 24px 패딩! */
 }
 
-
-
 @keyframes fadeInAll {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 h1 {
@@ -52,74 +39,36 @@ h1 {
   font-weight: 800;
   font-style: normal;
 }
-
-
 .earth-bold {
   font-size: 1em;
-  /* h1보다 30% 더 크게 */
   font-family: 'Nanum Gothic ExtraBold';
   font-weight: 800;
 }
 
 nav {
   text-align: center;
-  margin-top: 0px;
-  margin-bottom: 50px;
+  margin: 0 0 50px 0;
   white-space: nowrap;
 }
-
 nav a {
- margin: 0 2.5%;
+  margin: 0 2.5%;
   font-size: clamp(2px, 3.5vw, 14px);
   text-decoration: none;
   color: #666;
 }
-
-nav a.on,
-nav a:hover {
+nav a.on, nav a:hover {
   font-weight: bold;
   color: #111;
 }
 
-/* works.css 파일 마지막에 붙여넣기! */
-a {
-  color: inherit;
-  text-decoration: none;
-  transition: color .2s;
+/* 링크 접근성: focus-visible로만 표시 */
+a { color: inherit; text-decoration: none; transition: color .2s; }
+a:focus-visible {
+  outline: 2px solid #222;
+  outline-offset: 2px;
 }
 
-
-
-section {
-  margin-bottom: 40px;
-}
-
-p {
-  margin: 0 0 10px 0;
-}
-
-.contact {
-  margin-top: 45px;
-  font-size: 13px;
-  color: #666;
-}
-
-.email a {
-  color: #0073e6;
-  text-decoration: none;
-}
-
-.email a:hover {
-  text-decoration: underline;
-}
-
-
-
-
-
-
-
-
+/* 그리드 */
 .works-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
@@ -129,8 +78,6 @@ p {
   justify-items: center;
 }
 
-
-
 .work-item {
   display: flex;
   flex-direction: column;
@@ -139,29 +86,22 @@ p {
   border-radius: 15px;
   padding: 8px 5px 10px 5px;
   transition: box-shadow .22s, transform .20s cubic-bezier(.23, 1.12, .55, .98);
-  /* <-- 추가 */
   width: 100%;
   max-width: 136px;
   min-width: 0;
 }
-
 .work-item:hover {
-  box-shadow: 0 8px 28px 0 rgba(0, 0, 0, 0.14)!important;
-  /* 그림자 더 진하게 */
+  box-shadow: 0 8px 28px 0 rgba(0, 0, 0, 0.14) !important;
   transform: translateY(-4px) scale(1.09);
-  /* 살짝 위로+확대 */
   z-index: 2;
-  /* 겹쳤을 때 위로 */
 }
-
 .work-item img {
   width: 136px;
   height: 136px;
   object-fit: cover;
-  border-radius: 0px;
+  border-radius: 0;
   margin-bottom: 13px;
   background: #ffffff;
- 
   display: block;
 }
 
@@ -172,9 +112,6 @@ p {
   text-align: center;
   margin-bottom: 0;
 }
-/* * {
-  outline: 1px solid red !important;
-} */
 .work-title span {
   display: block;
   font-size: 12px;
@@ -183,42 +120,19 @@ p {
   margin-top: 2px;
 }
 
-
+/* 초소형 화면 대응 */
 @media (max-width: 338px) {
   .work-item {
-    transform: scale(1.4); /* ✅ 전체 박스 크기 증가 */
+    transform: scale(1.4);
     transform-origin: center top;
     transition: transform 0.3s ease;
   }
-.works-grid {
-    gap: 100px 0px; /* ← 세로 간격 늘림 */
+  .works-grid {
+    gap: 100px 0px;
   }
-   /* ✅ 폰트만 줄이기 */
-
-  .work-title {
-    font-size: 8px !important;
-  }
-
-  .work-title span {
-    font-size: 5px !important;
-  }
-
-  .work-item img {
-    transform: none !important; /* ❌ 중복 스케일 방지 */
-  }
+  .work-title { font-size: 8px !important; }
+  .work-title span { font-size: 5px !important; }
 }
 
-/* 포커스(파란 테두리, 그림자) 완전 OFF */
-
-/* 모바일 터치 잉크(파란 터치) 완전 OFF */
-  * {
-  -webkit-tap-highlight-color: transparent !important;
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-
-*:focus {
-  outline: none !important;
-  box-shadow: none !important;
-}  
+/* 모바일 터치 잉크 제거 */
+* { -webkit-tap-highlight-color: transparent !important; }

@@ -3,44 +3,31 @@ body {
   padding: 0;
   font-family: 'Nanum Gothic', 'Malgun Gothic', 'Dotum', 'AppleGothic', 'gulim', sans-serif;
   font-size: 13px;
-  font-weight: normal;
   color: #6d6e71;
   background-color: #fff;
   line-height: 1.48;
   -webkit-text-size-adjust: none;
 }
 
-/* {
-  outline: 1px solid red !important;
-}*/
-
 .container {
   width: 100%;
   max-width: 898px;
-
   margin: 0 auto;
-  padding: 0;
+  padding: 0 24px;
   opacity: 0;
   transform: translateY(15px);
   animation: fadeInAll 1s ease-out forwards;
   box-sizing: border-box;
-  /* 이거 무조건! */
-  padding: 0 24px;
-  /* 양옆 24px 패딩! */
 }
 
 .container2 {
   max-width: 650px;
   margin: 0 auto;
   width: 100%;
-
 }
 
 @keyframes fadeInAll {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 h1 {
@@ -59,237 +46,87 @@ h1 {
   font-style: normal;
 }
 
-
 .earth-bold {
   font-size: 1em;
-  /* h1보다 30% 더 크게 */
   font-family: 'Nanum Gothic ExtraBold';
   font-weight: 800;
 }
 
 nav {
   text-align: center;
-  margin-top: 0px;
-  margin-bottom: 30px;
+  margin: 0 0 30px;
   white-space: nowrap;
 }
-
 nav a {
   margin: 0 2.5%;
   font-size: clamp(3px, 3vw, 14px);
   text-decoration: none;
   color: #666;
 }
+nav a.on, nav a:hover { font-weight: bold; color: #111; }
 
-nav a.on,
-nav a:hover {
-  font-weight: bold;
-  color: #111;
-}
-
-
-
-
-#gallery {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  /* 전체를 중앙정렬! */
-  justify-content: center;
-  min-height: 100px;
-}
-
-
-
-
-
-.gallery-img {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: #fff;
-  z-index: 1;
-  transition: transform 0.45s cubic-bezier(.77, 0, .18, 1);
-
-  pointer-events: auto;
-  touch-action: auto;
-
-}
-
-.gallery-img-box img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: #fff;
-  display: block;
-}
-  
-
-
-/* 스와이프css */
-
+/* ====== 갤러리 뷰포트: 높이 고정(비율) ====== */
 .gallery-wrapper {
-  overflow: hidden;
   position: relative;
   width: 100%;
+  aspect-ratio: 4 / 3;           /* PC/태블릿 기본 비 */
+  background: #fff;              /* 레터박스 색 */
+  overflow: hidden;
   user-select: none;
+  touch-action: pan-y;           /* 세로 스크롤 허용 */
+}
+@media (max-width: 640px){
+  .gallery-wrapper { aspect-ratio: 4 / 3; } /* 필요 시 3/2, 1/1로 조절 가능 */
 }
 
+/* 슬라이드 트랙 */
 .gallery-track {
   display: flex;
+  height: 100%;
   transition: transform 0.3s ease;
   will-change: transform;
 }
 
+/* 각 슬라이드(이미지) */
 .gallery-track img {
-  flex-shrink: 0;
+  flex: 0 0 100%;
   width: 100%;
-  height: auto;
-  user-drag: none;
+  height: 100%;
+  object-fit: contain;           /* ✅ 크롭 없이 전체 표시 */
+  -webkit-user-drag: none;
   user-select: none;
-   pointer-events: auto; /* ✅ 손가락 입력 허용 */
-  touch-action: auto;  /* ✅ 터치 제스처 허용 */
+  pointer-events: none;          /* 터치 제스처는 wrapper가 받도록 */
 }
 
-.gallery-pagination {
-  text-align: center;
-  margin-top: 12px;
-}
+/* 페이지네이션 */
+.gallery-pagination { text-align: center; margin: 12px 0 0; }
 .page-dot {
   display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #ccc;
-  margin: 0 4px;
-}
-.page-dot.active {
-  background: #333;
-}
-
-
-
-
-
-
-
-
-.gallery-nav {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%) scale(1);
-  z-index: 2;
-  background: transparent;
-  border: none;
-  font-size: 90px;
-  color: #555;
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
-  cursor: pointer;
-  opacity: 0.5;
-  transition: opacity 0.4s, color 0.4s, transform 0.4s cubic-bezier(.23, 1.12, .55, .98);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.gallery-nav.left {
-  left: 12px;
-}
-
-.gallery-nav.right {
-  right: 12px;
-}
-
-.gallery-nav.fadeout {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.gallery-nav:hover:not(.fadeout) {
-  color: #555;
-  opacity: 0.8;
-  background: transparent;
-  transform: translateY(-50%) scale(1.12);
-}
-
-.gallery-pagination {
-  text-align: center;
-  margin: 8px 0 0 0;
-}
-
-.page-dot {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  margin: 0 2px;
+  width: 7px; height: 7px; border-radius: 50%;
   background: #c2c8ce;
-  transition: background .2s;
+  margin: 0 3px;
+  border: 0; padding: 0;
+  cursor: pointer;
+  transition: background .2s ease;
 }
+.page-dot.active { background: #666; }
 
-.page-dot.active {
-  background: #666;
-}
-
-
+/* 하단 정보 */
 .work-info {
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* ← 요게 핵심! */
-  justify-content: center;
   color: #56606a;
   font-size: 16px;
   line-height: 1.5;
   margin-top: 30px;
   margin-bottom: 40px;
   text-align: center;
-  /* ← 추가! */
 }
+#work-title    { font-size: 12px; color: #6c7a89; margin-bottom: 1px; }
+#work-subtitle { font-size: 12px; color: #6c7a89; margin-bottom: 1px; }
+#work-since    { font-size: 12px; color: #6c7a89; margin-bottom: 1px; }
 
-#work-title {
-  font-size: 12px;
-  color: #6c7a89;
-  margin-bottom: 1px;
-  text-align: center;
-  /* ← 혹시 몰라서 추가! */
-}
-
-#work-subtitle {
-  font-size: 12px;
-  color: #6c7a89;
-  margin-bottom: 1px;
-  text-align: center;
-}
-
-#work-since {
-  font-size: 12px;
-  color: #6c7a89;
-  margin-bottom: 1px;
-  text-align: center;
-}
- /* *{
- outline: 1px solid red !important;
- } */
-/* 모바일 터치 잉크(파란 터치) 완전 OFF */
-
-/* 포커스(파란 테두리, 그림자) 완전 OFF */
-  * {
-  -webkit-tap-highlight-color: transparent !important;
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-
-*:focus {
-  outline: none !important;
-  box-shadow: none !important;
-}  
+/* 모바일 터치 잉크/포커스 제거(선호 시) */
+* { -webkit-tap-highlight-color: transparent !important; }
+*:focus { outline: none !important; box-shadow: none !important; }

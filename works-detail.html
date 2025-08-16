@@ -1,41 +1,28 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=3.0" />
-
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=3.0"
+  />
   <title>WORK DETAIL | PLANEARTH ARCHITECTS</title>
 
-
-<!-- Google tag (gtag.js) -->
-<!-- <script async src="https://www.googletagmanager.com/gtag/js?id=G-R3JKJ43QRD"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){ dataLayer.push(arguments); }
-  gtag('js', new Date());
-
-  // ✅ 자동 전송만 사용
-  gtag('config', 'G-R3JKJ43QRD');
-</script> -->
-
-<script data-goatcounter="https://jmlee710000.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script>
-
+  <!-- Analytics (선택) -->
+  <script
+    data-goatcounter="https://jmlee710000.goatcounter.com/count"
+    async
+    src="//gc.zgo.at/count.js"
+  ></script>
 
   <meta name="robots" content="noindex, follow">
-  <meta name="description"
-    content="서울에 위치한 플랜어스건축은 호텔 및 상업공간에 특화된 통합 디자인 스튜디오입니다. Based in Seoul, specializing in branding-focused design for hospitality & commercial." />  <meta name="keywords" content="플랜어스건축, 플랜어스, 호텔 디자인, 상업공간, 건축 설계, Seoul Architecture, Hospitality Design" />
-
-  <meta name="author" content="PLANEARTH ARCHITECTS" />
-  <meta name="copyright" content="PLANEARTH ARCHITECTS" />
+  <meta name="description" content="서울에 위치한 플랜어스건축은 호텔 및 상업공간에 특화된 통합 디자인 스튜디오입니다. Based in Seoul, specializing in branding-focused design for hospitality & commercial.">
+  <meta name="keywords" content="플랜어스건축, 플랜어스, 호텔 디자인, 상업공간, 건축 설계, Seoul Architecture, Hospitality Design">
+  <meta name="author" content="PLANEARTH ARCHITECTS">
+  <meta name="copyright" content="PLANEARTH ARCHITECTS">
 
   <link rel="canonical" href="https://www.planearth.co.kr/works-detail.html" />
-
-  <!-- 파비콘/애플터치아이콘/마스크아이콘 -->
   <link rel="icon" href="https://www.planearth.co.kr/assets/images/favicon.png" type="image/png">
-
-
 
   <meta property="og:type" content="website" />
   <meta property="og:title" content="WORK DETAIL | PLANEARTH ARCHITECTS" />
@@ -46,53 +33,50 @@
   <meta property="og:image:width" content="1536" />
   <meta property="og:image:height" content="1024" />
 
-  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="PLANEARTH ARCHITECTS" />
   <meta name="twitter:description" content="서울에 위치한 플랜어스건축, 호텔/상업공간 특화 디자인" />
   <meta name="twitter:image" content="https://www.planearth.co.kr/assets/images/planearth-thumbnail.jpg" />
+
   <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap" rel="stylesheet" />
-  <!-- Supabase JS 라이브러리 CDN -->
+  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
   <link rel="stylesheet" href="css/works-detail.css" />
-
-
   <meta name="format-detection" content="telephone=no, address=no, email=no">
-  <style>
-
-
-  </style>
 </head>
-
 <body>
   <div class="container">
     <h1>
-  <a href="/works.html" style="text-decoration: none; color: inherit;">
-    PLAN<span class="earth-bold">EARTH</span> ARCHITECTS
-  </a>
-</h1>
+      <a href="/works.html" style="text-decoration: none; color: inherit;">
+        PLAN<span class="earth-bold">EARTH</span> ARCHITECTS
+      </a>
+    </h1>
+
     <nav>
       <a href="index.html">PLANEARTH</a>
       <a href="works.html" class="on">WORKS</a>
       <a href="workshop.html">WORKSHOP</a>
     </nav>
+
     <div class="container2">
       <section>
+        <!-- ✅ 고정 높이(비율) 뷰포트 -->
         <div id="gallery" class="gallery-wrapper">
-          <div id="galleryTrack" class="gallery-track">
-          </div>
+          <div id="galleryTrack" class="gallery-track"></div>
         </div>
 
-        <div class="gallery-pagination"></div>
+        <div class="gallery-pagination" aria-label="gallery pagination"></div>
+
         <div class="work-info">
           <div id="work-title"></div>
           <div id="work-subtitle"></div>
           <div id="work-since"></div>
         </div>
-      </section> 
+      </section>
     </div>
   </div>
+
   <script src="js/works-detail.js"></script>
 </body>
-
 </html>
