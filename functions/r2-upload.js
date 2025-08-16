@@ -13,9 +13,7 @@ export const onRequest = async ({ request, env }) => {
     const workId= String(form.get('workId') || '').trim();
     const slug  = String(form.get('slug')   || '').trim();
     const kind  = String(form.get('kind')   || 'cover'); // 'cover' | 'gallery'
-    // ✅ seq를 파일명에 사용(없으면 0)
-    const seqStr= String(form.get('seq') ?? form.get('index') ?? '').trim();
-    const seq   = seqStr ? Number(seqStr) : 0;
+    const seq   = form.has('seq') ? Number(form.get('seq')) : null;
 
     if (!file)   return cors(json({ error: 'file 누락' }, 400), origin);
     if (!workId) return cors(json({ error: 'workId 누락' }, 400), origin);
@@ -23,20 +21,26 @@ export const onRequest = async ({ request, env }) => {
     if (kind !== 'cover' && kind !== 'gallery') {
       return cors(json({ error: 'kind 값은 cover|gallery' }, 400), origin);
     }
+    if (kind === 'gallery' && (!Number.isInteger(seq) || seq <= 0)) {
+      return cors(json({ error: 'gallery는 seq(양의 정수) 필요' }, 400), origin);
+    }
 
     const ext  = extFromFile(file) || 'jpg';
     const mime = contentTypeFromExt(ext);
     const id4  = workId.padStart(4, '0');
 
+    // 파일명: cover = works/0001_slug.jpg
+    //         gallery = images/0001_slug_img{seq}.jpg
     const name = (kind === 'cover')
       ? `${id4}_${slug}.${ext}`
-      : `${id4}_${slug}_img${String(seq).padStart(3,'0')}.${ext}`;
+      : `${id4}_${slug}_img${seq}.${ext}`;
 
-    const path = (kind === 'cover') ? `works/${name}` : `images/${name}`;
+    const path = (kind === 'cover')
+      ? `works/${name}`
+      : `images/${name}`;
 
     await env.BUCKET.put(path, file.stream(), { httpMetadata: { contentType: mime } });
 
-    // env.R2_PUBLIC_URL = https://object.planearth.co.kr/
     const url = joinUrl(env.R2_PUBLIC_URL, path);
     return cors(json({ url, path }), origin);
   } catch (e) {
@@ -79,5 +83,5 @@ function contentTypeFromExt(ext) {
   }
 }
 function joinUrl(prefix, path) {
-  return `${String(prefix||'').replace(/\/+$/, '')}/${String(path||'').replace(/^\/+/, '')}`;
+  return `${String(prefix || '').replace(/\/+$/, '')}/${String(path || '').replace(/^\/+/, '')}`;
 }

@@ -89,9 +89,10 @@ if (window.__ADMIN_INIT__) {
         <div class="meta">
           <div class="title">${it.title||''}</div>
           <div class="sub">${it.subtitle||''}</div>
-          <div class="since">${it.since ? ` ${it.since}` : ''}</div>
+          <div class="since">${it.since || ''}</div>
         </div>
-        <button class="del-work" title="삭제">🗑️</button>`;
+        <button class="del-work" title="삭제">🗑️</button>
+      `;
       list.appendChild(li);
     });
     initSortable();
@@ -165,11 +166,10 @@ if (window.__ADMIN_INIT__) {
     $('#works-list').querySelectorAll('.row .idx').forEach((el, i)=> el.textContent = i+1 );
   }
 
-  // ✅ 순서 저장 (동시 사용자 충돌 방지: 서버 함수로 원자적 처리)
+  // ✅ 순서 저장 (원자적 RPC로 동시 사용 충돌 방지)
   async function persistOrderFromDOM(){
     const rows = Array.from($('#works-list').querySelectorAll('.row'));
     const updates = rows.map((row, i) => ({ id: Number(row.dataset.id), idx: i+1 }));
-    // 하나의 트랜잭션으로 처리
     const { error } = await supabase.rpc('reorder_works', { arr: updates });
     if(error) throw error;
   }
@@ -406,13 +406,13 @@ if (window.__ADMIN_INIT__) {
         await supabase.from('images').delete().in('id', toDelete);
       }
 
-      // 갤러리 추가/수정
+      // 갤러리 추가/수정  (seq 기반 고유 파일명)
       for(let i=0; i<galleryItems.length; i++){
         const it = galleryItems[i];
         const orderIdx = i+1;
 
         if(it.file){
-          // 1) 비어있는 행을 먼저 insert (seq는 트리거가 자동배정)
+          // 1) 비어있는 행을 먼저 insert → 트리거가 seq 자동 배정
           const { data: ins, error: insErr } = await supabase
             .from('images')
             .insert([{ work_id: workId, images_order_index: orderIdx }])
@@ -429,7 +429,6 @@ if (window.__ADMIN_INIT__) {
             .eq('id', ins.id);
           if(upErr) throw upErr;
 
-          // 메모리에 id/url 채워두기(이후 재정렬 RPC에 사용)
           it.id  = ins.id;
           it.url = url;
 
@@ -443,7 +442,7 @@ if (window.__ADMIN_INIT__) {
         }
       }
 
-      // (선택/권장) 이미지 순서도 서버 함수로 원자적 재정렬
+      // (권장) 이미지 순서도 서버 함수로 원자적 재정렬
       const arr = galleryItems.filter(x=>x.id).map((x,i)=>({ id: x.id, idx: i+1 }));
       if(arr.length){
         const { error } = await supabase.rpc('reorder_images', { p_work_id: CURRENT_ID, arr });
@@ -459,6 +458,7 @@ if (window.__ADMIN_INIT__) {
     }finally{
       hideLoading();
       IS_SAVING=false;
+      const saveBtn = $('#sheet-save');
       if(saveBtn){ saveBtn.disabled=false; saveBtn.classList.remove('disabled'); }
     }
   }

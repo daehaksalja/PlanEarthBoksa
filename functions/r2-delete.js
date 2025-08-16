@@ -15,7 +15,7 @@ export const onRequest = async ({ request, env }) => {
 
     for (const u of urls) {
       if (!u) continue;
-      const key = urlToKey(u);           // works/... or images/...
+      const key = urlToKey(u);
       if (key) toDelete.add(key);
     }
     for (const p of paths) {
@@ -29,13 +29,13 @@ export const onRequest = async ({ request, env }) => {
       await env.BUCKET.delete(key);
       deleted.push({ key, existed: !!head });
     }
+
     return cors(json({ deleted }), origin);
   } catch (e) {
     return cors(json({ error: e?.message || 'delete fail' }, 500), origin);
   }
 };
 
-/* helpers */
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
 }
