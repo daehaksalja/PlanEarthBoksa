@@ -49,7 +49,8 @@ export default {
 
       // 2) 일별 추이
       if (url.pathname === "/ga/daily") {
-        const days = clampInt(url.searchParams.get("days"), 1, 90, 14); // 기본 14일
+        // 전체 누적 계산 위해 상한을 2000일로 확장 (약 5.5년)
+        const days = clampInt(url.searchParams.get("days"), 1, 2000, 14); // 기본 14일
         const data = await gaReport(env, {
           dateRanges: [{ startDate: `${days}daysAgo`, endDate: "today" }],
           metrics: [{ name: "activeUsers" }, { name: "screenPageViews" }],
@@ -232,18 +233,42 @@ export default {
         const data = await gaReport(env, {
           dateRanges: [{ startDate: "7daysAgo", endDate: "today" }],
           metrics: [
-            { name: "averageSessionDuration" },
-            { name: "bounceRate" },
-            { name: "screenPageViewsPerSession" }
+            { name: "averageSessionDuration" },      // 0
+            { name: "engagementRate" },              // 1 (0~1)
+            { name: "bounceRate" },                  // 2 (0~1)
+            { name: "screenPageViewsPerSession" },   // 3
+            { name: "sessions" },                    // 4
+            { name: "screenPageViews" },             // 5
+            { name: "activeUsers" }                  // 6 (보조)
           ],
         });
 
         const totals = data.totals?.[0]?.metricValues ?? [];
-        return json({ 
-          ok: true, 
-          avgSessionDuration: Math.round(Number(totals[0]?.value ?? 0)),
-          bounceRate: Math.round(Number(totals[1]?.value ?? 0) * 100),
-          pagesPerSession: Number(totals[2]?.value ?? 0).toFixed(1)
+        const avgSessionDuration = Math.round(Number(totals[0]?.value ?? 0));
+        let engagementRate = Number(totals[1]?.value ?? 0);
+        if (engagementRate > 1) engagementRate = engagementRate / 100; // % 형태 보정
+        let bounceRateRaw = Number(totals[2]?.value ?? 0);
+        if (bounceRateRaw > 1) bounceRateRaw = bounceRateRaw / 100;
+        // GA4 bounceRate 미지원/0인 경우 engagementRate로 역산
+        if (!bounceRateRaw && engagementRate) bounceRateRaw = 1 - engagementRate;
+        const screenPageViewsPerSession = Number(totals[3]?.value ?? 0);
+        const sessions = Number(totals[4]?.value ?? 0);
+        const pageviews = Number(totals[5]?.value ?? 0);
+        const activeUsers = Number(totals[6]?.value ?? 0);
+        let pagesPerSession = screenPageViewsPerSession;
+        if (!pagesPerSession && pageviews && sessions) {
+          pagesPerSession = pageviews / sessions;
+        }
+
+        return json({
+          ok: true,
+          avgSessionDuration,
+          engagementRate: Math.round(engagementRate * 1000) / 10, // % (소수1자리)
+          bounceRate: Math.round(bounceRateRaw * 1000) / 10,       // % (소수1자리)
+          pagesPerSession: Number(pagesPerSession || 0).toFixed(2),
+          sessions,
+          pageviews,
+          activeUsers
         }, origin);
       }
 

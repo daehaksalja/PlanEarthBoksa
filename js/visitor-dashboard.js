@@ -1,9 +1,23 @@
-// Visitor Dashboard Logic (Cloudflare Workers + GA4 연동 버전)
-// - 데이터 원천: https://planearth-ga.jmlee710000.workers.dev
-// - 일단 "방문자" 지표는 GA4 activeUsers 사용.
-//   pageviews(=screenPageViews)로 보고 싶으면 fetchDailyData()의 매핑만 바꾸면 돼.
+
 
 const BASE = 'https://planearth-ga.jmlee710000.workers.dev';
+
+// === 인증 가드 (Supabase 세션 필요) ===
+;(async function authGuard(){
+  try{
+    if(!window.supabase){
+      const s=document.createElement('script');
+      s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js';
+      s.onload=authGuard; document.head.appendChild(s); return;
+    }
+    const supabase = window.supabase.createClient(
+      'https://feprvneoartflrnmefxz.supabase.co',
+      'sb_publishable_LW3f112nFPSSUUNvrXl19A__y73y2DE'
+    );
+    const { data:{ user } } = await supabase.auth.getUser();
+    if(!user){ location.href='login.html'; return; }
+  }catch(e){ console.warn('auth guard error', e); }
+})();
 
 /* utils */
 function formatDate(d){ return d.toISOString().slice(0,10); }
@@ -47,41 +61,25 @@ async function fetchDailyData(days=365){
   }
 }
 
-/* 상세 지역 데이터 */
-async function fetchRegionsData(){
-  try{
-    const r = await fetch(`${BASE}/ga/regions?limit=20`, { cache: 'no-store', credentials: 'omit' });
-    const data = await r.json();
-    return data.ok ? data.rows : [];
-  }catch(e){
-    console.warn('Regions fetch failed:', e);
-    return [];
+// 사이트 개설 이후 전체 구간을 (추정) 무제한 확장하여 확보
+// days 파라미터를 지수적으로 늘리며 더 오래된 날짜가 안 나올 때 중단
+async function fetchAllDailyData(){
+  let days=400; // 초기 범위
+  let lastFirst=null; let rows=[];
+  for(let i=0;i<7;i++){ // 최대 7회 (400 -> 25600일 ≈ 70년)
+    const r = await fetchDailyData(days);
+    if(!r.length){ break; }
+    rows=r;
+    const first = r[0].date;
+    if(first===lastFirst){ // 더 이상 과거 확장 안됨
+      break;
+    }
+    lastFirst=first;
+    days*=2; // 범위 두배 확대
   }
+  return rows;
 }
 
-/* 페이지별 상세 데이터 */
-async function fetchPagesDetailData(){
-  try{
-    const r = await fetch(`${BASE}/ga/pages-detail?limit=30`, { cache: 'no-store', credentials: 'omit' });
-    const data = await r.json();
-    return data.ok ? data.rows : [];
-  }catch(e){
-    console.warn('Pages detail fetch failed:', e);
-    return [];
-  }
-}
-
-/* 유입 채널 상세 데이터 */
-async function fetchChannelsData(){
-  try{
-    const r = await fetch(`${BASE}/ga/channels`, { cache: 'no-store', credentials: 'omit' });
-    const data = await r.json();
-    return data.ok ? data.rows : [];
-  }catch(e){
-    console.warn('Channels fetch failed:', e);
-    return [];
-  }
-}
 async function fetchDevicesData(){
   try{
     const r = await fetch(`${BASE}/ga/devices`, { cache: 'no-store', credentials: 'omit' });
@@ -202,7 +200,54 @@ async function fetchPerformanceData(){
     const r = await fetch(`${BASE}/ga/performance`, { cache: 'no-store', credentials: 'omit' });
     const data = await r.json();
     if(!data.ok) throw new Error(data.error || 'GA error');
-    return data;
+    console.log('🔍 raw performance data:', data);
+    // 중첩 구조(normalize)
+    let flat = { ...data };
+    if(data.data && typeof data.data === 'object') flat = { ...flat, ...data.data };
+    if(data.metrics && typeof data.metrics === 'object') flat = { ...flat, ...data.metrics };
+    if(Array.isArray(data.rows) && data.rows.length === 1 && typeof data.rows[0] === 'object') flat = { ...flat, ...data.rows[0] }; // 단일 행 케이스
+
+    // 다양한 키 이름 대응
+    let avgSessionDuration = Number(
+      flat.avgSessionDuration ??
+      flat.averageSessionDuration ??
+      flat.sessionDurationAvg ??
+      flat.averageSessionDurationSeconds ??
+      flat.meanSessionDuration ??
+      flat.sessionDuration ?? 0
+    );
+    // 초 단위가 아닌 ms일 가능성 탐지 (비정상적으로 큰 값이면 변환)
+    if(avgSessionDuration > 0 && avgSessionDuration > 86400){ // 하루초보다 크면 ms로 추정
+      avgSessionDuration = Math.round(avgSessionDuration/1000);
+    }
+
+    let bounceRate = flat.bounceRate ?? flat.avgBounceRate ?? flat.bounce ?? null;
+    // GA4는 engagementRate만 줄 가능성 -> bounceRate = 1 - engagementRate
+    if((bounceRate === null || bounceRate === undefined) && (flat.engagementRate !== undefined)){
+      let er = Number(flat.engagementRate);
+      if(er > 1) er = er/100; // 0~100 들어온 경우 보정
+      if(er>=0 && er<=1){ bounceRate = 1 - er; }
+    }
+
+    let pagesPerSession = flat.pagesPerSession ?? flat.avgPagesPerSession ?? flat.pages_session ?? null;
+    if(pagesPerSession == null){
+      // pageviews & sessions 있으면 계산
+      const pv = Number(flat.pageviews ?? flat.screenPageViews ?? flat.views ?? NaN);
+      const sessions = Number(flat.sessions ?? flat.totalSessions ?? NaN);
+      if(!isNaN(pv) && !isNaN(sessions) && sessions>0){
+        pagesPerSession = pv / sessions;
+      }
+    }
+
+    const perf = { avgSessionDuration, bounceRate, pagesPerSession };
+    const allEmpty = [avgSessionDuration, bounceRate, pagesPerSession]
+      .every(v => v === 0 || v === null || v === undefined || (typeof v === 'number' && isNaN(v)));
+    if(allEmpty){
+      console.warn('Performance API returned empty/zero metrics -> using fallback mock');
+      return { avgSessionDuration:180, bounceRate:65, pagesPerSession:2.3, _fallback:true };
+    }
+    console.log('✅ derived performance metrics:', perf);
+    return perf;
   }catch(e){
     console.warn('Performance fetch failed:', e);
     return { 
@@ -235,18 +280,19 @@ async function fetchRealtimeData(){
   }
 }
 
-/* 테이블 렌더링 */
+/* 테이블 렌더링 (최신이 위, 각 행 기준 앞으로 7일 평균 대비) */
 function renderTable(rows){
   const tbody = document.querySelector('#rawTable tbody');
   if(!tbody) return;
-  tbody.innerHTML = '';
-  rows.forEach((r, i)=>{
-    const tr = document.createElement('tr');
-    const slice = rows.slice(Math.max(0, i-6), i+1); // 해당일 포함 7일 평균
-    const sevenAvg = avg(slice.map(s=>s.count));
+  tbody.innerHTML='';
+  const sorted=[...rows].sort((a,b)=> b.date.localeCompare(a.date));
+  sorted.forEach((r,i)=>{
+    const window = sorted.slice(i, i+7); // 현재 포함 이후 6개(역순이라 미래가 과거)
+    const sevenAvg = avg(window.map(s=>s.count));
     const ratio = sevenAvg ? ((r.count/sevenAvg)-1)*100 : 0;
     const cls = classifyPct(ratio);
-    tr.innerHTML = `<td>${r.date}</td><td>${r.count}</td><td class="${cls}">${ratio.toFixed(1)}%</td>`;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${r.date}</td><td>${r.count}</td><td class="${cls}">${ratio.toFixed(1)}%</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -256,7 +302,39 @@ function setMetric(id,val){ const el=document.getElementById(id); if(el) el.text
 function setText(id,val){ const el=document.getElementById(id); if(el) el.textContent = val; }
 
 /* 차트 */
-let chartDaily, chartWeekly, chartMonthly, chartDevices, chartBrowsers, chartUserTypes, chartHourly;
+let chartDaily, chartDevices, chartBrowsers, chartHourly; // 사용 중인 차트만
+let realtimeHistory=[]; let realtimeSparkChart=null; let fullDailyRows=[]; let loading=false; let realtimeIntervalId=null;
+
+function setLoading(on){
+  loading=on; const metrics=['avgSessionDuration','bounceRate','pagesPerSession','newUserPercent'];
+  metrics.forEach(id=>{const el=document.getElementById(id); if(!el) return; el.textContent= on? '' : el.textContent; if(on){el.classList.add('skeleton');} else {el.classList.remove('skeleton');}});
+}
+
+function buildRealtimeSpark(){
+  const ctx=document.getElementById('realtimeSpark'); if(!ctx) return;
+  if(realtimeSparkChart){ realtimeSparkChart.destroy(); }
+  const labels = realtimeHistory.map((_,i)=> i+1);
+  realtimeSparkChart = new Chart(ctx, { 
+    type:'line',
+    data:{ labels, datasets:[{ data:realtimeHistory, borderColor:'#00ff9c', tension:.3, borderWidth:1.2, fill:false, pointRadius:0 }]},
+    options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ x:{ display:false }, y:{ display:false } } }
+  });
+}
+
+function updateRealtimeHistory(val){
+  realtimeHistory.push(val); if(realtimeHistory.length>40) realtimeHistory.shift(); buildRealtimeSpark();
+}
+
+function detectAnomalies(rows){
+  // 간단: 최근 30일 평균 + 2*표준편차 초과면 강조
+  if(rows.length<30) return new Set();
+  const last30 = rows.slice(-30); const values=last30.map(r=>r.count);
+  const mean=avg(values); const variance=avg(values.map(v=> (v-mean)**2)); const sd=Math.sqrt(variance);
+  const threshold = mean + 2*sd;
+  const anomalous = new Set();
+  rows.slice(-14).forEach(r=>{ if(r.count>threshold) anomalous.add(r.date); });
+  return anomalous;
+}
 
 /* 새로운 차트 렌더링 함수들 */
 function buildDevicesChart(ctx, devices){
@@ -284,19 +362,9 @@ function buildDevicesChart(ctx, devices){
 
 function renderCountriesList(countries) {
   const container = document.getElementById('countriesList');
-  container.innerHTML = countries.slice(0, 12).map(country => `
-    <div class="country-item detailed">
-      <div class="location-info">
-        <span class="country-name">${country.country}</span>
-        ${country.region && country.region !== 'unknown' ? `<span class="region-name">${country.region}</span>` : ''}
-        ${country.city && country.city !== 'unknown' ? `<span class="city-name">${country.city}</span>` : ''}
-      </div>
-      <div class="country-stats">
-        <span class="country-users">${country.users.toLocaleString()}명</span>
-        ${country.pageviews ? `<span class="country-views">${country.pageviews.toLocaleString()}뷰</span>` : ''}
-      </div>
-    </div>
-  `).join('');
+  container.innerHTML = countries.slice(0, 5).map(country =>
+    `<div>${country.country}${country.region ? ' • ' + country.region : ''} <b>${country.users}명</b></div>`
+  ).join('');
 }
 
 function renderTrafficSources(sources) {
@@ -311,29 +379,63 @@ function renderTrafficSources(sources) {
 
 function renderPopularPages(pages) {
   const container = document.getElementById('popularPages');
-  container.innerHTML = pages.slice(0, 12).map(page => `
+  if(!container) return;
+  const top = pages.slice(0, 10);
+  const html = top.map(p => {
+    const title = p.title && p.title !== p.path ? p.title : '';
+    const durSec = Number(p.avgDuration)||0; const mm=Math.floor(durSec/60); const ss=String(Math.round(durSec%60)).padStart(2,'0');
+    const bounceRaw = Number(p.bounceRate); let bouncePct='-';
+    if(!isNaN(bounceRaw)) { let v=bounceRaw; if(v<=1) v*=100; v=Math.min(100,Math.max(0,v)); bouncePct=v.toFixed(1)+'%'; }
+    const engage = p.engagement!=null? `${p.engagement}%` : '-';
+    let bounceClass='mid';
+    const bounceVal = parseFloat(bouncePct);
+    if(!isNaN(bounceVal)) {
+      if(bounceVal<30) bounceClass='low'; else if(bounceVal>55) bounceClass='high'; else bounceClass='mid';
+    }
+    return `
     <div class="page-item detailed">
       <div class="page-info">
-        <span class="page-path">${page.path}</span>
-        ${page.title && page.title !== 'Untitled' ? `<span class="page-title">${page.title}</span>` : ''}
+        <span class="page-path">${p.path}</span>
+        ${title? `<span class="page-title">${title}</span>`:''}
       </div>
       <div class="page-stats">
-        <span class="page-views">${page.views.toLocaleString()}뷰</span>
-        ${page.users ? `<span class="page-users">${page.users.toLocaleString()}명</span>` : ''}
-        ${page.avgDuration ? `<span class="page-duration">${Math.round(page.avgDuration)}초</span>` : ''}
-        ${page.bounceRate ? `<span class="page-bounce ${page.bounceRate > 70 ? 'high' : page.bounceRate < 30 ? 'low' : 'mid'}">${page.bounceRate}%</span>` : ''}
+        <span class="page-views">👁 ${p.views?.toLocaleString?.()||p.views||0}뷰</span>
+        <span class="page-users">👤 ${p.users?.toLocaleString?.()||p.users||0}명</span>
+        <span class="page-duration">⏱ ${mm}:${ss}</span>
+        <span class="page-bounce ${'page-bounce '+bounceClass}">↩ ${bouncePct}</span>
+        <span class="page-duration">🔥 ${engage}</span>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
+  container.innerHTML = html || '<div>데이터 없음</div>';
 }
 
-function renderPerformanceMetrics(perf) {
-  document.getElementById('avgSessionDuration').textContent = 
-    perf.avgSessionDuration ? `${Math.floor(perf.avgSessionDuration / 60)}:${String(perf.avgSessionDuration % 60).padStart(2, '0')}` : '-';
-  document.getElementById('bounceRate').textContent = 
-    perf.bounceRate ? `${perf.bounceRate}%` : '-';
-  document.getElementById('pagesPerSession').textContent = 
-    perf.pagesPerSession || '-';
+function renderPerformanceMetrics(perf){
+  const durRaw = Number(perf.avgSessionDuration);
+  const hasDur = !!durRaw;
+  const mm = Math.floor(durRaw/60); const ss=String(Math.round(durRaw%60)).padStart(2,'0');
+  const durStr = hasDur ? `${mm}:${ss}` : '-';
+  const brRaw = perf.bounceRate; let br='-';
+  if(brRaw!==undefined && brRaw!==null && !isNaN(brRaw)){
+    let v=Number(brRaw); // 이미 % 값(소수1)로 들어옴
+    if(v<=1) v=v*100; // 혹시 0~1이면 변환
+    v=Math.min(100,Math.max(0,v)); br=v.toFixed(1)+'%';
+  }
+  const ppsRaw = perf.pagesPerSession; const pps = (ppsRaw!==undefined && ppsRaw!==null && !isNaN(ppsRaw) && Number(ppsRaw)!==0)? Number(ppsRaw).toFixed(2):'-';
+  setText('avgSessionDuration', durStr);
+  setText('bounceRate', br);
+  setText('pagesPerSession', pps);
+  // 빈 데이터 경고 배지 (한 번만)
+  if(durStr==='-' && br==='-' && pps==='-' && !document.getElementById('perfEmptyBadge')){
+    const box=document.getElementById('performanceMetrics');
+    if(box){
+      const badge=document.createElement('div');
+      badge.id='perfEmptyBadge';
+      badge.style.cssText='grid-column:1/-1; text-align:center; font-size:11px; color:#ffb07f; opacity:.85;';
+      badge.textContent='(성능 원시값이 응답에 없어 기본 계산 불가)';
+      box.appendChild(badge);
+    }
+  }
 }
 
 function buildBrowsersChart(ctx, browsers){
@@ -416,7 +518,8 @@ function buildHourlyChart(ctx, hourly){
 }
 
 function buildDailyChart(ctx, rows){
-  const last = rows.slice(-14);
+  const last = rows.slice(-14); // 최근 14일 고정
+  const anomalies = detectAnomalies(rows);
   return new Chart(ctx, {
     type:'bar',
     data:{
@@ -424,8 +527,8 @@ function buildDailyChart(ctx, rows){
       datasets:[{
         label:'일일 방문',
         data:last.map(r=>r.count),
-        backgroundColor:'#00ff9c55',
-        borderColor:'#00ff9c',
+        backgroundColor:last.map(r=> anomalies.has(r.date)? '#ff5d5dcc' : '#00ff9c55'),
+        borderColor:last.map(r=> anomalies.has(r.date)? '#ff5d5d' : '#00ff9c'),
         borderWidth:1.5,
         borderRadius:4,
       }]
@@ -440,84 +543,30 @@ function buildDailyChart(ctx, rows){
   });
 }
 
-function buildWeeklyChart(ctx, rows){
-  // 간단히 뒤에서부터 7일 묶음
-  const weeks=[]; let tmp=[];
-  for(let i=0;i<rows.length;i++){
-    tmp.push(rows[i]);
-    if(tmp.length===7){ weeks.push(tmp); tmp=[]; }
-  }
-  if(tmp.length) weeks.push(tmp);
-  const last12 = weeks.slice(-12);
-  const labels = last12.map(w=> w[0].date.slice(5)+'~'+w[w.length-1].date.slice(5));
-  const values = last12.map(w=> sum(w.map(r=>r.count)) );
-  return new Chart(ctx, {
-    type:'line',
-    data:{
-      labels,
-      datasets:[{
-        label:'주간 합계',
-        data:values,
-        borderColor:'#00ffc3',
-        backgroundColor:'#00ffc322',
-        tension:.25,
-        fill:true
-      }]
-    },
-    options:{
-      scales:{ x:{ ticks:{ color:'#7fe4bf' } }, y:{ ticks:{ color:'#7fe4bf' }, grid:{ color:'#0f3d2d' } } },
-      plugins:{ legend:{ labels:{ color:'#9fffe2' } } }
-    }
-  });
-}
-
-function buildMonthlyChart(ctx, rows){
-  const groups = {};
-  rows.forEach(r=>{ const m=r.date.slice(0,7); groups[m]=(groups[m]||0)+r.count; });
-  const months = Object.keys(groups).sort().slice(-12);
-  const values = months.map(m=>groups[m]);
-  return new Chart(ctx, {
-    type:'bar',
-    data:{
-      labels:months.map(m=>m.slice(2)),
-      datasets:[{
-        label:'월간 합계',
-        data:values,
-        backgroundColor:'#009cffa8',
-        borderColor:'#00aaff',
-        borderWidth:1.5,
-        borderRadius:3
-      }]
-    },
-    options:{
-      scales:{ x:{ ticks:{ color:'#7fe4bf' } }, y:{ ticks:{ color:'#7fe4bf' }, grid:{ color:'#0f3d2d' } } },
-      plugins:{ legend:{ labels:{ color:'#9fffe2' } } }
-    }
-  });
-}
+// (주간/월간 차트 및 사용자 유형 도넛은 현재 UI에서 숨김 처리되어 함수 제거)
 
 /* 엔트리 */
 async function init(){
-  // 병렬로 모든 데이터 가져오기 (1년치 데이터로 총 누적 정확히 계산)
-  const [rows, devices, countries, browsers, userTypes, hourly, sources, pages, performance, realtime, regions, channels] = await Promise.all([
-    fetchDailyData(365), // 1년치 데이터로 변경
+  setLoading(true);
+  const [rows, devices, countriesRaw, browsers, userTypes, hourly, pages, performance, realtime] = await Promise.all([
+    fetchAllDailyData(),
     fetchDevicesData(),
     fetchCountriesData(),
     fetchBrowsersData(),
     fetchUserTypesData(),
     fetchHourlyData(),
-    fetchTrafficSources(),
     fetchPopularPages(),
     fetchPerformanceData(),
-    fetchRealtimeData(),
-    fetchRegionsData(),
-    fetchChannelsData()
+    fetchRealtimeData()
   ]);
 
   if(!rows.length) return;
+  fullDailyRows = rows;
 
   // 실시간 데이터
   setMetric('realtimeCount', realtime.toLocaleString());
+  // 스파크라인 초기화
+  updateRealtimeHistory(realtime);
 
   // 카드 지표
   const today = rows[rows.length-1] || {count:0};
@@ -533,7 +582,14 @@ async function init(){
   setMetric('monthCount', sum(last30.map(r=>r.count)).toLocaleString());
   setText('monthAvg', '평균 '+Math.round(avg(last30.map(r=>r.count))).toLocaleString());
   setMetric('totalCount', sum(rows.map(r=>r.count)).toLocaleString());
-  setText('firstDate', `전체 기간: ${rows[0].date} ~ ${rows[rows.length-1].date}`);
+  // 항상 오늘 날짜(한국시간)로 범위 끝을 표시
+  function getKSTDateString() {
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const kst = new Date(utc + 9 * 60 * 60000);
+    return formatDate(kst);
+  }
+  setText('firstDate', `개설 이후: ${rows[0].date} ~ ${getKSTDateString()}`);
 
   // 성능 지표
   renderPerformanceMetrics(performance);
@@ -543,25 +599,27 @@ async function init(){
   // 테이블 & 기존 차트
   renderTable(rows.slice(-90));
   chartDaily = buildDailyChart(document.getElementById('chartDaily'), rows);
-  chartWeekly = buildWeeklyChart(document.getElementById('chartWeekly'), rows);
-  chartMonthly = buildMonthlyChart(document.getElementById('chartMonthly'), rows);
+  // 주간/월간 차트 제거
 
   // 새로운 분석 차트들과 리스트들
   chartDevices = buildDevicesChart(document.getElementById('chartDevices'), devices);
-  renderCountriesList(countries);
-  renderTrafficSources(sources);
+  // 국가/지역 중복 병합 (country|region|city 키)
+  const mergedMap=new Map();
+  (countriesRaw||[]).forEach(c=>{
+    const key=`${c.country||''}|${c.region||''}|${c.city||''}`;
+    if(!mergedMap.has(key)) mergedMap.set(key,{...c});
+    else { const ref=mergedMap.get(key); ref.users=(ref.users||0)+(c.users||0); ref.pageviews=(ref.pageviews||0)+(c.pageviews||0);} });
+  const mergedCountries=Array.from(mergedMap.values()).sort((a,b)=> (b.users||0)-(a.users||0));
+  renderCountriesList(mergedCountries);
   renderPopularPages(pages);
   chartBrowsers = buildBrowsersChart(document.getElementById('chartBrowsers'), browsers);
-  chartUserTypes = buildUserTypesChart(document.getElementById('chartUserTypes'), userTypes);
   chartHourly = buildHourlyChart(document.getElementById('chartHourly'), hourly);
   
   // 추가 데이터 로깅
-  if (regions && regions.length > 0) {
-    console.log('🌍 상세 지역 정보 (총 ' + regions.length + '개):', regions.slice(0, 5));
-  }
-  if (channels && channels.length > 0) {
-    console.log('📢 유입 채널 정보 (총 ' + channels.length + '개):', channels.slice(0, 5));
-  }
+  setText('newUserPercent', (userTypes && userTypes.newUserPercent!=null)? `${userTypes.newUserPercent}%` : '-');
+  setLoading(false);
+  const lu=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const inline=document.getElementById('lastUpdatedInline'); if(inline) inline.textContent=lu;
 
   // 실시간 데이터 주기적 업데이트 (30초마다)
   startRealtimeUpdates();
@@ -569,11 +627,12 @@ async function init(){
 
 /* 실시간 데이터 주기적 업데이트 */
 function startRealtimeUpdates(){
-  setInterval(async () => {
+  if(realtimeIntervalId) return; // 중복 방지
+  realtimeIntervalId = setInterval(async () => {
     try {
       const realtimeUsers = await fetchRealtimeData();
       setMetric('realtimeCount', realtimeUsers.toLocaleString());
-      
+  updateRealtimeHistory(realtimeUsers);
       // 실시간 카드에 펄스 효과 추가
       const realtimeCard = document.getElementById('card-realtime');
       if(realtimeCard) {
@@ -582,11 +641,48 @@ function startRealtimeUpdates(){
           realtimeCard.style.transform = 'scale(1)';
         }, 200);
       }
+      const lu=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      const inline=document.getElementById('lastUpdatedInline'); if(inline) inline.textContent=lu;
     } catch (e) {
       console.warn('실시간 업데이트 실패:', e);
     }
   }, 30000); // 30초마다 업데이트
 }
+
+/* === 자정 자동 갱신 === */
+async function refreshDailySection(){
+  const rows = await fetchAllDailyData();
+  if(!rows.length) return;
+  fullDailyRows = rows;
+  const today = rows[rows.length-1] || {count:0};
+  const yesterday = rows[rows.length-2] || {count:0};
+  setMetric('todayCount', today.count.toLocaleString());
+  setMetric('yesterdayCount', yesterday.count.toLocaleString());
+  setText('todayChange', `${percentChange(today.count, yesterday.count).toFixed(1)}% vs 어제`);
+  setText('yesterdayShare', (today.count? (yesterday.count/today.count*100):0).toFixed(1)+'% of 오늘');
+  const last7 = rows.slice(-7), last30 = rows.slice(-30);
+  setMetric('weekCount', sum(last7.map(r=>r.count)).toLocaleString());
+  setText('weekAvg', '평균 '+Math.round(avg(last7.map(r=>r.count))).toLocaleString());
+  setMetric('monthCount', sum(last30.map(r=>r.count)).toLocaleString());
+  setText('monthAvg', '평균 '+Math.round(avg(last30.map(r=>r.count))).toLocaleString());
+  setMetric('totalCount', sum(rows.map(r=>r.count)).toLocaleString());
+  setText('firstDate', `개설 이후: ${rows[0].date} ~ ${rows[rows.length-1].date}`);
+  // 차트/테이블 업데이트
+  if(chartDaily){ chartDaily.destroy(); }
+  chartDaily = buildDailyChart(document.getElementById('chartDaily'), rows);
+  renderTable(rows.slice(-90));
+}
+
+function scheduleMidnightRefresh(){
+  const now=new Date();
+  const next=new Date(now); next.setDate(now.getDate()+1); next.setHours(0,2,5,0); // 자정+2분5초 (GA 데이터 반영 여유)
+  const ms= next - now;
+  setTimeout(async ()=>{ try{ await refreshDailySection(); } catch(e){ console.warn('Midnight refresh failed', e); } finally { scheduleMidnightRefresh(); } }, ms);
+}
+
+scheduleMidnightRefresh();
+
+// (이전 중복 코드 정리됨)
 
 // 접힐 수 있는 섹션 토글 기능
 function toggleRawData() {
@@ -603,3 +699,38 @@ function toggleRawData() {
 }
 
 init();
+
+/* === 부가 기능 === */
+function exportCSV(){
+  if(!fullDailyRows.length) return; const header='date,count\n';
+  const body=fullDailyRows.map(r=>`${r.date},${r.count}`).join('\n');
+  const blob=new Blob([header+body],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url; a.download='visitors.csv'; document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url); a.remove();},0);
+}
+
+// 성능 지표 토글
+document.addEventListener('click', (e)=>{
+  if(e.target && e.target.id==='togglePerf'){
+    const box=document.getElementById('performanceBox');
+    if(!box) return;
+    if(box.classList.contains('collapsed')){
+      box.classList.remove('collapsed');
+      e.target.textContent='숨기기';
+      localStorage.removeItem('perfHidden');
+    } else {
+      box.classList.add('collapsed');
+      e.target.textContent='보이기';
+      localStorage.setItem('perfHidden','1');
+    }
+  }
+});
+
+window.addEventListener('DOMContentLoaded', ()=>{
+  if(localStorage.getItem('perfHidden')){
+    const box=document.getElementById('performanceBox');
+    const btn=document.getElementById('togglePerf');
+    if(box && btn){ box.classList.add('collapsed'); btn.textContent='보이기'; }
+  }
+});

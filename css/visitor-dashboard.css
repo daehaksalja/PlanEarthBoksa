@@ -1,12 +1,43 @@
 body.v-body { margin:0; padding:0; font-family:'Nanum Gothic','Malgun Gothic',sans-serif; background:#050807; color:#dfffee; min-height:100vh; box-sizing:border-box; }
+/* FAB */
+.fab-container {position:fixed;bottom:18px;right:18px;display:flex;flex-direction:column;align-items:flex-end;gap:10px;z-index:1100;}
+.fab {background:#00ff9c;color:#03271d;border:none;width:52px;height:52px;border-radius:50%;font-size:22px;font-weight:700;cursor:pointer;box-shadow:0 8px 28px -6px #00ff9caa,0 0 0 2px #043427 inset;display:flex;align-items:center;justify-content:center;transition:.25s;}
+.fab:hover {transform:translateY(-3px) scale(1.05);box-shadow:0 12px 34px -4px #00ff9ccc,0 0 0 2px #065a42 inset;}
+.offline-badge {background:#ff5d5d;color:#fff;font-size:11px;font-weight:700;padding:6px 10px;border-radius:8px;letter-spacing:.05em;box-shadow:0 0 0 1px #ff5d5d55,0 4px 16px -6px #ff5d5d88;backdrop-filter:blur(6px);} 
+/* FAB menu */
+.fab-menu {display:flex;flex-direction:column;gap:8px;transform:translateY(10px);opacity:0;pointer-events:none;transition:.25s;}
+.fab-container.open .fab-menu {transform:translateY(0);opacity:1;pointer-events:auto;}
+.fab-mini {background:#06261f;color:#7fffd1;border:1px solid #0f4d3d;width:42px;height:42px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.25s;}
+.fab-mini:hover {background:#00ff9c;color:#03271d;border-color:#00ff9c;}
+
+/* 최소 모드 */
+.minimal .analysis-section, .minimal .chart-section, .minimal .raw-section {display:none !important;}
+.minimal .main-stats {grid-template-columns:repeat(auto-fit,minmax(160px,1fr));}
+.minimal #fabMinimal {background:#ff9800;color:#1e1200;}
+
+/* anomaly 강조용 (이미 막대 색상 있지만 배지도 준비) */
+.anomaly-badge {display:inline-block;background:#ff5d5d;color:#fff;font-size:10px;padding:2px 6px;border-radius:6px;margin-left:6px;letter-spacing:.05em;}
+
+/* 스파크라인 */
+.spark {width:100%;margin-top:4px;opacity:.85;}
+
+/* 스켈레톤 */
+.skeleton {position:relative;overflow:hidden;background:linear-gradient(100deg,#113429 30%,#164636 38%,#113429 46%);background-size:200% 100%;animation:shimmer 1.4s infinite;min-height:22px;border-radius:6px;}
+@keyframes shimmer {0%{background-position:200% 0;}100%{background-position:-200% 0;}}
 *, *::before, *::after { box-sizing:border-box; }
 
 /* 고정 네비게이션 버튼들 */
-.fixed-nav { position:fixed; top:0; left:0; right:0; z-index:1000; pointer-events:none; }
+.fixed-nav { 
+  position:fixed; top:0; left:0; right:0; z-index:1000; pointer-events:none;
+  border-bottom:1.5px solid #1be2a5; /* 어드민 스타일과 유사한 네온톤 */
+  box-shadow:0 2px 12px 0 #00ff9c22;
+  padding-bottom:6px;
+  background:rgba(5,8,7,0.98); /* 상단 배경 살짝 강조 */
+}
 .nav-btn { 
-  position:absolute; top:16px; z-index:1001; pointer-events:auto;
+  position:absolute; top:18px; z-index:1001; pointer-events:auto;
   text-decoration:none; background:rgba(6,36,27,.95); color:#7fffd1; 
-  padding:8px 14px; border-radius:8px; font-size:12px; font-weight:600; 
+padding:9px 10px; border-radius:16px; font-size:18px; font-weight:600; 
   border:1px solid #0f5a43; letter-spacing:.03em; 
   box-shadow:0 4px 20px rgba(0,255,156,.15),0 0 0 1px #0d3c2d inset; 
   transition:.18s; backdrop-filter:blur(12px);
@@ -16,9 +47,13 @@ body.v-body { margin:0; padding:0; font-family:'Nanum Gothic','Malgun Gothic',sa
 .nav-btn.left { left:16px; }
 .nav-btn.right { right:16px; }
 
+
+
+ 
 .v-header { 
   display:flex; justify-content:center; align-items:center; 
-  padding:14px 26px 30px; background:transparent; border-bottom:none; 
+  padding:0px 26px 30px; background:transparent; border-bottom:none; 
+  margin-top:24px;
 }
 .v-title { 
   margin:0; font-size:28px; letter-spacing:.05em; 
@@ -30,10 +65,11 @@ body.v-body { margin:0; padding:0; font-family:'Nanum Gothic','Malgun Gothic',sa
 .cards { display:grid; gap:18px; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); margin-bottom:34px; }
 .card { 
   background:linear-gradient(145deg,#062720,#041a15); 
-  border:1px solid #0f4d3d; border-radius:16px; padding:18px 20px 20px; 
+  border:1px solid #0f4d3d; border-radius:16px; padding:18px 20px 46px; 
   position:relative; overflow:hidden; 
   box-shadow:0 8px 32px rgba(0,255,156,.12), 0 2px 8px rgba(0,255,156,.06), 0 0 0 1px #0d4531 inset; 
-  display:grid; gap:8px; min-width:0; transition:.3s;
+  display:flex; flex-direction:column; align-items:flex-start; gap:8px; min-width:0; transition:.3s; 
+  min-height:170px;
 }
 .card:hover { transform:translateY(-2px); box-shadow:0 12px 40px rgba(0,255,156,.18), 0 4px 12px rgba(0,255,156,.08); }
 .card:before { 
@@ -46,6 +82,7 @@ body.v-body { margin:0; padding:0; font-family:'Nanum Gothic','Malgun Gothic',sa
 .sub { font-size:12px; letter-spacing:.03em; color:#85e4c5; opacity:.9; }
 
 .chart-section { display:grid; gap:24px; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); margin-bottom:40px; }
+.chart-section.three-col { grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
 .chart-box { 
   background:linear-gradient(145deg,#051f18,#041b16); 
   border:1px solid #0f4d3d; border-radius:18px; padding:20px 22px 28px; 
@@ -135,6 +172,10 @@ body.v-body { margin:0; padding:0; font-family:'Nanum Gothic','Malgun Gothic',sa
 
 /* 인기 페이지 리스트 (향상된 버전) */
 .popular-pages { display:grid; gap:8px; max-height:400px; overflow-y:auto; }
+.popular-pages.compact { max-height:260px; grid-auto-rows:minmax(44px,auto); }
+.popular-pages.compact .page-item.detailed { padding:10px 10px; gap:4px; }
+.popular-pages.compact .page-path { font-size:12px; }
+.popular-pages.compact .page-stats { gap:6px; }
 .page-item { 
   display:flex; justify-content:space-between; align-items:center; 
   padding:10px 12px; background:rgba(4,25,20,.8); border:1px solid #0f4d3d; 
@@ -183,6 +224,10 @@ body.v-body { margin:0; padding:0; font-family:'Nanum Gothic','Malgun Gothic',sa
   animation: pulse 2s infinite;
 }
 .realtime-metric { color:#7fff00 !important; text-shadow:0 0 18px #7fff0088 !important; }
+.realtime-info .spark { position:absolute; left:14px; right:14px; bottom:10px; height:32px; }
+
+/* 성능 박스 숨김 상태 */
+.performance-box.collapsed { display:none !important; }
 
 /* 특별 강조 카드들 */
 .today-highlight {
@@ -292,10 +337,11 @@ body.v-body { margin:0; padding:0; font-family:'Nanum Gothic','Malgun Gothic',sa
 }
 
 @media (max-width:540px){
-  .nav-btn { font-size:11px; padding:6px 10px; top:12px; }
+  .nav-btn { font-size:11px; padding:9px 10px; top:18px; }
   .nav-btn.left { left:12px; }
   .nav-btn.right { right:12px; }
-  .v-header { padding:14px 16px 25px; }
+  .cards { grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; }
+  .card { min-height:150px; padding:16px 16px 40px; }
   .v-title { font-size:20px; }
   .v-main { padding:12px 10px 40px; }
   .cards { grid-template-columns:repeat(2,1fr); gap:12px; }
@@ -317,7 +363,9 @@ body.v-body { margin:0; padding:0; font-family:'Nanum Gothic','Malgun Gothic',sa
 }
 
 @media (max-width:375px){
-  .nav-btn { font-size:10px; padding:5px 8px; }
+.nav-btn { font-size:11px; padding:9px 10px; top:18px; }
+  .nav-btn.left { left:12px; }
+  .nav-btn.right { right:12px; }
   .v-title { font-size:18px; }
   .v-main { padding:10px 8px 35px; }
   .cards { gap:10px; }

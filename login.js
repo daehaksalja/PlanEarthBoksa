@@ -19,8 +19,8 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
       return;
     }
 
-    // 로그인 성공 시 관리자 대시보드로 이동
-    window.location.href = "admin-dashboard.html";
+  // 로그인 성공 시 방문자수 대시보드로 이동
+  window.location.href = "visitor-dashboard.html";
   } catch (err) {
     alert('로그인 처리 중 오류가 발생했습니다.');
   }

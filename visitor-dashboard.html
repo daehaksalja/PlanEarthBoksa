@@ -9,23 +9,21 @@
   <link rel="stylesheet" href="css/visitor-dashboard.css" />
 </head>
 <body class="v-body">
-  <!-- 고정 네비게이션 버튼들 -->
-  <div class="fixed-nav">
-    <a href="admin-dashboard.html" class="nav-btn left">←대쉬보드</a>
-    <a href="index.html" class="nav-btn right">사이트 홈</a>
-  </div>
 
   <header class="v-header">
+    <a href="admin-dashboard.html" class="nav-btn left">← 대쉬보드</a>
     <h1 class="v-title">방문자수</h1>
+  <a href="login.html" class="nav-btn right">로그아웃</a>
   </header>
 
   <main class="v-main">
-    <!-- 핵심 실시간 정보 -->
+    <!-- 상단 핵심 지표 6개 -->
     <section class="cards main-stats" id="cards">
       <div class="card realtime-info" id="card-realtime">
         <h2>🔴 실시간</h2>
         <p class="metric realtime-metric" id="realtimeCount">-</p>
-        <span class="sub">현재 접속자</span>
+        <span class="sub">현재 접속자 • <span id="lastUpdatedInline">-</span></span>
+        <canvas id="realtimeSpark" height="32" class="spark"></canvas>
       </div>
       <div class="card today-highlight" id="card-today">
         <h2>📈 오늘 방문</h2>
@@ -54,88 +52,50 @@
       </div>
     </section>
 
-    <!-- 성능 지표 -->
-    <section class="chart-section">
-      <div class="chart-box performance-box">
+    <!-- 성능 지표 + 최근 14일 + 인기페이지 -->
+    <section class="chart-section three-col">
+      <div class="chart-box performance-box" id="performanceBox">
         <h3>📊 핵심 성능 지표</h3>
         <div class="performance-metrics" id="performanceMetrics">
-          <div class="perf-item">
-            <div class="perf-value" id="avgSessionDuration">-</div>
-            <div class="perf-label">평균 세션 시간</div>
-          </div>
-          <div class="perf-item">
-            <div class="perf-value" id="bounceRate">-</div>
-            <div class="perf-label">이탈률</div>
-          </div>
-          <div class="perf-item">
-            <div class="perf-value" id="pagesPerSession">-</div>
-            <div class="perf-label">세션당 페이지</div>
-          </div>
-          <div class="perf-item">
-            <div class="perf-value" id="newUserPercent">-</div>
-            <div class="perf-label">신규 방문자 비율</div>
-          </div>
+          <div class="perf-item"><div class="perf-value" id="avgSessionDuration">-</div><div class="perf-label">평균 세션</div></div>
+          <div class="perf-item"><div class="perf-value" id="bounceRate">-</div><div class="perf-label">이탈률</div></div>
+          <div class="perf-item"><div class="perf-value" id="pagesPerSession">-</div><div class="perf-label">페이지/세션</div></div>
+          <div class="perf-item"><div class="perf-value" id="newUserPercent">-</div><div class="perf-label">신규 비율</div></div>
         </div>
       </div>
       <div class="chart-box">
         <h3>📈 최근 14일 트렌드</h3>
         <canvas id="chartDaily" height="140"></canvas>
       </div>
+      <div class="chart-box" id="popularPagesBox">
+        <h3>⭐ 인기 페이지 TOP</h3>
+        <div id="popularPages" class="popular-pages compact"></div>
+      </div>
     </section>
 
-    <!-- 방문자 특성 분석 -->
+    <!-- 디바이스 / 브라우저 / 국가 -->
     <section class="analysis-section">
       <div class="analysis-row">
         <div class="analysis-box">
-          <h3>🖥️ 디바이스별 방문</h3>
+          <h3>🖥️ 디바이스별</h3>
           <canvas id="chartDevices" height="200"></canvas>
         </div>
         <div class="analysis-box">
-          <h3>👥 신규 vs 재방문자</h3>
-          <canvas id="chartUserTypes" height="200"></canvas>
-        </div>
-      </div>
-      
-      <div class="analysis-row">
-        <div class="analysis-box">
-          <h3>🌐 브라우저별 통계</h3>
+          <h3>🌐 브라우저별</h3>
           <canvas id="chartBrowsers" height="200"></canvas>
         </div>
         <div class="analysis-box">
-          <h3>🌍 국가별 방문자</h3>
+          <h3>🌍 국가별</h3>
           <div id="countriesList" class="countries-list"></div>
         </div>
       </div>
     </section>
 
-    <!-- 트렌드 분석 -->
-    <section class="chart-section">
-      <div class="chart-box">
-        <h3>최근 12주 (주간)</h3>
-        <canvas id="chartWeekly" height="140"></canvas>
-      </div>
-      <div class="chart-box">
-        <h3>최근 12개월 (월간)</h3>
-        <canvas id="chartMonthly" height="140"></canvas>
-      </div>
-    </section>
-
-    <!-- 상세 분석 -->
+    <!-- 시간대 -->
     <section class="analysis-section">
-      <div class="analysis-row">
-        <div class="analysis-box">
-          <h3>🚀 트래픽 소스</h3>
-          <div id="trafficSources" class="traffic-sources"></div>
-        </div>
-        <div class="analysis-box">
-          <h3>📄 인기 페이지 (7일)</h3>
-          <div id="popularPages" class="popular-pages"></div>
-        </div>
-      </div>
-      
-      <div class="analysis-row">
+      <div class="analysis-row full-width">
         <div class="analysis-box full-width">
-          <h3>🕐 시간대별 트래픽 (24시간)</h3>
+          <h3>🕐 시간대별 (24h)</h3>
           <canvas id="chartHourly" height="160"></canvas>
         </div>
       </div>
@@ -143,23 +103,16 @@
 
     <!-- 원시 데이터 -->
     <section class="raw-section">
-      <div class="collapsible-section">
-        <h3 class="collapsible-header" onclick="toggleRawData()">📋 원시 데이터 (최신 90일) <span id="toggleIcon">▼</span></h3>
-        <div class="collapsible-content" id="rawDataContent">
-          <table class="raw-table" id="rawTable">
-            <thead>
-              <tr><th>날짜</th><th>방문자</th><th>비율(7일평균 대비)</th></tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
+      <h3>📋 원시 데이터 (최근 90일)</h3>
+      <table class="raw-table" id="rawTable">
+        <thead><tr><th>날짜</th><th>방문자</th><th>비율(7일평균 대비)</th></tr></thead>
+        <tbody></tbody>
+      </table>
     </section>
   </main>
 
   <footer class="v-footer">ⓒ PLANEARTH VISITOR DASHBOARD</footer>
 
-  <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="js/visitor-dashboard.js"></script>
 </body>
