@@ -1,0 +1,62 @@
+body.v-body { margin:0; font-family:'Nanum Gothic','Malgun Gothic',sans-serif; background:#050807; color:#dfffee; }
+.v-header { display:flex; flex-wrap:wrap; gap:20px; align-items:center; justify-content:space-between; padding:18px 26px; background:rgba(0,0,0,.55); backdrop-filter:blur(8px) saturate(140%); border-bottom:1px solid #103f30; }
+.v-title { margin:0; font-size:22px; letter-spacing:.05em; font-family:'Jua','Nanum Gothic',sans-serif; color:#7fffd1; text-shadow:0 0 12px #00ff9c55; }
+.v-nav { display:flex; gap:10px; }
+.v-btn { text-decoration:none; background:#06241b; color:#7fffd1; padding:10px 16px; border-radius:10px; font-size:13px; font-weight:700; border:1px solid #0f5a43; letter-spacing:.03em; box-shadow:0 4px 14px rgba(0,255,156,.12),0 0 0 1px #0d3c2d inset; transition:.18s; display:inline-flex; align-items:center; gap:6px; }
+.v-btn:hover { background:#00ff9c; color:#032218; box-shadow:0 8px 28px rgba(0,255,156,.25); }
+
+.v-main { padding:28px clamp(16px,4vw,48px) 80px; max-width:1500px; margin:0 auto; }
+.cards { display:grid; gap:16px; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); margin-bottom:34px; }
+.card { background:linear-gradient(160deg,#06241b,#041914); border:1px solid #0f3d2d; border-radius:14px; padding:16px 18px 18px; position:relative; overflow:hidden; box-shadow:0 10px 30px -10px rgba(0,255,156,.18), 0 0 0 1px #0d3c2d inset; display:grid; gap:6px; }
+.card:before { content:""; position:absolute; inset:0; background:radial-gradient(circle at 30% 20%,rgba(0,255,156,.25),transparent 70%); opacity:.55; mix-blend-mode:overlay; pointer-events:none; }
+.card h2 { margin:0; font-size:15px; letter-spacing:.05em; font-weight:800; color:#9fffe2; }
+.metric { margin:0; font-size:30px; font-weight:800; letter-spacing:.04em; color:#00ffc3; text-shadow:0 0 14px #00ff9c66; }
+.sub { font-size:11px; letter-spacing:.05em; color:#7fe4bf; }
+
+.chart-section { display:grid; gap:26px; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); margin-bottom:42px; }
+.chart-box { background:#061e17; border:1px solid #0f3d2d; border-radius:16px; padding:18px 20px 26px; box-shadow:0 10px 30px -12px rgba(0,255,156,.15), 0 0 0 1px #0d3c2d inset; position:relative; }
+.chart-box h3 { margin:0 0 12px; font-size:14px; font-weight:800; letter-spacing:.05em; color:#9fffe2; }
+
+.raw-section { background:#061e17; border:1px solid #0f3d2d; border-radius:18px; padding:20px 22px 32px; box-shadow:0 10px 30px -12px rgba(0,255,156,.15), 0 0 0 1px #0d3c2d inset; }
+.raw-section h3 { margin:0 0 16px; font-size:15px; font-weight:800; letter-spacing:.05em; color:#9fffe2; }
+.raw-table { width:100%; border-collapse:collapse; font-size:13px; }
+.raw-table th, .raw-table td { padding:8px 10px; text-align:right; }
+.raw-table th { background:#072b20; color:#9fffe2; font-weight:700; letter-spacing:.04em; position:sticky; top:0; }
+.raw-table tbody tr:nth-child(odd){ background:#07251d; }
+.raw-table tbody tr:nth-child(even){ background:#062117; }
+.raw-table td:first-child, .raw-table th:first-child { text-align:left; }
+
+.v-footer { text-align:center; padding:30px 10px; font-size:12px; color:#7fe4bf; letter-spacing:.05em; }
+
+/* 상태 컬러 */
+.bad { color:#ff8a8a; }
+.good { color:#7fffd1; }
+.mid { color:#ffd27f; }
+
+/* 새로운 분석 섹션 */
+.analysis-section { margin-bottom:42px; }
+.analysis-row { display:grid; gap:26px; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); margin-bottom:26px; }
+.analysis-row.full-width { grid-template-columns:1fr; }
+.analysis-box { background:#061e17; border:1px solid #0f3d2d; border-radius:16px; padding:18px 20px 26px; box-shadow:0 10px 30px -12px rgba(0,255,156,.15), 0 0 0 1px #0d3c2d inset; position:relative; }
+.analysis-box h3 { margin:0 0 12px; font-size:14px; font-weight:800; letter-spacing:.05em; color:#9fffe2; }
+
+/* 국가별 방문자 리스트 */
+.countries-list { display:grid; gap:8px; }
+.country-item { display:flex; justify-content:space-between; align-items:center; padding:6px 12px; background:#041914; border:1px solid #0f3d2d; border-radius:8px; font-size:13px; }
+.country-name { color:#7fffd1; font-weight:600; }
+.country-users { color:#00ffc3; font-weight:700; }
+
+@media (max-width:800px){
+  .metric { font-size:26px; }
+  .cards { grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); }
+  .analysis-row { grid-template-columns:1fr; }
+}
+@media (max-width:540px){
+  .v-header { padding:14px 16px; gap:12px; }
+  .v-title { font-size:19px; }
+  .v-main { padding:22px 16px 70px; }
+  .chart-section { grid-template-columns:1fr; }
+  .analysis-row { grid-template-columns:1fr; }
+  .raw-section { padding:18px 14px 28px; }
+  .card { padding:14px 14px 16px; }
+}
