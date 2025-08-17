@@ -48,8 +48,8 @@ function generateMock(){
 async function fetchDailyData(days=365){
   try{
     const r = await fetch(`${BASE}/ga/daily?days=${days}`, { cache: 'no-store', credentials: 'omit' });
-    const data = await r.json();
-    if(!data.ok) throw new Error(data.error || 'GA error');
+  const data = await r.json();
+  if(!data.ok) throw new Error(data.error || 'GA error');
     // 👇 users(방문자) 기준으로 매핑. pageviews 쓰고 싶으면 row.pageviews로 변경.
     return (data.rows || []).map(row => ({
       date: row.date,
@@ -99,7 +99,8 @@ async function fetchDevicesData(){
 /* 국가별 데이터 (시/군/구 포함) */
 async function fetchCountriesData(){
   try{
-    const r = await fetch(`${BASE}/ga/countries?limit=15`, { cache: 'no-store', credentials: 'omit' });
+  // request a large limit so we can aggregate across the full returned set
+  const r = await fetch(`${BASE}/ga/countries?limit=1000`, { cache: 'no-store', credentials: 'omit' });
     const data = await r.json();
     if(!data.ok) throw new Error(data.error || 'GA error');
     return data.rows || [];
@@ -116,7 +117,7 @@ async function fetchCountriesData(){
 /* 브라우저별 데이터 */
 async function fetchBrowsersData(){
   try{
-    const r = await fetch(`${BASE}/ga/browsers`, { cache: 'no-store', credentials: 'omit' });
+  const r = await fetch(`${BASE}/ga/browsers?limit=1000`, { cache: 'no-store', credentials: 'omit' });
     const data = await r.json();
     if(!data.ok) throw new Error(data.error || 'GA error');
     return data.rows || [];
@@ -180,7 +181,8 @@ async function fetchTrafficSources(){
 /* 인기 페이지 데이터 (상세 정보 포함) */
 async function fetchPopularPages(){
   try{
-    const r = await fetch(`${BASE}/ga/pages-detail?limit=20`, { cache: 'no-store', credentials: 'omit' });
+  // request many rows so client can aggregate across whole returned set
+  const r = await fetch(`${BASE}/ga/pages-detail?limit=1000`, { cache: 'no-store', credentials: 'omit' });
     const data = await r.json();
     if(!data.ok) throw new Error(data.error || 'GA error');
     return data.rows || [];
@@ -263,20 +265,34 @@ async function fetchRealtimeData(){
   try{
     console.log('🔴 실시간 데이터 요청 중...');
     const r = await fetch(`${BASE}/ga/realtime`, { cache: 'no-store', credentials: 'omit' });
-    const data = await r.json();
-    console.log('🔴 실시간 API 응답:', data);
-    
-    if(!data.ok) throw new Error(data.error || 'GA error');
-    
-    const activeUsers = data.activeUsers || 0;
-    console.log('🔴 실시간 활성 사용자:', activeUsers);
-    
-    // 실시간 데이터가 0이면 현재 방문자 수를 1로 설정 (본인)
-    return activeUsers > 0 ? activeUsers : 1;
+  const data = await r.json();
+  console.log('🔴 실시간 API 응답:', data);
+
+  if(!data.ok) throw new Error(data.error || 'GA error');
+  // 기본: 서버에서 내려준 activeUsers를 사용
+  let activeUsers = Number(data.activeUsers ?? 0);
+  // 보정: 일부 백엔드(또는 포맷)에서는 debug.rawResponse 안에 실제 metricValues가 들어있음
+  if((!activeUsers || activeUsers === 0) && data.debug && data.debug.rawResponse){
+    const n = extractMetricValueFromDebug(data.debug.rawResponse);
+    if(!Number.isNaN(n)){
+      console.log('🔴 realtime: using fallback metric from debug.rawResponse ->', n);
+      activeUsers = n;
+    }
+  }
+  console.log('🔴 실시간 활성 사용자:', activeUsers);
+  // 정상 응답을 받았으므로 상태 플래그를 true
+  realtimeApiHealthy = true;
+  const card = document.getElementById('card-realtime');
+  if(card) card.classList.remove('realtime-error');
+  // 실시간 데이터가 0이면 현재 방문자 수를 1로 설정 (본인)
+  return activeUsers > 0 ? activeUsers : 1;
   }catch(e){
     console.warn('Realtime fetch failed:', e);
-    // 본인이 지금 접속해 있으니 최소 1명
-    return 1;
+  // 에러 발생 시 플래그 세팅 및 fallback 반환
+  realtimeApiHealthy = false;
+  const card = document.getElementById('card-realtime');
+  if(card) card.classList.add('realtime-error');
+  return 1;
   }
 }
 
@@ -301,9 +317,48 @@ function renderTable(rows){
 function setMetric(id,val){ const el=document.getElementById(id); if(el) el.textContent = val; }
 function setText(id,val){ const el=document.getElementById(id); if(el) el.textContent = val; }
 
+// ------- debug helper: in-page API inspector (temporary) -------
+// showApiDebug removed (development-only debug panel); no-op in production
+
+// Extract numeric metric value from debug.rawResponse which may be an object or array
+function extractMetricValueFromDebug(raw){
+  try{
+    if(!raw) return NaN;
+    const root = Array.isArray(raw) ? raw[0] : raw;
+    // common GA-like shape: { rows: [ { metricValues: [ { value: '1' } ] } ] }
+    if(root && Array.isArray(root.rows) && root.rows.length){
+      const mv = root.rows[0].metricValues || root.rows[0].metrics || root.rows[0].metric_values;
+      if(Array.isArray(mv) && mv.length){
+        const v = mv[0].value ?? mv[0];
+        const n = Number(v);
+        return Number.isNaN(n) ? NaN : n;
+      }
+    }
+    // sometimes metricValues is at top-level or nested differently
+    if(root && Array.isArray(root.metricValues) && root.metricValues.length){
+      const v = root.metricValues[0].value ?? root.metricValues[0];
+      const n = Number(v); return Number.isNaN(n)? NaN : n;
+    }
+    // fallback: deep search for first metricValues array
+    const stack = [root];
+    while(stack.length){
+      const node = stack.shift();
+      if(!node || typeof node !== 'object') continue;
+      if(Array.isArray(node.metricValues) && node.metricValues.length){ const v=node.metricValues[0].value ?? node.metricValues[0]; const n=Number(v); if(!Number.isNaN(n)) return n; }
+      if(Array.isArray(node.rows) && node.rows.length){ const mv = node.rows[0].metricValues; if(Array.isArray(mv) && mv.length){ const v=mv[0].value ?? mv[0]; const n=Number(v); if(!Number.isNaN(n)) return n; } }
+      for(const k in node){ if(node[k] && typeof node[k] === 'object') stack.push(node[k]); }
+    }
+  }catch(e){ console.warn('extractMetricValueFromDebug error', e); }
+  return NaN;
+}
+
 /* 차트 */
 let chartDaily, chartDevices, chartBrowsers, chartHourly; // 사용 중인 차트만
 let realtimeHistory=[]; let realtimeSparkChart=null; let fullDailyRows=[]; let loading=false; let realtimeIntervalId=null;
+// Realtime polling controls
+let realtimeBaseIntervalMs = 60000; // 기본 60초
+let realtimeBackoff = 1; // 지수 백오프 계수
+let realtimeApiHealthy = true; // 실시간 API 상태 플래그
 
 function setLoading(on){
   loading=on; const metrics=['avgSessionDuration','bounceRate','pagesPerSession','newUserPercent'];
@@ -328,11 +383,12 @@ function updateRealtimeHistory(val){
 function detectAnomalies(rows){
   // 간단: 최근 30일 평균 + 2*표준편차 초과면 강조
   if(rows.length<30) return new Set();
-  const last30 = rows.slice(-30); const values=last30.map(r=>r.count);
+  const last30 = rows.slice(-30);
+  const values = last30.map(r=>Number(r.count||0));
   const mean=avg(values); const variance=avg(values.map(v=> (v-mean)**2)); const sd=Math.sqrt(variance);
   const threshold = mean + 2*sd;
   const anomalous = new Set();
-  rows.slice(-14).forEach(r=>{ if(r.count>threshold) anomalous.add(r.date); });
+  rows.slice(-14).forEach(r=>{ if(Number(r.count||0)>threshold){ const d = (r.date||'').slice(0,10); anomalous.add(d); } });
   return anomalous;
 }
 
@@ -362,9 +418,33 @@ function buildDevicesChart(ctx, devices){
 
 function renderCountriesList(countries) {
   const container = document.getElementById('countriesList');
-  container.innerHTML = countries.slice(0, 5).map(country =>
-    `<div>${country.country}${country.region ? ' • ' + country.region : ''} <b>${country.users}명</b></div>`
-  ).join('');
+  if(!container) return;
+  // 그룹화: country -> cities
+  const map = new Map();
+  (countries||[]).forEach(c=>{
+    const country = c.country || 'Unknown';
+    const city = c.city || (c.region||'');
+    const users = Number(c.users||0);
+    if(!map.has(country)) map.set(country, { total:0, cities: new Map() });
+    const entry = map.get(country);
+    entry.total += users;
+    if(city){ entry.cities.set(city, (entry.cities.get(city)||0) + users); }
+  });
+  // 정렬: 사용자 수로 내림차순
+  const arr = Array.from(map.entries()).map(([country, v])=> ({ country, total: v.total, cities: Array.from(v.cities.entries()).map(([city,users])=>({city,users})) }));
+  arr.sort((a,b)=> b.total - a.total);
+  // 렌더링: 상위 8개 국가
+  const html = arr.slice(0,8).map(cn => {
+    const citiesHtml = cn.cities.slice(0,6).map(ct => `<div class="city-line">${ct.city} <b>${ct.users}명</b></div>`).join('');
+    return `
+      <div class="country-item detailed">
+        <div class="location-info">
+          <div class="country-name">🌐 ${cn.country} <span class="country-users">${cn.total}명</span></div>
+          <div class="city-list">${citiesHtml}</div>
+        </div>
+      </div>`;
+  }).join('');
+  container.innerHTML = html || '<div class="country-item">데이터 없음</div>';
 }
 
 function renderTrafficSources(sources) {
@@ -518,17 +598,25 @@ function buildHourlyChart(ctx, hourly){
 }
 
 function buildDailyChart(ctx, rows){
-  const last = rows.slice(-14); // 최근 14일 고정
+  // KST 기준 최근 14일 날짜 목록 생성
+  const utcNow = Date.now();
+  const offset = new Date().getTimezoneOffset()*60000;
+  const kstNow = new Date(utcNow + offset + 9*60*60000);
+  const dates = [];
+  for(let i=13;i>=0;i--){ const d=new Date(kstNow); d.setDate(kstNow.getDate()-i); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); dates.push(`${y}-${m}-${day}`); }
+  // rows를 date->count 맵으로 변환 (r.date가 'YYYY-MM-DD' 또는 ISO 문자열일 수 있으므로 정규화)
+  const map = new Map((rows||[]).map(r=> { const key = (r.date||'').slice(0,10); return [key, Number(r.count||0)]; }));
+  const dataArr = dates.map(dt => map.has(dt) ? map.get(dt) : 0);
   const anomalies = detectAnomalies(rows);
   return new Chart(ctx, {
     type:'bar',
     data:{
-      labels:last.map(r=>r.date.slice(5)),
+      labels: dates.map(d=>d.slice(5)),
       datasets:[{
         label:'일일 방문',
-        data:last.map(r=>r.count),
-        backgroundColor:last.map(r=> anomalies.has(r.date)? '#ff5d5dcc' : '#00ff9c55'),
-        borderColor:last.map(r=> anomalies.has(r.date)? '#ff5d5d' : '#00ff9c'),
+        data: dataArr,
+        backgroundColor: dates.map(d=> anomalies.has(d)? '#ff5d5dcc' : '#00ff9c55'),
+        borderColor: dates.map(d=> anomalies.has(d)? '#ff5d5d' : '#00ff9c'),
         borderWidth:1.5,
         borderRadius:4,
       }]
@@ -547,6 +635,8 @@ function buildDailyChart(ctx, rows){
 
 /* 엔트리 */
 async function init(){
+  // remove any leftover debug UI from development
+  const old = document.getElementById('apiDebug'); if(old) old.remove();
   setLoading(true);
   const [rows, devices, countriesRaw, browsers, userTypes, hourly, pages, performance, realtime] = await Promise.all([
     fetchAllDailyData(),
@@ -587,7 +677,11 @@ async function init(){
     const now = new Date();
     const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
     const kst = new Date(utc + 9 * 60 * 60000);
-    return formatDate(kst);
+    // toISOString() would convert back to UTC — format using KST components directly
+    const y = kst.getFullYear();
+    const m = String(kst.getMonth()+1).padStart(2,'0');
+    const d = String(kst.getDate()).padStart(2,'0');
+    return `${y}-${m}-${d}`;
   }
   setText('firstDate', `개설 이후: ${rows[0].date} ~ ${getKSTDateString()}`);
 
@@ -598,21 +692,71 @@ async function init(){
 
   // 테이블 & 기존 차트
   renderTable(rows.slice(-90));
+  if(chartDaily){ chartDaily.destroy(); }
   chartDaily = buildDailyChart(document.getElementById('chartDaily'), rows);
   // 주간/월간 차트 제거
 
   // 새로운 분석 차트들과 리스트들
+  if(chartDevices){ chartDevices.destroy(); }
   chartDevices = buildDevicesChart(document.getElementById('chartDevices'), devices);
-  // 국가/지역 중복 병합 (country|region|city 키)
-  const mergedMap=new Map();
-  (countriesRaw||[]).forEach(c=>{
-    const key=`${c.country||''}|${c.region||''}|${c.city||''}`;
-    if(!mergedMap.has(key)) mergedMap.set(key,{...c});
-    else { const ref=mergedMap.get(key); ref.users=(ref.users||0)+(c.users||0); ref.pageviews=(ref.pageviews||0)+(c.pageviews||0);} });
-  const mergedCountries=Array.from(mergedMap.values()).sort((a,b)=> (b.users||0)-(a.users||0));
+  // Aggregate countries/cities across entire returned set
+  function aggregateCountries(rows){
+    const map = new Map();
+    (rows||[]).forEach(r=>{
+      const country = r.country || 'Unknown';
+      const city = r.city || r.region || '';
+      const users = Number(r.users||0);
+      const key = `${country}|${city}`;
+      if(!map.has(key)) map.set(key, { country, city, users:0, pageviews:0 });
+      const cur = map.get(key);
+      cur.users += users;
+      cur.pageviews += Number(r.pageviews||0);
+    });
+    return Array.from(map.values());
+  }
+  const mergedCountries = aggregateCountries(countriesRaw).sort((a,b)=> b.users - a.users);
   renderCountriesList(mergedCountries);
-  renderPopularPages(pages);
-  chartBrowsers = buildBrowsersChart(document.getElementById('chartBrowsers'), browsers);
+  
+  // Aggregate pages: group by path (and title) and sum views/users/duration
+  function aggregatePages(rows){
+    const map = new Map();
+    (rows||[]).forEach(p=>{
+      const path = p.path || p.page || '/';
+      const title = p.title || p.name || path;
+      const key = path;
+      if(!map.has(key)) map.set(key, { path, title, views:0, users:0, avgDuration:0, bounceRate:null, engagement:null });
+      const cur = map.get(key);
+      cur.views += Number(p.views||p.pageviews||0);
+      cur.users += Number(p.users||0);
+      // avgDuration: keep weighted sum; we'll finalize after loop
+      cur.avgDuration = (cur.avgDuration || 0) + (Number(p.avgDuration||p.averageDuration||0) * (Number(p.views||p.pageviews||0) || 1));
+      if(p.bounceRate!=null) cur.bounceRate = (cur.bounceRate||0) + Number(p.bounceRate);
+      if(p.engagement!=null) cur.engagement = (cur.engagement||0) + Number(p.engagement);
+    });
+    // finalize averages
+    Array.from(map.values()).forEach(v=>{
+      const denom = v.views || 1;
+      v.avgDuration = Math.round((v.avgDuration||0)/denom);
+      if(v.bounceRate!=null) v.bounceRate = (v.bounceRate / (1)).toFixed? Number((v.bounceRate).toFixed(2)) : v.bounceRate;
+      if(v.engagement!=null) v.engagement = (v.engagement / (1)).toFixed? Number((v.engagement).toFixed(1)) : v.engagement;
+    });
+    return Array.from(map.values()).sort((a,b)=> b.views - a.views);
+  }
+  const aggregatedPages = aggregatePages(pages);
+  renderPopularPages(aggregatedPages);
+  // build aggregated browsers chart below (destroy existing instance first)
+  if(chartBrowsers){ chartBrowsers.destroy(); }
+  // aggregate browsers and devices across returned rows
+  function aggregateByKey(rows, keyName, valueName='users'){
+    const map = new Map();
+    (rows||[]).forEach(r=>{
+      const k = r[keyName] || 'Unknown';
+      map.set(k, (map.get(k)||0) + Number(r[valueName]||0));
+    });
+    return Array.from(map.entries()).map(([k,v])=>({ [keyName]:k, users:v }));
+  }
+  const aggBrowsers = aggregateByKey(browsers, 'browser', 'users');
+  chartBrowsers = buildBrowsersChart(document.getElementById('chartBrowsers'), aggBrowsers);
   chartHourly = buildHourlyChart(document.getElementById('chartHourly'), hourly);
   
   // 추가 데이터 로깅
@@ -626,28 +770,54 @@ async function init(){
 }
 
 /* 실시간 데이터 주기적 업데이트 */
+function stopRealtimeUpdates(){
+  if(realtimeIntervalId){ clearTimeout(realtimeIntervalId); realtimeIntervalId = null; }
+}
+
 function startRealtimeUpdates(){
-  if(realtimeIntervalId) return; // 중복 방지
-  realtimeIntervalId = setInterval(async () => {
-    try {
+  // 이미 타이머가 돌고 있으면 중복 시작 금지
+  if(realtimeIntervalId) return;
+  // 탭이 숨겨져 있으면 폴링 중지
+  if(document.hidden){ return; }
+
+  // 실행 함수: fetch 후 다음 호출을 스케줄
+  const run = async () => {
+    try{
       const realtimeUsers = await fetchRealtimeData();
       setMetric('realtimeCount', realtimeUsers.toLocaleString());
-  updateRealtimeHistory(realtimeUsers);
-      // 실시간 카드에 펄스 효과 추가
+      updateRealtimeHistory(realtimeUsers);
+      // 펄스 애니메이션
       const realtimeCard = document.getElementById('card-realtime');
-      if(realtimeCard) {
-        realtimeCard.style.transform = 'scale(1.02)';
-        setTimeout(() => {
-          realtimeCard.style.transform = 'scale(1)';
-        }, 200);
-      }
-      const lu=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-      const inline=document.getElementById('lastUpdatedInline'); if(inline) inline.textContent=lu;
-    } catch (e) {
+      if(realtimeCard){ realtimeCard.style.transform = 'scale(1.02)'; setTimeout(()=>{ realtimeCard.style.transform='scale(1)'; }, 200); }
+      // 성공했으므로 백오프 리셋
+      realtimeBackoff = 1;
+    }catch(e){
       console.warn('실시간 업데이트 실패:', e);
+      // 실패 시 백오프 증가 (최대 8배)
+      realtimeBackoff = Math.min(realtimeBackoff * 2, 8);
+    } finally {
+      // 다음 호출 예약 (페이지가 보이는 경우에만)
+      if(!document.hidden){
+        realtimeIntervalId = setTimeout(run, realtimeBaseIntervalMs * realtimeBackoff);
+      } else {
+        // 탭 숨김이면 타이머를 남기지 않고 중지
+        realtimeIntervalId = null;
+      }
     }
-  }, 30000); // 30초마다 업데이트
+  };
+
+  // 즉시 한 번 실행하고 루프 시작
+  run();
 }
+
+// Visibility 변화에 따른 시작/중지
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){
+    stopRealtimeUpdates();
+  } else {
+    startRealtimeUpdates();
+  }
+});
 
 /* === 자정 자동 갱신 === */
 async function refreshDailySection(){
@@ -666,18 +836,43 @@ async function refreshDailySection(){
   setMetric('monthCount', sum(last30.map(r=>r.count)).toLocaleString());
   setText('monthAvg', '평균 '+Math.round(avg(last30.map(r=>r.count))).toLocaleString());
   setMetric('totalCount', sum(rows.map(r=>r.count)).toLocaleString());
-  setText('firstDate', `개설 이후: ${rows[0].date} ~ ${rows[rows.length-1].date}`);
+  // 최신 날짜는 KST 기준으로 표시 (toISOString 사용 시 UTC로 변환되는 문제 방지)
+  function getKSTDateString() {
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const kst = new Date(utc + 9 * 60 * 60000);
+    const y = kst.getFullYear();
+    const m = String(kst.getMonth() + 1).padStart(2, '0');
+    const d = String(kst.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  setText('firstDate', `개설 이후: ${rows[0].date} ~ ${getKSTDateString()}`);
   // 차트/테이블 업데이트
   if(chartDaily){ chartDaily.destroy(); }
   chartDaily = buildDailyChart(document.getElementById('chartDaily'), rows);
   renderTable(rows.slice(-90));
 }
 
+function msUntilNextKSTMidnight(){
+  // 계산: 현재 시각(UTC 기반) -> KST 현재 -> 다음 KST 자정(00:00:00)까지의 ms
+  const now = new Date();
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const kstNow = new Date(utc + 9 * 60 * 60000);
+  const nextMid = new Date(kstNow);
+  nextMid.setDate(kstNow.getDate() + 1);
+  nextMid.setHours(0, 2, 5, 0); // 자정 + 2분5초 여유
+  // convert nextMid (which is in KST) back to ms since epoch
+  const nextMidUtcMs = nextMid.getTime() - (9 * 60 * 60000);
+  return Math.max(0, nextMidUtcMs - now.getTime());
+}
+
 function scheduleMidnightRefresh(){
-  const now=new Date();
-  const next=new Date(now); next.setDate(now.getDate()+1); next.setHours(0,2,5,0); // 자정+2분5초 (GA 데이터 반영 여유)
-  const ms= next - now;
-  setTimeout(async ()=>{ try{ await refreshDailySection(); } catch(e){ console.warn('Midnight refresh failed', e); } finally { scheduleMidnightRefresh(); } }, ms);
+  const ms = msUntilNextKSTMidnight();
+  setTimeout(async ()=>{
+    try{ await refreshDailySection(); }
+    catch(e){ console.warn('Midnight refresh failed', e); }
+    finally { scheduleMidnightRefresh(); }
+  }, ms);
 }
 
 scheduleMidnightRefresh();

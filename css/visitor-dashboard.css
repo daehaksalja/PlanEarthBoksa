@@ -52,7 +52,7 @@ padding:9px 10px; border-radius:16px; font-size:18px; font-weight:600;
  
 .v-header { 
   display:flex; justify-content:center; align-items:center; 
-  padding:0px 26px 30px; background:transparent; border-bottom:none; 
+  padding:0px 26px 13px; background:transparent; border-bottom:none; 
   margin-top:24px;
 }
 .v-title { 
@@ -148,6 +148,11 @@ padding:9px 10px; border-radius:16px; font-size:18px; font-weight:600;
 .region-name { color:#7fffd1; font-weight:500; font-size: 12px; margin-left: 8px; }
 .city-name { color:#85e4c5; font-weight:400; font-size: 11px; margin-left: 16px; }
 
+.country-item.detailed { padding: 12px 14px; }
+.country-item .country-users { color:#00ffc8; font-weight:700; margin-left:8px; }
+.city-list { margin-top:6px; display:flex; flex-direction:column; gap:6px; }
+.city-line { color:#85e4c5; font-size:13px; }
+
 .country-stats {
   display: flex;
   gap: 12px;
@@ -223,6 +228,8 @@ padding:9px 10px; border-radius:16px; font-size:18px; font-weight:600;
   border:1px solid #2d5f0f !important; 
   animation: pulse 2s infinite;
 }
+.realtime-info.realtime-error { box-shadow: 0 0 0 2px rgba(244,67,54,0.18); border-color:#ff5d5d !important; }
+.realtime-info.realtime-error .realtime-metric::after { content: ' (실시간 오류)'; color:#ff8a8a; font-size:12px; margin-left:6px; }
 .realtime-metric { color:#7fff00 !important; text-shadow:0 0 18px #7fff0088 !important; }
 .realtime-info .spark { position:absolute; left:14px; right:14px; bottom:10px; height:32px; }
 
