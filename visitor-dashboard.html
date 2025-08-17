@@ -54,8 +54,8 @@
       </div>
     </section>
 
-    <!-- 성능 지표 -->
-    <section class="chart-section">
+    <!-- 성능 지표 & 인기 페이지 요약 -->
+    <section class="chart-section three-col">
       <div class="chart-box performance-box">
         <h3>📊 핵심 성능 지표</h3>
         <div class="performance-metrics" id="performanceMetrics">
@@ -81,6 +81,10 @@
         <h3>📈 최근 14일 트렌드</h3>
         <canvas id="chartDaily" height="140"></canvas>
       </div>
+      <div class="chart-box" id="popularPagesBox">
+        <h3>⭐ 인기 페이지 TOP 8</h3>
+        <div id="popularPages" class="popular-pages compact"></div>
+      </div>
     </section>
 
     <!-- 방문자 특성 분석 -->
@@ -88,22 +92,54 @@
       <div class="analysis-row">
         <div class="analysis-box">
           <h3>🖥️ 디바이스별 방문</h3>
-          <canvas id="chartDevices" height="200"></canvas>
+          <canvas id="chartDevices" height="180"></canvas>
         </div>
         <div class="analysis-box">
           <h3>👥 신규 vs 재방문자</h3>
-          <canvas id="chartUserTypes" height="200"></canvas>
+          <canvas id="chartUserTypes" height="180"></canvas>
+        </div>
+        <div class="analysis-box">
+          <h3>🌐 브라우저별 통계</h3>
+          <canvas id="chartBrowsers" height="180"></canvas>
         </div>
       </div>
       
       <div class="analysis-row">
         <div class="analysis-box">
-          <h3>🌐 브라우저별 통계</h3>
-          <canvas id="chartBrowsers" height="200"></canvas>
+          <h3>�️ 언어별 방문자</h3>
+          <div id="languagesAnalysis" class="languages-analysis"></div>
         </div>
         <div class="analysis-box">
-          <h3>🌍 국가별 방문자</h3>
+          <h3>🌍 대륙별 분석</h3>
+          <div id="continentsAnalysis" class="continents-analysis"></div>
+        </div>
+        <div class="analysis-box">
+          <h3>🌏 지역별 방문자</h3>
           <div id="countriesList" class="countries-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 실시간 지도 & 시간대 분석 -->
+    <section class="analysis-section">
+      <div class="analysis-row">
+        <div class="analysis-box">
+          <h3>⏰ 시간대별 지역 분석</h3>
+          <div id="timezoneRegionsAnalysis" class="timezone-analysis"></div>
+        </div>
+        <div class="analysis-box">
+          <h3>🗺️ 실시간 방문자 지도</h3>
+          <div id="realtimeMap" class="realtime-map"></div>
+        </div>
+        <div class="analysis-box">
+          <h3>📊 실시간 트래픽 알림</h3>
+          <div id="trafficAlerts" class="traffic-alerts">
+            <div class="alert-item normal">
+              <span class="alert-icon">✅</span>
+              <span class="alert-text">트래픽 정상</span>
+              <span class="alert-time">방금 전</span>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -122,17 +158,6 @@
 
     <!-- 상세 분석 -->
     <section class="analysis-section">
-      <div class="analysis-row">
-        <div class="analysis-box">
-          <h3>🚀 트래픽 소스</h3>
-          <div id="trafficSources" class="traffic-sources"></div>
-        </div>
-        <div class="analysis-box">
-          <h3>📄 인기 페이지 (7일)</h3>
-          <div id="popularPages" class="popular-pages"></div>
-        </div>
-      </div>
-      
       <div class="analysis-row">
         <div class="analysis-box full-width">
           <h3>🕐 시간대별 트래픽 (24시간)</h3>

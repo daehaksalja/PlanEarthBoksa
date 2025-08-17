@@ -45,15 +45,16 @@ body.v-body { margin:0; padding:0; font-family:'Nanum Gothic','Malgun Gothic',sa
 .metric { margin:0; font-size:32px; font-weight:800; letter-spacing:.02em; color:#00ffc8; text-shadow:0 0 16px #00ff9c88; word-break:break-all; }
 .sub { font-size:12px; letter-spacing:.03em; color:#85e4c5; opacity:.9; }
 
-.chart-section { display:grid; gap:24px; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); margin-bottom:40px; }
+.chart-section { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); margin-bottom:24px; }
 .chart-box { 
   background:linear-gradient(145deg,#051f18,#041b16); 
-  border:1px solid #0f4d3d; border-radius:18px; padding:20px 22px 28px; 
-  box-shadow:0 8px 32px rgba(0,255,156,.1), 0 2px 8px rgba(0,255,156,.05), 0 0 0 1px #0d4531 inset; 
+  border:1px solid #0f4d3d; border-radius:12px; padding:16px 18px 20px; 
+  box-shadow:0 4px 16px rgba(0,255,156,.08), 0 1px 4px rgba(0,255,156,.04); 
   position:relative; min-width:0; overflow:hidden; transition:.3s;
+  max-height:300px;
 }
-.chart-box:hover { transform:translateY(-1px); box-shadow:0 12px 40px rgba(0,255,156,.15); }
-.chart-box h3 { margin:0 0 14px; font-size:15px; font-weight:700; letter-spacing:.04em; color:#a5ffe5; }
+.chart-box:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(0,255,156,.12); }
+.chart-box h3 { margin:0 0 12px; font-size:13px; font-weight:700; letter-spacing:.03em; color:#a5ffe5; text-align:center; }
 
 .raw-section { background:#061e17; border:1px solid #0f3d2d; border-radius:18px; padding:20px 22px 32px; box-shadow:0 10px 30px -12px rgba(0,255,156,.15), 0 0 0 1px #0d3c2d inset; }
 .raw-section h3 { margin:0 0 16px; font-size:15px; font-weight:800; letter-spacing:.05em; color:#9fffe2; }
@@ -71,29 +72,57 @@ body.v-body { margin:0; padding:0; font-family:'Nanum Gothic','Malgun Gothic',sa
 .good { color:#7fffd1; }
 .mid { color:#ffd27f; }
 
-/* 새로운 분석 섹션 */
-.analysis-section { margin-bottom:40px; }
-.analysis-row { display:grid; gap:24px; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); margin-bottom:24px; }
+/* 새로운 분석 섹션 - 컴팩트 버전 */
+.analysis-section { margin-bottom:24px; }
+.analysis-row { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); margin-bottom:16px; }
 .analysis-row.full-width { grid-template-columns:1fr; }
 .analysis-box { 
   background:linear-gradient(145deg,#051f18,#041b16); 
-  border:1px solid #0f4d3d; border-radius:18px; padding:20px 22px 28px; 
-  box-shadow:0 8px 32px rgba(0,255,156,.1), 0 2px 8px rgba(0,255,156,.05), 0 0 0 1px #0d4531 inset; 
+  border:1px solid #0f4d3d; border-radius:12px; padding:14px 16px 18px; 
+  box-shadow:0 4px 16px rgba(0,255,156,.08), 0 1px 4px rgba(0,255,156,.04); 
   position:relative; min-width:0; overflow:hidden; transition:.3s;
+  max-height:280px;
 }
-.analysis-box:hover { transform:translateY(-1px); box-shadow:0 12px 40px rgba(0,255,156,.15); }
-.analysis-box h3 { margin:0 0 16px; font-size:15px; font-weight:700; letter-spacing:.04em; color:#a5ffe5; }
+.analysis-box:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(0,255,156,.12); }
+.analysis-box h3 { margin:0 0 12px; font-size:13px; font-weight:700; letter-spacing:.03em; color:#a5ffe5; text-align:center; }
 
-/* 국가별 방문자 리스트 */
-.countries-list { display:grid; gap:10px; max-height:320px; overflow-y:auto; }
+/* 국가별 방문자 리스트 (향상된 버전) */
+.countries-list { display:grid; gap:10px; max-height:400px; overflow-y:auto; }
 .country-item { 
   display:flex; justify-content:space-between; align-items:center; 
   padding:10px 14px; background:rgba(4,25,20,.8); border:1px solid #0f4d3d; 
   border-radius:10px; font-size:13px; transition:.2s;
 }
 .country-item:hover { background:rgba(15,77,61,.3); border-color:#1a6b52; }
-.country-name { color:#7fffd1; font-weight:600; flex:1; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; }
-.country-users { color:#00ffc8; font-weight:700; margin-left:8px; }
+
+.country-item.detailed {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.location-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+}
+
+.country-name { color:#00ffc8; font-weight:700; font-size: 14px; }
+.region-name { color:#7fffd1; font-weight:500; font-size: 12px; margin-left: 8px; }
+.city-name { color:#85e4c5; font-weight:400; font-size: 11px; margin-left: 16px; }
+
+.country-stats {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.country-users { color:#00ffc8; font-weight:700; font-size: 12px; }
+.country-views { color:#7fffd1; font-weight:500; font-size: 11px; }
 
 /* 트래픽 소스 리스트 */
 .traffic-sources { display:grid; gap:10px; max-height:320px; overflow-y:auto; }
@@ -106,16 +135,109 @@ body.v-body { margin:0; padding:0; font-family:'Nanum Gothic','Malgun Gothic',sa
 .source-name { color:#7fffd1; font-weight:600; flex:1; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; }
 .source-users { color:#00ffc8; font-weight:700; margin-left:8px; }
 
-/* 인기 페이지 리스트 */
-.popular-pages { display:grid; gap:8px; max-height:300px; overflow-y:auto; }
+/* 인기 페이지 리스트 (향상된 버전) */
+.popular-pages { display:grid; gap:8px; max-height:400px; overflow-y:auto; }
 .page-item { 
   display:flex; justify-content:space-between; align-items:center; 
-  padding:8px 12px; background:rgba(4,25,20,.8); border:1px solid #0f4d3d; 
+  padding:10px 12px; background:rgba(4,25,20,.8); border:1px solid #0f4d3d; 
   border-radius:8px; font-size:12px; transition:.2s;
 }
 .page-item:hover { background:rgba(15,77,61,.3); border-color:#1a6b52; }
-.page-path { color:#7fffd1; font-weight:500; flex:1; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; }
-.page-views { color:#00ffc8; font-weight:700; margin-left:8px; }
+
+.page-item.detailed {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px;
+}
+
+.page-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+}
+
+.page-path { color:#7fffd1; font-weight:600; font-size: 13px; }
+.page-title { color:#85e4c5; font-weight:400; font-size: 11px; margin-left: 8px; }
+
+.page-stats {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.page-views { color:#00ffc8; font-weight:700; font-size: 12px; }
+.page-users { color:#7fffd1; font-weight:500; font-size: 10px; }
+.page-duration { color:#85e4c5; font-weight:400; font-size: 10px; }
+.page-bounce { font-weight:500; font-size: 10px; }
+.page-bounce.low { color:#4CAF50; }
+.page-bounce.mid { color:#FF9800; }
+.page-bounce.high { color:#f44336; }
+
+/* 새로운 분석 요소들 */
+.languages-list, .continents-list { 
+  display:grid; gap:8px; max-height:240px; overflow-y:auto; 
+}
+
+.language-item, .continent-item {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:8px 12px; background:rgba(4,25,20,.8); border:1px solid #0f4d3d;
+  border-radius:8px; font-size:12px; transition:.2s;
+}
+.language-item:hover, .continent-item:hover { 
+  background:rgba(15,77,61,.3); border-color:#1a6b52; 
+}
+
+.language-info, .continent-info {
+  display:flex; flex-direction:column; gap:2px;
+}
+
+.language-name, .continent-name { 
+  color:#00ffc8; font-weight:700; font-size:13px; 
+}
+.language-code, .continent-countries { 
+  color:#85e4c5; font-weight:400; font-size:10px; 
+}
+
+.language-stats, .continent-stats {
+  display:flex; gap:8px; align-items:center;
+}
+
+.language-users, .continent-users { 
+  color:#00ffc8; font-weight:700; font-size:11px; 
+}
+.language-views { 
+  color:#7fffd1; font-weight:500; font-size:10px; 
+}
+
+/* 트래픽 알림 */
+.traffic-alerts {
+  display:flex; flex-direction:column; gap:8px; max-height:240px; overflow-y:auto;
+}
+
+.alert-item {
+  display:flex; align-items:center; gap:8px;
+  padding:8px 12px; border-radius:8px; font-size:12px;
+  transition:.2s;
+}
+
+.alert-item.normal {
+  background:rgba(76,175,80,.1); border:1px solid rgba(76,175,80,.3);
+}
+.alert-item.warning {
+  background:rgba(255,152,0,.1); border:1px solid rgba(255,152,0,.3);
+}
+.alert-item.danger {
+  background:rgba(244,67,54,.1); border:1px solid rgba(244,67,54,.3);
+}
+
+.alert-icon { font-size:14px; }
+.alert-text { flex:1; color:#a5ffe5; font-weight:500; }
+.alert-time { color:#85e4c5; font-size:10px; }
 
 /* 실시간 정보 카드 */
 .realtime-info { 
@@ -154,30 +276,33 @@ body.v-body { margin:0; padding:0; font-family:'Nanum Gothic','Malgun Gothic',sa
 }
 
 /* 접힐 수 있는 섹션 */
+/* 다크 테마 접힘 섹션 */
 .collapsible-section {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #f8f9fa;
-  margin-top: 1rem;
+  border:1px solid #0f3d2d;
+  border-radius:14px;
+  overflow:hidden;
+  background:#041a14;
+  margin-top:1rem;
+  box-shadow:0 4px 14px -4px rgba(0,255,156,.15) inset;
 }
 
 .collapsible-header {
-  background: linear-gradient(135deg, #f1f3f4 0%, #e8eaed 100%);
-  padding: 1rem;
-  cursor: pointer;
-  font-size: 1.1rem;
-  margin: 0;
-  border: none;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: background 0.3s ease;
+  background:linear-gradient(135deg,#072b20,#053327);
+  padding:12px 16px;
+  cursor:pointer;
+  font-size:14px;
+  margin:0;
+  border:none;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  letter-spacing:.03em;
+  color:#9fffe2;
+  font-weight:700;
+  transition:background .25s;
 }
 
-.collapsible-header:hover {
-  background: linear-gradient(135deg, #e8eaed 0%, #dadce0 100%);
-}
+.collapsible-header:hover { background:linear-gradient(135deg,#094232,#064237); }
 
 .collapsible-content {
   max-height: 0;
@@ -185,10 +310,7 @@ body.v-body { margin:0; padding:0; font-family:'Nanum Gothic','Malgun Gothic',sa
   transition: max-height 0.3s ease;
 }
 
-.collapsible-content.open {
-  max-height: 1000px;
-  padding: 1rem;
-}
+.collapsible-content.open { max-height:1000px; padding:12px 14px 8px; }
 
 #toggleIcon {
   font-size: 0.8rem;
@@ -206,6 +328,20 @@ body.v-body { margin:0; padding:0; font-family:'Nanum Gothic','Malgun Gothic',sa
 
 /* 성능 지표 박스 */
 .performance-metrics { display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); }
+
+/* 인기 페이지 compact */
+.popular-pages.compact { max-height:260px; overflow-y:auto; gap:4px; }
+.popular-pages.compact .page-item { padding:6px 8px; gap:4px; }
+.popular-pages.compact .page-path { font-size:12px; }
+.popular-pages.compact .page-title { font-size:10px; }
+.popular-pages.compact .page-stats { gap:6px; }
+.popular-pages.compact::-webkit-scrollbar { width:6px; }
+.popular-pages.compact::-webkit-scrollbar-thumb { background:#0f4d3d; border-radius:4px; }
+.popular-pages.compact::-webkit-scrollbar-thumb:hover { background:#139b75; }
+.popular-pages.compact .page-item:last-child { margin-bottom:2px; }
+
+/* 빈 박스 메시지 */
+.empty-msg { padding:18px 10px; text-align:center; font-size:12px; color:#4fae90; background:rgba(0,255,156,0.05); border:1px dashed #0f4d3d; border-radius:8px; }
 .perf-item { 
   text-align:center; padding:14px 10px; 
   background:rgba(4,25,20,.6); border:1px solid #0f4d3d; 
@@ -267,4 +403,271 @@ body.v-body { margin:0; padding:0; font-family:'Nanum Gothic','Malgun Gothic',sa
   .card h2 { font-size:12px; }
   .chart-box, .analysis-box { padding:14px 14px 20px; }
   .chart-box h3, .analysis-box h3 { font-size:13px; }
+}
+
+/* 트래픽 알림 스타일 */
+#trafficAlerts {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 10px;
+  background: rgba(0, 40, 25, 0.3);
+  border-radius: 8px;
+  border: 1px solid #0f4f35;
+}
+
+.alert-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  margin: 4px 0;
+  border-radius: 6px;
+  font-size: 13px;
+  border: 1px solid transparent;
+}
+
+.alert-item.normal {
+  background: rgba(0, 255, 120, 0.1);
+  border-color: rgba(0, 255, 120, 0.3);
+}
+
+.alert-item.warning {
+  background: rgba(255, 165, 0, 0.1);
+  border-color: rgba(255, 165, 0, 0.3);
+}
+
+.alert-item.danger {
+  background: rgba(255, 50, 50, 0.1);
+  border-color: rgba(255, 50, 50, 0.3);
+}
+
+.alert-icon {
+  font-size: 14px;
+}
+
+.alert-text {
+  flex: 1;
+  color: #b8f5d8;
+}
+
+.alert-time {
+  font-size: 11px;
+  color: #7fe4bf;
+  opacity: 0.8;
+}
+
+/* 언어별 분석 스타일 */
+.languages-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.language-item {
+  background: rgba(0, 40, 25, 0.4);
+  border: 1px solid #0f4f35;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.language-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.language-emoji {
+  font-size: 18px;
+  margin-right: 6px;
+}
+
+.language-name {
+  color: #00ffc3;
+  font-weight: 500;
+  flex: 1;
+}
+
+.language-percent {
+  color: #7fe4bf;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.language-stats {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #9fffe2;
+}
+
+.language-bar {
+  height: 4px;
+  background: rgba(0, 255, 195, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.language-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00ffc3, #7fe4bf);
+  transition: width 0.3s ease;
+}
+
+/* 대륙별 분석 스타일 */
+.continents-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.continent-item {
+  background: rgba(0, 40, 25, 0.4);
+  border: 1px solid #0f4f35;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.continent-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.continent-name {
+  color: #00ffc3;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.continent-percent {
+  color: #7fe4bf;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.continent-stats {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: #9fffe2;
+}
+
+.continent-countries {
+  font-size: 11px;
+  color: #7fe4bf;
+  margin-bottom: 8px;
+  opacity: 0.8;
+}
+
+.continent-bar {
+  height: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.continent-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+/* 시간대 지역 분석 스타일 */
+.timezone-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.timezone-item {
+  background: rgba(0, 40, 25, 0.4);
+  border: 1px solid #0f4f35;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.timezone-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.timezone-region {
+  color: #00ffc3;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.timezone-time {
+  color: #ffa726;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255, 167, 38, 0.2);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.timezone-stats {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #9fffe2;
+}
+
+.timezone-bar {
+  height: 4px;
+  background: rgba(255, 167, 38, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.timezone-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ffa726, #ffcc80);
+  transition: width 0.3s ease;
+}
+
+/* 실시간 맵 스타일 */
+.realtime-locations {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.location-dot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(0, 40, 25, 0.4);
+  border: 1px solid #0f4f35;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.location-flag {
+  font-size: 14px;
+}
+
+.location-name {
+  color: #00ffc3;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.location-count {
+  color: #7fe4bf;
+  font-weight: 600;
+  background: rgba(127, 228, 191, 0.2);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 11px;
 }
