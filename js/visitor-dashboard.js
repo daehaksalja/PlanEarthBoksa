@@ -29,9 +29,9 @@ function generateMock(){
 }
 
 /* === 실제 GA4 일별 데이터 가져오기 ===
-   /ga/daily?days=120 -> {ok, rows: [{date, users, pageviews}, ...]}
+   /ga/daily?days=365 -> {ok, rows: [{date, users, pageviews}, ...]}
    여기서 "방문자" 카드/차트는 users로 매핑 */
-async function fetchDailyData(days=120){
+async function fetchDailyData(days=365){
   try{
     const r = await fetch(`${BASE}/ga/daily?days=${days}`, { cache: 'no-store', credentials: 'omit' });
     const data = await r.json();
@@ -449,9 +449,9 @@ function buildMonthlyChart(ctx, rows){
 
 /* 엔트리 */
 async function init(){
-  // 병렬로 모든 데이터 가져오기
+  // 병렬로 모든 데이터 가져오기 (1년치 데이터로 총 누적 정확히 계산)
   const [rows, devices, countries, browsers, userTypes, hourly, sources, pages, performance, realtime] = await Promise.all([
-    fetchDailyData(120),
+    fetchDailyData(365), // 1년치 데이터로 변경
     fetchDevicesData(),
     fetchCountriesData(),
     fetchBrowsersData(),
@@ -482,7 +482,7 @@ async function init(){
   setMetric('monthCount', sum(last30.map(r=>r.count)).toLocaleString());
   setText('monthAvg', '평균 '+Math.round(avg(last30.map(r=>r.count))).toLocaleString());
   setMetric('totalCount', sum(rows.map(r=>r.count)).toLocaleString());
-  setText('firstDate', rows[0].date+' ~ '+rows[rows.length-1].date);
+  setText('firstDate', `전체 기간: ${rows[0].date} ~ ${rows[rows.length-1].date}`);
 
   // 성능 지표
   renderPerformanceMetrics(performance);
@@ -527,6 +527,20 @@ function startRealtimeUpdates(){
       console.warn('실시간 업데이트 실패:', e);
     }
   }, 30000); // 30초마다 업데이트
+}
+
+// 접힐 수 있는 섹션 토글 기능
+function toggleRawData() {
+  const content = document.getElementById('rawDataContent');
+  const icon = document.getElementById('toggleIcon');
+  
+  if (content.classList.contains('open')) {
+    content.classList.remove('open');
+    icon.textContent = '▼';
+  } else {
+    content.classList.add('open');
+    icon.textContent = '▲';
+  }
 }
 
 init();

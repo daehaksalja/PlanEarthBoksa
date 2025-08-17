@@ -121,8 +121,88 @@ body.v-body { margin:0; padding:0; font-family:'Nanum Gothic','Malgun Gothic',sa
 .realtime-info { 
   background:linear-gradient(145deg,#0a2808,#061f05) !important; 
   border:1px solid #2d5f0f !important; 
+  animation: pulse 2s infinite;
 }
 .realtime-metric { color:#7fff00 !important; text-shadow:0 0 18px #7fff0088 !important; }
+
+/* 특별 강조 카드들 */
+.today-highlight {
+  background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%) !important;
+  border: 2px solid #66BB6A;
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
+}
+
+.total-highlight {
+  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%) !important;
+  border: 2px solid #FFB74D;
+  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
+}
+
+/* 메인 통계 카드 그리드 */
+.main-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* 성능 박스 강조 */
+.performance-box {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: 2px solid #fff;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.25);
+}
+
+/* 접힐 수 있는 섹션 */
+.collapsible-section {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f8f9fa;
+  margin-top: 1rem;
+}
+
+.collapsible-header {
+  background: linear-gradient(135deg, #f1f3f4 0%, #e8eaed 100%);
+  padding: 1rem;
+  cursor: pointer;
+  font-size: 1.1rem;
+  margin: 0;
+  border: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.3s ease;
+}
+
+.collapsible-header:hover {
+  background: linear-gradient(135deg, #e8eaed 0%, #dadce0 100%);
+}
+
+.collapsible-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.collapsible-content.open {
+  max-height: 1000px;
+  padding: 1rem;
+}
+
+#toggleIcon {
+  font-size: 0.8rem;
+  transition: transform 0.3s ease;
+}
+
+.collapsible-content.open ~ .collapsible-header #toggleIcon {
+  transform: rotate(180deg);
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
 
 /* 성능 지표 박스 */
 .performance-metrics { display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); }
