@@ -1,6 +1,8 @@
 
 
-const BASE = 'https://planearth-ga.jmlee710000.workers.dev';
+// 설정값 사용
+const BASE = window.CONFIG?.apiBaseUrl || 'https://planearth-ga.jmlee710000.workers.dev';
+const DEBUG_ENABLED = window.CONFIG?.enableDebugLogs || false;
 
 // === 인증 가드 (Supabase 세션 필요) ===
 ;(async function authGuard(){
@@ -48,13 +50,26 @@ function generateMock(){
 async function fetchDailyData(days=365){
   try{
     const r = await fetch(`${BASE}/ga/daily?days=${days}`, { cache: 'no-store', credentials: 'omit' });
-  const data = await r.json();
-  if(!data.ok) throw new Error(data.error || 'GA error');
-    // 👇 users(방문자) 기준으로 매핑. pageviews 쓰고 싶으면 row.pageviews로 변경.
-    return (data.rows || []).map(row => ({
-      date: row.date,
-      count: Number(row.users || 0)
-    }));
+    const data = await r.json();
+    if(!data.ok) throw new Error(data.error || 'GA error');
+    
+    // 👇 users(방문자) 기준으로 매핑. 다양한 필드명 대응
+    return (data.rows || []).map(row => {
+      const userCount = Number(
+        row.users || 
+        row.uniqueUsers || 
+        row.totalUsers || 
+        row.activeUsers || 
+        row.visitors || 
+        0
+      );
+      
+      return {
+        date: row.date,
+        count: userCount
+      };
+    }).filter(row => row.date && !isNaN(row.count)); // 유효한 데이터만 필터링
+    
   }catch(e){
     console.warn('GA fetch failed, using mock:', e);
     return generateMock();
@@ -64,19 +79,23 @@ async function fetchDailyData(days=365){
 // 사이트 개설 이후 전체 구간을 (추정) 무제한 확장하여 확보
 // days 파라미터를 지수적으로 늘리며 더 오래된 날짜가 안 나올 때 중단
 async function fetchAllDailyData(){
-  let days=400; // 초기 범위
-  let lastFirst=null; let rows=[];
-  for(let i=0;i<7;i++){ // 최대 7회 (400 -> 25600일 ≈ 70년)
+  // Check cache first
+  try{
+    const raw = localStorage.getItem('fullDailyRows_v1');
+    if(raw){ const obj = JSON.parse(raw); if(obj && obj.ts && (Date.now() - obj.ts) < 10*60*1000){ return obj.rows; } }
+  }catch(e){}
+  let days=400; let lastFirst=null; let rows=[];
+  // Limit expansions to avoid runaway requests (max 2 expansions -> up to ~1600 days)
+  for(let i=0;i<2;i++){
     const r = await fetchDailyData(days);
     if(!r.length){ break; }
     rows=r;
     const first = r[0].date;
-    if(first===lastFirst){ // 더 이상 과거 확장 안됨
-      break;
-    }
+    if(first===lastFirst){ break; }
     lastFirst=first;
-    days*=2; // 범위 두배 확대
+    days*=2;
   }
+  try{ localStorage.setItem('fullDailyRows_v1', JSON.stringify({ ts: Date.now(), rows })); }catch(e){}
   return rows;
 }
 
@@ -202,7 +221,7 @@ async function fetchPerformanceData(){
     const r = await fetch(`${BASE}/ga/performance`, { cache: 'no-store', credentials: 'omit' });
     const data = await r.json();
     if(!data.ok) throw new Error(data.error || 'GA error');
-    console.log('🔍 raw performance data:', data);
+    
     // 중첩 구조(normalize)
     let flat = { ...data };
     if(data.data && typeof data.data === 'object') flat = { ...flat, ...data.data };
@@ -245,10 +264,8 @@ async function fetchPerformanceData(){
     const allEmpty = [avgSessionDuration, bounceRate, pagesPerSession]
       .every(v => v === 0 || v === null || v === undefined || (typeof v === 'number' && isNaN(v)));
     if(allEmpty){
-      console.warn('Performance API returned empty/zero metrics -> using fallback mock');
       return { avgSessionDuration:180, bounceRate:65, pagesPerSession:2.3, _fallback:true };
     }
-    console.log('✅ derived performance metrics:', perf);
     return perf;
   }catch(e){
     console.warn('Performance fetch failed:', e);
@@ -263,36 +280,57 @@ async function fetchPerformanceData(){
 /* 실시간 데이터 */
 async function fetchRealtimeData(){
   try{
-    console.log('🔴 실시간 데이터 요청 중...');
     const r = await fetch(`${BASE}/ga/realtime`, { cache: 'no-store', credentials: 'omit' });
-  const data = await r.json();
-  console.log('🔴 실시간 API 응답:', data);
+    const data = await r.json();
 
-  if(!data.ok) throw new Error(data.error || 'GA error');
-  // 기본: 서버에서 내려준 activeUsers를 사용
-  let activeUsers = Number(data.activeUsers ?? 0);
-  // 보정: 일부 백엔드(또는 포맷)에서는 debug.rawResponse 안에 실제 metricValues가 들어있음
-  if((!activeUsers || activeUsers === 0) && data.debug && data.debug.rawResponse){
-    const n = extractMetricValueFromDebug(data.debug.rawResponse);
-    if(!Number.isNaN(n)){
-      console.log('🔴 realtime: using fallback metric from debug.rawResponse ->', n);
-      activeUsers = n;
+    if(!data.ok) throw new Error(data.error || 'GA error');
+    
+    // 기본: 서버에서 내려준 activeUsers를 사용
+    let activeUsers = Number(data.activeUsers ?? 0);
+    
+    // 보정: 일부 백엔드(또는 포맷)에서는 debug.rawResponse 안에 실제 metricValues가 들어있음
+    if((!activeUsers || activeUsers === 0) && data.debug && data.debug.rawResponse){
+      const n = extractMetricValueFromDebug(data.debug.rawResponse);
+      if(!Number.isNaN(n) && n > 0){
+        activeUsers = n;
+      }
     }
-  }
-  console.log('🔴 실시간 활성 사용자:', activeUsers);
-  // 정상 응답을 받았으므로 상태 플래그를 true
-  realtimeApiHealthy = true;
-  const card = document.getElementById('card-realtime');
-  if(card) card.classList.remove('realtime-error');
-  // 실시간 데이터가 0이면 현재 방문자 수를 1로 설정 (본인)
-  return activeUsers > 0 ? activeUsers : 1;
+    
+    // 추가 보정: rows 배열에서 데이터 추출 시도
+    if((!activeUsers || activeUsers === 0) && data.rows && Array.isArray(data.rows) && data.rows.length > 0){
+      const firstRow = data.rows[0];
+      if(firstRow && typeof firstRow === 'object'){
+        const possibleValues = [
+          firstRow.activeUsers,
+          firstRow.users,
+          firstRow.active_users,
+          firstRow.realtime_users,
+          firstRow.concurrent_users
+        ].filter(v => v !== undefined && v !== null && !isNaN(Number(v)));
+        
+        if(possibleValues.length > 0){
+          activeUsers = Math.max(...possibleValues.map(Number));
+        }
+      }
+    }
+    
+    // 정상 응답을 받았으므로 상태 플래그를 true로 설정
+    realtimeApiHealthy = true;
+    const card = document.getElementById('card-realtime');
+    if(card) card.classList.remove('realtime-error');
+    
+    // 실시간 데이터가 0이면 최소 1명으로 설정 (현재 사용자)
+    // 하지만 실제 0명일 수도 있으므로 더 관대하게 처리
+    return Math.max(activeUsers, 0);
+    
   }catch(e){
     console.warn('Realtime fetch failed:', e);
-  // 에러 발생 시 플래그 세팅 및 fallback 반환
-  realtimeApiHealthy = false;
-  const card = document.getElementById('card-realtime');
-  if(card) card.classList.add('realtime-error');
-  return 1;
+    // 에러 발생 시 플래그 세팅 및 fallback 반환
+    realtimeApiHealthy = false;
+    const card = document.getElementById('card-realtime');
+    if(card) card.classList.add('realtime-error');
+    // 에러 시에만 1명으로 fallback
+    return 1;
   }
 }
 
@@ -356,8 +394,57 @@ function extractMetricValueFromDebug(raw){
 let chartDaily, chartDevices, chartBrowsers, chartHourly; // 사용 중인 차트만
 let realtimeHistory=[]; let realtimeSparkChart=null; let fullDailyRows=[]; let loading=false; let realtimeIntervalId=null;
 // Realtime polling controls
-let realtimeBaseIntervalMs = 60000; // 기본 60초
+let realtimeBaseIntervalMs = window.CONFIG?.realtimePollingInterval || 120000; // 기본 120초
 let realtimeBackoff = 1; // 지수 백오프 계수
+
+// Leader election (single-tab leader per origin) using BroadcastChannel with localStorage fallback
+let isLeader = false;
+let leaderId = null;
+let bc = null;
+function generateTabId(){ return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,9)}`; }
+async function setupLeaderElection(timeoutMs=500){
+  return new Promise((resolve)=>{
+    const tid = generateTabId();
+    leaderId = null;
+    // BroadcastChannel path
+    if('BroadcastChannel' in window){
+      bc = new BroadcastChannel('planearth-leader');
+      bc.onmessage = (ev)=>{
+        const m = ev.data;
+        if(!m || !m.type) return;
+        if(m.type === 'whois' && isLeader){ bc.postMessage({ type:'i-am', id: tid }); }
+        if(m.type === 'i-am'){ leaderId = m.id; if(m.id !== tid) isLeader = false; }
+        if(m.type === 'release'){ if(!leaderId) leaderId = null; }
+      };
+      // ask who is leader
+      bc.postMessage({ type:'whois' });
+      // wait short time for responses
+      setTimeout(()=>{
+        if(!leaderId){ // no leader replied -> claim
+          isLeader = true; leaderId = tid; bc.postMessage({ type:'i-am', id: tid });
+        }
+        // if leader, start leader-only tasks
+        if(isLeader) {
+          console.log('Leader elected:', leaderId);
+          startRealtimeUpdates(); scheduleMidnightRefresh();
+        }
+        resolve();
+      }, timeoutMs);
+      // release on unload
+      window.addEventListener('beforeunload', ()=>{ if(isLeader){ bc.postMessage({ type:'release', id: tid }); } });
+      return;
+    }
+    // localStorage fallback
+    const key = 'planearth-leader-id';
+    try{
+      const existing = localStorage.getItem(key);
+      if(!existing){ localStorage.setItem(key, tid); isLeader = true; leaderId = tid; }
+      else { leaderId = existing; isLeader = (existing === tid); }
+    }catch(e){ isLeader = true; leaderId = tid; }
+    if(isLeader){ startRealtimeUpdates(); scheduleMidnightRefresh(); }
+    resolve();
+  });
+}
 let realtimeApiHealthy = true; // 실시간 API 상태 플래그
 
 function setLoading(on){
@@ -419,32 +506,117 @@ function buildDevicesChart(ctx, devices){
 function renderCountriesList(countries) {
   const container = document.getElementById('countriesList');
   if(!container) return;
-  // 그룹화: country -> cities
+  
+  // 전체 사용자 수 계산 (백분율용) - 다양한 필드명 대응
+  const totalUsers = (countries||[]).reduce((sum, c) => {
+    const userCount = Number(
+      c.users || 
+      c.uniqueUsers || 
+      c.totalUsers || 
+      c.visitors || 
+      c.activeUsers || 
+      0
+    );
+    return sum + userCount;
+  }, 0);
+  if(totalUsers === 0) {
+    container.innerHTML = '<div class="country-item">데이터 없음</div>';
+    return;
+  }
+  
+  // 그룹화: country -> cities with region info
   const map = new Map();
   (countries||[]).forEach(c=>{
     const country = c.country || 'Unknown';
-    const city = c.city || (c.region||'');
-    const users = Number(c.users||0);
+    const region = c.region || '';
+    const city = c.city || '';
+    
+    // 사용자 수 필드명 통합 처리
+    const users = Number(
+      c.users || 
+      c.uniqueUsers || 
+      c.totalUsers || 
+      c.visitors || 
+      c.activeUsers || 
+      0
+    );
+    
     if(!map.has(country)) map.set(country, { total:0, cities: new Map() });
     const entry = map.get(country);
     entry.total += users;
-    if(city){ entry.cities.set(city, (entry.cities.get(city)||0) + users); }
+    
+    // 지역+도시 조합으로 더 상세한 위치 정보 생성
+    let locationName = '';
+    if(region && city && region !== city) {
+      locationName = `${region}, ${city}`;
+    } else if(city) {
+      locationName = city;
+    } else if(region) {
+      locationName = region;
+    } else {
+      locationName = '기타 지역';
+    }
+    
+    if(locationName) {
+      const currentUsers = entry.cities.get(locationName) || 0;
+      entry.cities.set(locationName, currentUsers + users);
+    }
   });
+  
   // 정렬: 사용자 수로 내림차순
-  const arr = Array.from(map.entries()).map(([country, v])=> ({ country, total: v.total, cities: Array.from(v.cities.entries()).map(([city,users])=>({city,users})) }));
+  const arr = Array.from(map.entries()).map(([country, v])=> ({ 
+    country, 
+    total: v.total, 
+    percentage: ((v.total / totalUsers) * 100).toFixed(1),
+    cities: Array.from(v.cities.entries())
+      .map(([location,users])=>({location, users, percentage: ((users / totalUsers) * 100).toFixed(1)}))
+      .sort((a,b) => b.users - a.users)
+  }));
   arr.sort((a,b)=> b.total - a.total);
-  // 렌더링: 상위 8개 국가
-  const html = arr.slice(0,8).map(cn => {
-    const citiesHtml = cn.cities.slice(0,6).map(ct => `<div class="city-line">${ct.city} <b>${ct.users}명</b></div>`).join('');
+  
+  // 렌더링: 상위 10개 국가, 각 국가별 상위 10개 지역
+  const html = arr.slice(0,10).map((cn, idx) => {
+    const rank = idx + 1;
+    const citiesHtml = cn.cities.slice(0,10).map((ct, cityIdx) => {
+      const cityRank = cityIdx + 1;
+      return `
+        <div class="city-line">
+          <div class="city-left">
+            <span class="city-rank">${cityRank}</span>
+            <span class="city-name">${ct.location}</span>
+          </div>
+          <div class="city-stats">
+            <span class="count">${ct.users}명</span>
+            <span class="percentage">${ct.percentage}%</span>
+          </div>
+        </div>`;
+    }).join('');
+    
+    const flagEmoji = cn.country === 'South Korea' ? '🇰🇷' : 
+                     cn.country === 'United States' ? '🇺🇸' : 
+                     cn.country === 'Japan' ? '🇯🇵' :
+                     cn.country === 'China' ? '🇨🇳' :
+                     cn.country === 'Unknown' ? '🌍' : '🌐';
+    
     return `
-      <div class="country-item detailed">
-        <div class="location-info">
-          <div class="country-name">🌐 ${cn.country} <span class="country-users">${cn.total}명</span></div>
-          <div class="city-list">${citiesHtml}</div>
+      <div class="country-item detailed enhanced">
+        <div class="country-header">
+          <span class="country-rank">${rank}</span>
+          <span class="country-flag">${flagEmoji}</span>
+          <div class="country-info">
+            <div class="country-title">${cn.country}</div>
+            <div class="country-stats">
+              <span class="count">${cn.total}명</span>
+              <span class="percentage">${cn.percentage}%</span>
+            </div>
+          </div>
         </div>
+        <div class="city-list enhanced">${citiesHtml}</div>
       </div>`;
   }).join('');
+  
   container.innerHTML = html || '<div class="country-item">데이터 없음</div>';
+  container.className = 'countries-list enhanced';
 }
 
 function renderTrafficSources(sources) {
@@ -638,8 +810,10 @@ async function init(){
   // remove any leftover debug UI from development
   const old = document.getElementById('apiDebug'); if(old) old.remove();
   setLoading(true);
-  const [rows, devices, countriesRaw, browsers, userTypes, hourly, pages, performance, realtime] = await Promise.all([
-    fetchAllDailyData(),
+  // setup leader election first
+  await setupLeaderElection();
+  // Leader will fetch and cache heavy rows; followers reuse cached rows
+  const promises = [
     fetchDevicesData(),
     fetchCountriesData(),
     fetchBrowsersData(),
@@ -648,6 +822,18 @@ async function init(){
     fetchPopularPages(),
     fetchPerformanceData(),
     fetchRealtimeData()
+  ];
+  // rows: leader fetches, followers will read cache via fetchAllDailyData (which reads cache)
+  const rowsPromise = isLeader ? fetchAllDailyData() : (async ()=>{
+    // wait briefly for leader to populate cache
+    for(let i=0;i<6;i++){ try{ const raw=localStorage.getItem('fullDailyRows_v1'); if(raw){ const obj=JSON.parse(raw); if(obj && obj.rows) return obj.rows; } }catch(e){} await new Promise(r=>setTimeout(r, 500)); }
+    // fallback to local fetch (limited)
+    return fetchAllDailyData();
+  })();
+
+  const [rows, devices, countriesRaw, browsers, userTypes, hourly, pages, performance, realtime] = await Promise.all([
+    rowsPromise,
+    ...promises
   ]);
 
   if(!rows.length) return;
@@ -784,17 +970,42 @@ function startRealtimeUpdates(){
   const run = async () => {
     try{
       const realtimeUsers = await fetchRealtimeData();
+      
+      // 실시간 사용자 수 업데이트
       setMetric('realtimeCount', realtimeUsers.toLocaleString());
       updateRealtimeHistory(realtimeUsers);
-      // 펄스 애니메이션
+      
+      // 상태 표시 업데이트
+      const lastUpdated = new Date().toLocaleTimeString('ko-KR', {
+        hour:'2-digit', 
+        minute:'2-digit', 
+        second:'2-digit'
+      });
+      const inline = document.getElementById('lastUpdatedInline'); 
+      if(inline) inline.textContent = lastUpdated;
+      
+      // 펄스 애니메이션 (데이터가 실제로 변경된 경우에만)
       const realtimeCard = document.getElementById('card-realtime');
-      if(realtimeCard){ realtimeCard.style.transform = 'scale(1.02)'; setTimeout(()=>{ realtimeCard.style.transform='scale(1)'; }, 200); }
+      if(realtimeCard && realtimeUsers > 0){ 
+        realtimeCard.style.transform = 'scale(1.02)'; 
+        setTimeout(() => { realtimeCard.style.transform='scale(1)'; }, 200); 
+      }
+      
       // 성공했으므로 백오프 리셋
       realtimeBackoff = 1;
+      
+      // API 상태가 건강함을 표시 (개발환경에서만)
+      if(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        console.log(`🔴 실시간 업데이트 성공: ${realtimeUsers}명 (${lastUpdated})`);
+      }
+      
     }catch(e){
       console.warn('실시간 업데이트 실패:', e);
-      // 실패 시 백오프 증가 (최대 8배)
+      // 실패 시 백오프 증가 (최대 8배, 즉 최대 16분 간격)
       realtimeBackoff = Math.min(realtimeBackoff * 2, 8);
+      if(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        console.warn(`🔴 실시간 업데이트 백오프: ${realtimeBackoff}x (다음: ${realtimeBaseIntervalMs * realtimeBackoff / 1000}초 후)`);
+      }
     } finally {
       // 다음 호출 예약 (페이지가 보이는 경우에만)
       if(!document.hidden){

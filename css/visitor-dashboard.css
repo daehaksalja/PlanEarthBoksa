@@ -24,6 +24,572 @@ body.v-body { margin:0; padding:0; font-family:'Nanum Gothic','Malgun Gothic',sa
 /* 스켈레톤 */
 .skeleton {position:relative;overflow:hidden;background:linear-gradient(100deg,#113429 30%,#164636 38%,#113429 46%);background-size:200% 100%;animation:shimmer 1.4s infinite;min-height:22px;border-radius:6px;}
 @keyframes shimmer {0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+
+/* 국가별 지역별 향상된 스타일 */
+.countries-list.enhanced {
+  background:rgba(6,36,27,.12);
+  border:1px solid #1a4e36;
+  border-radius:16px;
+  padding:20px;
+  margin-top:12px;
+  box-shadow:0 4px 20px rgba(0,255,156,.08);
+  max-height:none;
+  overflow-y:visible;
+}
+
+/* 태블릿 크기에서 높이 제한 */
+@media (min-width: 769px) and (max-width: 1200px) {
+  .countries-list.enhanced {
+    max-height:320px;
+    overflow-y:auto;
+    scrollbar-width:thin;
+    scrollbar-color:rgba(0,255,156,.3) transparent;
+    padding:16px;
+  }
+  
+  .countries-list.enhanced::-webkit-scrollbar {
+    width:6px;
+  }
+  
+  .countries-list.enhanced::-webkit-scrollbar-track {
+    background:rgba(0,255,156,.1);
+    border-radius:3px;
+  }
+  
+  .countries-list.enhanced::-webkit-scrollbar-thumb {
+    background:rgba(0,255,156,.3);
+    border-radius:3px;
+  }
+  
+  .countries-list.enhanced::-webkit-scrollbar-thumb:hover {
+    background:rgba(0,255,156,.5);
+  }
+  
+  /* 국가 항목들을 더 컴팩트하게 */
+  .country-item {
+    margin-bottom:14px;
+    padding-bottom:12px;
+  }
+  
+  .country-header {
+    gap:8px;
+    margin-bottom:8px;
+  }
+  
+  .country-rank {
+    width:20px;
+    height:20px;
+    font-size:11px;
+  }
+  
+  .country-flag {
+    font-size:18px;
+  }
+  
+  .country-title {
+    font-size:15px;
+  }
+  
+  .country-stats .count {
+    font-size:14px;
+  }
+  
+  .country-stats .percentage {
+    font-size:11px;
+    padding:2px 4px;
+  }
+  
+  .city-list {
+    margin-left:28px;
+    padding-left:10px;
+    margin-top:6px;
+  }
+  
+  .city-line {
+    padding:4px 0;
+    min-height:26px;
+  }
+  
+  .city-rank {
+    min-width:16px;
+    height:16px;
+    font-size:10px;
+  }
+  
+  .city-name {
+    font-size:12px;
+  }
+  
+  .city-stats .count {
+    font-size:12px;
+  }
+  
+  .city-stats .percentage {
+    font-size:9px;
+    padding:1px 3px;
+  }
+}
+
+.country-item {
+  margin-bottom:20px;
+  border-bottom:1px solid rgba(26,78,54,.4);
+  padding-bottom:16px;
+  transition:all 0.3s ease;
+}
+
+.country-item:last-child {
+  border-bottom:none;
+  margin-bottom:0;
+  padding-bottom:0;
+}
+
+.country-item:hover {
+  background:rgba(0,255,156,.04);
+  border-radius:12px;
+  padding:12px;
+  margin:-12px;
+  margin-bottom:8px;
+  box-shadow:0 2px 12px rgba(0,255,156,.1);
+}
+
+.country-header {
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:12px;
+  position:relative;
+  flex-wrap:wrap;
+}
+
+.country-rank {
+  background:linear-gradient(135deg, rgba(0,255,156,.25), rgba(0,255,156,.15));
+  color:#00ff9c;
+  font-size:12px;
+  font-weight:700;
+  width:24px;
+  height:24px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid #0f5a43;
+  box-shadow:0 2px 8px rgba(0,255,156,.2);
+  flex-shrink:0;
+}
+
+.country-flag {
+  font-size:22px;
+  line-height:1;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.4));
+  flex-shrink:0;
+}
+
+.country-info {
+  flex-grow:1;
+  min-width:0; /* 텍스트 줄바꿈을 위해 필요 */
+}
+
+.country-title {
+  font-size:17px;
+  font-weight:600;
+  letter-spacing:0.4px;
+  color:#00ff9c;
+  margin-bottom:4px;
+  line-height:1.3;
+  word-break:break-word; /* 긴 국가명 줄바꿈 */
+}
+
+.country-stats {
+  font-size:14px;
+  color:#7fffd1;
+  font-weight:600;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.country-stats .count {
+  color:#00ff9c;
+  font-size:16px;
+  font-weight:700;
+}
+
+.country-stats .percentage {
+  color:#a0e4d0;
+  font-size:13px;
+  background:rgba(0,255,156,.1);
+  padding:2px 6px;
+  border-radius:8px;
+  border:1px solid rgba(0,255,156,.2);
+}
+
+.city-list {
+  margin-left:36px;
+  margin-top:10px;
+  padding-left:16px;
+  border-left:2px solid rgba(26,78,54,.4);
+  position:relative;
+}
+
+.city-list::before {
+  content:'';
+  position:absolute;
+  left:-1px;
+  top:0;
+  bottom:0;
+  width:2px;
+  background:linear-gradient(to bottom, rgba(0,255,156,.3), rgba(0,255,156,.1));
+  border-radius:1px;
+}
+
+.city-line {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:8px 0;
+  font-size:14px;
+  color:#b8f5e4;
+  transition:all 0.2s ease;
+  gap:12px;
+  min-height:36px;
+}
+
+.city-line:hover {
+  color:#00ff9c;
+  background:rgba(0,255,156,.06);
+  border-radius:8px;
+  padding:8px 12px;
+  margin:0 -12px;
+  box-shadow:0 1px 6px rgba(0,255,156,.15);
+}
+
+.city-left {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-grow:1;
+  min-width:0;
+}
+
+.city-rank {
+  background:rgba(127,255,209,.12);
+  color:#7fffd1;
+  font-size:11px;
+  font-weight:600;
+  min-width:20px;
+  height:20px;
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid rgba(47,107,86,.6);
+  box-shadow:0 1px 4px rgba(127,255,209,.15);
+  flex-shrink:0;
+}
+
+.city-name {
+  font-weight:500;
+  line-height:1.4;
+  word-break:break-word;
+  color:#c8f7ea;
+}
+
+.city-stats {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-shrink:0;
+  text-align:right;
+}
+
+.city-stats .count {
+  font-weight:700;
+  color:#9bffdd;
+  font-size:14px;
+}
+
+.city-stats .percentage {
+  color:#7fe4bf;
+  font-size:11px;
+  background:rgba(127,255,209,.08);
+  padding:2px 5px;
+  border-radius:6px;
+  border:1px solid rgba(127,255,209,.2);
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .countries-list.enhanced {
+    padding:12px;
+    margin-top:8px;
+    border-radius:12px;
+  }
+  
+  .country-header {
+    gap:6px;
+    margin-bottom:8px;
+  }
+  
+  .country-rank {
+    width:20px;
+    height:20px;
+    font-size:11px;
+  }
+  
+  .country-flag {
+    font-size:18px;
+  }
+  
+  .country-title {
+    font-size:15px;
+    line-height:1.2;
+  }
+  
+  .country-stats {
+    gap:4px;
+  }
+  
+  .country-stats .count {
+    font-size:15px;
+  }
+  
+  .country-stats .percentage {
+    font-size:12px;
+    padding:1px 4px;
+  }
+  
+  .city-list {
+    margin-left:26px;
+    padding-left:10px;
+    margin-top:6px;
+  }
+  
+  .city-line {
+    padding:6px 0;
+    gap:8px;
+    min-height:32px;
+  }
+  
+  .city-line:hover {
+    padding:6px 8px;
+    margin:0 -8px;
+  }
+  
+  .city-rank {
+    min-width:18px;
+    height:18px;
+    font-size:10px;
+  }
+  
+  .city-name {
+    font-size:13px;
+    line-height:1.3;
+  }
+  
+  .city-stats .count {
+    font-size:13px;
+  }
+  
+  .city-stats .percentage {
+    font-size:10px;
+    padding:1px 4px;
+  }
+}
+
+@media (max-width: 600px) {
+  .countries-list.enhanced {
+    padding:10px;
+    border-radius:10px;
+  }
+  
+  .country-item {
+    margin-bottom:14px;
+    padding-bottom:12px;
+  }
+  
+  .country-item:hover {
+    padding:8px;
+    margin:-8px;
+    margin-bottom:6px;
+  }
+  
+  .country-header {
+    gap:8px;
+    margin-bottom:6px;
+  }
+  
+  .country-info {
+    min-width:0;
+  }
+  
+  .country-title {
+    font-size:14px;
+    margin-bottom:2px;
+    line-height:1.3;
+  }
+  
+  .country-stats {
+    flex-direction:row;
+    gap:6px;
+    align-items:center;
+  }
+  
+  .country-stats .count {
+    font-size:14px;
+    font-weight:700;
+  }
+  
+  .country-stats .percentage {
+    font-size:11px;
+    padding:2px 5px;
+    border-radius:6px;
+  }
+  
+  .city-list {
+    margin-left:22px;
+    padding-left:8px;
+    margin-top:6px;
+  }
+  
+  .city-line {
+    padding:5px 0;
+    gap:6px;
+    min-height:30px;
+    align-items:flex-start;
+  }
+  
+  .city-left {
+    gap:6px;
+    align-items:flex-start;
+  }
+  
+  .city-rank {
+    min-width:16px;
+    height:16px;
+    font-size:9px;
+    margin-top:1px;
+  }
+  
+  .city-name {
+    font-size:12px;
+    line-height:1.4;
+    flex-grow:1;
+  }
+  
+  .city-stats {
+    gap:4px;
+    flex-shrink:0;
+    align-items:flex-start;
+    margin-top:1px;
+  }
+  
+  .city-stats .count {
+    font-size:12px;
+    font-weight:600;
+  }
+  
+  .city-stats .percentage {
+    font-size:9px;
+    padding:1px 3px;
+  }
+}
+
+@media (max-width: 480px) {
+  .countries-list.enhanced {
+    padding:8px;
+    margin-top:6px;
+  }
+  
+  .country-item {
+    margin-bottom:12px;
+    padding-bottom:10px;
+  }
+  
+  .country-header {
+    flex-direction:row;
+    align-items:center;
+    gap:6px;
+    margin-bottom:6px;
+  }
+  
+  .country-rank {
+    width:18px;
+    height:18px;
+    font-size:10px;
+    flex-shrink:0;
+  }
+  
+  .country-flag {
+    font-size:16px;
+    flex-shrink:0;
+  }
+  
+  .country-info {
+    flex-grow:1;
+    min-width:0;
+  }
+  
+  .country-title {
+    font-size:13px;
+    margin-bottom:2px;
+    font-weight:600;
+  }
+  
+  .country-stats {
+    flex-direction:row;
+    gap:5px;
+  }
+  
+  .country-stats .count {
+    font-size:13px;
+  }
+  
+  .country-stats .percentage {
+    font-size:10px;
+    padding:1px 4px;
+  }
+  
+  .city-list {
+    margin-left:18px;
+    padding-left:6px;
+    margin-top:4px;
+  }
+  
+  .city-line {
+    padding:4px 0;
+    gap:5px;
+    min-height:28px;
+  }
+  
+  .city-left {
+    gap:5px;
+  }
+  
+  .city-rank {
+    min-width:14px;
+    height:14px;
+    font-size:8px;
+  }
+  
+  .city-name {
+    font-size:11px;
+    line-height:1.3;
+  }
+  
+  .city-stats {
+    gap:3px;
+  }
+  
+  .city-stats .count {
+    font-size:11px;
+  }
+  
+  .city-stats .percentage {
+    font-size:8px;
+    padding:1px 3px;
+  }
+}
 *, *::before, *::after { box-sizing:border-box; }
 
 /* 고정 네비게이션 버튼들 */
@@ -83,6 +649,23 @@ padding:9px 10px; border-radius:16px; font-size:18px; font-weight:600;
 
 .chart-section { display:grid; gap:24px; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); margin-bottom:40px; }
 .chart-section.three-col { grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
+
+/* 태블릿 화면에서 차트 섹션 최적화 */
+@media (min-width: 769px) and (max-width: 1200px) {
+  .chart-section.three-col {
+    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+    gap:20px;
+  }
+  
+  .chart-box {
+    padding:16px 18px 22px;
+  }
+  
+  .chart-box h3 {
+    font-size:14px;
+    margin-bottom:12px;
+  }
+}
 .chart-box { 
   background:linear-gradient(145deg,#051f18,#041b16); 
   border:1px solid #0f4d3d; border-radius:18px; padding:20px 22px 28px; 
