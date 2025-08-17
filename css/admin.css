@@ -329,3 +329,54 @@
   .swal2-toast { max-width: 90vw !important; left: 5vw !important; right: 5vw !important; }
   .swal2-popup { margin: 12px; }
 }
+
+
+
+
+/* 방문자수 대시보드 버튼 (어드민 대시보드용) */
+.admin-visitor-dashboard-btn {
+  text-decoration: none;
+  position: fixed !important;
+  top: 8px;
+  left: 22px;
+  z-index: 10010;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1.5px solid #00ff9c;
+  background: linear-gradient(120deg, #021a13 60%, #00ff9c22 100%);
+  color: #00ff9c;
+  font-family: 'Nanum Gothic', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  box-shadow: 0 0 10px #00ff9c44, 0 0 2px #00ff9c;
+  cursor: pointer;
+  transition: box-shadow 0.18s, transform 0.18s, background 0.18s;
+  overflow: hidden;
+}
+.admin-visitor-dashboard-btn:hover {
+  box-shadow: 0 0 24px #00ff9c, 0 0 8px #00ff9c;
+  background: linear-gradient(120deg, #021a13 40%, #00ff9c33 100%);
+  transform: scale(0.97);
+}
+.admin-visitor-dashboard-btn .icon {
+  display: block;
+  font-size: 18px;
+  filter: drop-shadow(0 0 4px #00ff9c88);
+}
+@media (max-width: 600px) {
+  .admin-visitor-dashboard-btn {
+    top: 12px;
+    left: 12px;
+    padding: 8px 12px;
+    font-size: 13px;
+    border-radius: 6px;
+    gap: 5px;
+  }
+  .admin-visitor-dashboard-btn .icon {
+    font-size: 16px;
+  }
+}
