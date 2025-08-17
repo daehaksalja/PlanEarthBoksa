@@ -179,6 +179,45 @@ export default {
         return json({ ok: true, rows }, origin);
       }
 
+      // 10) 트래픽 소스 (유입 경로)
+      if (url.pathname === "/ga/sources") {
+        const limit = clampInt(url.searchParams.get("limit"), 1, 20, 10);
+        const data = await gaReport(env, {
+          dateRanges: [{ startDate: "7daysAgo", endDate: "today" }],
+          metrics: [{ name: "activeUsers" }, { name: "screenPageViews" }],
+          dimensions: [{ name: "sessionSourceMedium" }],
+          orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
+          limit,
+        });
+
+        const rows = (data.rows ?? []).map((row: any) => ({
+          source: row.dimensionValues?.[0]?.value ?? "direct / (none)",
+          users: Number(row.metricValues?.[0]?.value ?? 0),
+          pageviews: Number(row.metricValues?.[1]?.value ?? 0),
+        }));
+        return json({ ok: true, rows }, origin);
+      }
+
+      // 11) 성능 지표 (세션 시간, 이탈률 등)
+      if (url.pathname === "/ga/performance") {
+        const data = await gaReport(env, {
+          dateRanges: [{ startDate: "7daysAgo", endDate: "today" }],
+          metrics: [
+            { name: "averageSessionDuration" },
+            { name: "bounceRate" },
+            { name: "screenPageViewsPerSession" }
+          ],
+        });
+
+        const totals = data.totals?.[0]?.metricValues ?? [];
+        return json({ 
+          ok: true, 
+          avgSessionDuration: Math.round(Number(totals[0]?.value ?? 0)),
+          bounceRate: Math.round(Number(totals[1]?.value ?? 0) * 100),
+          pagesPerSession: Number(totals[2]?.value ?? 0).toFixed(1)
+        }, origin);
+      }
+
       // 핑
       return json({ ok: true, ping: "pong" }, origin);
     } catch (e: any) {

@@ -9,16 +9,23 @@
   <link rel="stylesheet" href="css/visitor-dashboard.css" />
 </head>
 <body class="v-body">
+  <!-- 고정 네비게이션 버튼들 -->
+  <div class="fixed-nav">
+    <a href="admin-dashboard.html" class="nav-btn left">←대쉬보드</a>
+    <a href="index.html" class="nav-btn right">사이트 홈</a>
+  </div>
+
   <header class="v-header">
-    <h1 class="v-title">방문자수 대시보드</h1>
-    <nav class="v-nav">
-      <a href="admin-dashboard.html" class="v-btn small">← WORKS 대시보드</a>
-      <a href="index.html" class="v-btn small">사이트 홈</a>
-    </nav>
+    <h1 class="v-title">방문자수</h1>
   </header>
 
   <main class="v-main">
     <section class="cards" id="cards">
+      <div class="card realtime-info" id="card-realtime">
+        <h2>🔴 실시간</h2>
+        <p class="metric realtime-metric" id="realtimeCount">-</p>
+        <span class="sub">현재 접속자</span>
+      </div>
       <div class="card" id="card-today">
         <h2>오늘 방문</h2>
         <p class="metric" id="todayCount">-</p>
@@ -47,6 +54,27 @@
     </section>
 
     <section class="chart-section">
+      <div class="chart-box"
+        <h3>📊 성능 지표</h3>
+        <div class="performance-metrics" id="performanceMetrics">
+          <div class="perf-item">
+            <div class="perf-value" id="avgSessionDuration">-</div>
+            <div class="perf-label">평균 세션 시간</div>
+          </div>
+          <div class="perf-item">
+            <div class="perf-value" id="bounceRate">-</div>
+            <div class="perf-label">이탈률</div>
+          </div>
+          <div class="perf-item">
+            <div class="perf-value" id="pagesPerSession">-</div>
+            <div class="perf-label">세션당 페이지</div>
+          </div>
+          <div class="perf-item">
+            <div class="perf-value" id="newUserPercent">-</div>
+            <div class="perf-label">신규 방문자 비율</div>
+          </div>
+        </div>
+      </div>
       <div class="chart-box">
         <h3>최근 14일 (일일)</h3>
         <canvas id="chartDaily" height="140"></canvas>
@@ -72,6 +100,10 @@
           <h3>🌍 국가별 방문자</h3>
           <div id="countriesList" class="countries-list"></div>
         </div>
+        <div class="analysis-box">
+          <h3>🚀 트래픽 소스</h3>
+          <div id="trafficSources" class="traffic-sources"></div>
+        </div>
       </div>
       
       <div class="analysis-row">
@@ -85,7 +117,11 @@
         </div>
       </div>
 
-      <div class="analysis-row full-width">
+      <div class="analysis-row">
+        <div class="analysis-box">
+          <h3>📄 인기 페이지 (7일)</h3>
+          <div id="popularPages" class="popular-pages"></div>
+        </div>
         <div class="analysis-box">
           <h3>🕐 시간대별 트래픽 (24시간)</h3>
           <canvas id="chartHourly" height="160"></canvas>
