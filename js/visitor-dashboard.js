@@ -82,50 +82,6 @@ async function fetchChannelsData(){
     return [];
   }
 }
-
-/* 언어별 방문자 데이터 */
-async function fetchLanguagesData(){
-  try{
-    const r = await fetch(`${BASE}/ga/languages`, { cache: 'no-store', credentials: 'omit' });
-    const data = await r.json();
-    return data.ok ? data.rows : [];
-  }catch(e){
-    console.warn('Languages fetch failed:', e);
-    return [
-      { language: 'ko-kr', users: 180, pageviews: 350 },
-      { language: 'en-us', users: 25, pageviews: 45 },
-      { language: 'ja-jp', users: 8, pageviews: 15 }
-    ];
-  }
-}
-
-/* 대륙별 분석 데이터 */
-async function fetchContinentsData(){
-  try{
-    const r = await fetch(`${BASE}/ga/continents`, { cache: 'no-store', credentials: 'omit' });
-    const data = await r.json();
-    return data.ok ? data.rows : [];
-  }catch(e){
-    console.warn('Continents fetch failed:', e);
-    return [
-      { continent: 'Asia', country: 'South Korea', users: 180, pageviews: 350, avgDuration: 240 },
-      { continent: 'North America', country: 'United States', users: 25, pageviews: 45, avgDuration: 180 },
-      { continent: 'Europe', country: 'Germany', users: 8, pageviews: 15, avgDuration: 200 }
-    ];
-  }
-}
-
-/* 시간대별 지역 트래픽 데이터 */
-async function fetchTimezoneRegionsData(){
-  try{
-    const r = await fetch(`${BASE}/ga/timezone-regions`, { cache: 'no-store', credentials: 'omit' });
-    const data = await r.json();
-    return data.ok ? data.rows : [];
-  }catch(e){
-    console.warn('Timezone regions fetch failed:', e);
-    return [];
-  }
-}
 async function fetchDevicesData(){
   try{
     const r = await fetch(`${BASE}/ga/devices`, { cache: 'no-store', credentials: 'omit' });
@@ -284,13 +240,12 @@ function renderTable(rows){
   const tbody = document.querySelector('#rawTable tbody');
   if(!tbody) return;
   tbody.innerHTML = '';
-  const descending = [...rows].sort((a,b)=> b.date.localeCompare(a.date));
-  descending.forEach((r, i)=>{
-    const recentSlice = descending.slice(i, i+7); // 현재 행 포함 이후 7일 (원래 역순이므로)
-    const sevenAvg = avg(recentSlice.map(s=>s.count));
+  rows.forEach((r, i)=>{
+    const tr = document.createElement('tr');
+    const slice = rows.slice(Math.max(0, i-6), i+1); // 해당일 포함 7일 평균
+    const sevenAvg = avg(slice.map(s=>s.count));
     const ratio = sevenAvg ? ((r.count/sevenAvg)-1)*100 : 0;
     const cls = classifyPct(ratio);
-    const tr = document.createElement('tr');
     tr.innerHTML = `<td>${r.date}</td><td>${r.count}</td><td class="${cls}">${ratio.toFixed(1)}%</td>`;
     tbody.appendChild(tr);
   });
@@ -311,17 +266,15 @@ function buildDevicesChart(ctx, devices){
       labels: devices.map(d => d.device),
       datasets: [{
         data: devices.map(d => d.users),
-        backgroundColor: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57'],
+        backgroundColor: ['#00ff9c', '#7fffd1', '#00ffc3'],
         borderColor: '#061e17',
         borderWidth: 2
       }]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
       plugins: {
         legend: { 
-          labels: { color: '#9fffe2', font: { size: 11 } },
+          labels: { color: '#9fffe2' },
           position: 'bottom'
         }
       }
@@ -375,133 +328,12 @@ function renderPopularPages(pages) {
 }
 
 function renderPerformanceMetrics(perf) {
-  const dur = typeof perf.avgSessionDuration === 'number' ? perf.avgSessionDuration : 0;
-  const mm = Math.floor(dur / 60);
-  const ss = String(Math.round(dur % 60)).padStart(2, '0');
-  document.getElementById('avgSessionDuration').textContent = `${mm}:${ss}`;
-
-  let br = perf.bounceRate;
-  if (typeof br === 'number') {
-    if (br <= 1) br = br * 100; // 비율을 %로 변환
-    br = Math.min(100, Math.max(0, br));
-    document.getElementById('bounceRate').textContent = br.toFixed(1) + '%';
-  } else {
-    document.getElementById('bounceRate').textContent = '-';
-  }
-
-  let pps = perf.pagesPerSession;
-  if (pps !== undefined && pps !== null && !isNaN(parseFloat(pps))) {
-    document.getElementById('pagesPerSession').textContent = parseFloat(pps).toFixed(1);
-  } else {
-    document.getElementById('pagesPerSession').textContent = '-';
-  }
-}
-
-// 새로운 렌더링 함수들
-function renderLanguagesList(languages) {
-  const container = document.getElementById('languagesList');
-  if (!container) return;
-  
-  container.innerHTML = languages.slice(0, 8).map(lang => `
-    <div class="language-item">
-      <div class="language-info">
-        <span class="language-name">${getLanguageName(lang.language)}</span>
-        <span class="language-code">${lang.language}</span>
-      </div>
-      <div class="language-stats">
-        <span class="language-users">${lang.users.toLocaleString()}명</span>
-        <span class="language-views">${lang.pageviews.toLocaleString()}뷰</span>
-      </div>
-    </div>
-  `).join('');
-}
-
-function renderContinentsList(continents) {
-  const container = document.getElementById('continentsList');
-  if (!countries || !countries.length) {
-    container.innerHTML = '<div class="empty-msg">지역 데이터 없음</div>';
-    return;
-  }
-  // 동일 country+region+city 합산 및 중복 제거
-  const map = new Map();
-  countries.forEach(c => {
-    const key = `${c.country}|${c.region}|${c.city}`;
-    if (!map.has(key)) map.set(key, { ...c });
-    else {
-      const ref = map.get(key);
-      ref.users += c.users || 0;
-      ref.pageviews += c.pageviews || 0;
-    }
-  });
-  const merged = Array.from(map.values())
-    .sort((a,b)=>b.users-a.users)
-    .slice(0,12);
-  container.innerHTML = merged.map(country => `
-    <div class="country-item detailed">
-      <div class="location-info">
-        <span class="country-name">${country.country}</span>
-        ${country.region && country.region !== 'unknown' ? `<span class="region-name">${country.region}</span>` : ''}
-        ${country.city && country.city !== 'unknown' ? `<span class="city-name">${country.city}</span>` : ''}
-      </div>
-      <div class="country-stats">
-        <span class="country-users">${country.users.toLocaleString()}명</span>
-        ${country.pageviews ? `<span class="country-views">${country.pageviews.toLocaleString()}뷰</span>` : ''}
-      </div>
-    </div>`).join('');
-}
-
-function renderTimezoneRegionsChart(ctx, timezoneData) {
-  if (!timezoneData.length) return;
-  
-  // 시간대별로 그룹화
-  const hourlyData = Array(24).fill(0);
-  timezoneData.forEach(item => {
-    hourlyData[item.hour] += item.users;
-  });
-  
-  return new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: Array.from({length: 24}, (_, i) => `${i}시`),
-      datasets: [{
-        label: '시간대별 글로벌 방문자',
-        data: hourlyData,
-        borderColor: '#FF6B6B',
-        backgroundColor: '#FF6B6B22',
-        tension: 0.4,
-        fill: true
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: { ticks: { color: '#7fe4bf', font: { size: 9 } }, grid: { color: '#0f3d2d' } },
-        y: { ticks: { color: '#7fe4bf', font: { size: 9 } }, grid: { color: '#0f3d2d' } }
-      },
-      plugins: { legend: { labels: { color: '#9fffe2', font: { size: 10 } } } }
-    }
-  });
-}
-
-// 헬퍼 함수들
-function getLanguageName(code) {
-  const languages = {
-    'ko': '한국어', 'ko-kr': '한국어',
-    'en': 'English', 'en-us': 'English (US)', 'en-gb': 'English (UK)',
-    'ja': '日本語', 'ja-jp': '日本語',
-    'zh': '中文', 'zh-cn': '中文 (简体)', 'zh-tw': '中文 (繁體)',
-    'es': 'Español', 'fr': 'Français', 'de': 'Deutsch', 'it': 'Italiano'
-  };
-  return languages[code] || code;
-}
-
-function getContinentEmoji(continent) {
-  const emojis = {
-    'Asia': '🌏', 'Europe': '🌍', 'North America': '🌎', 
-    'South America': '🌎', 'Africa': '🌍', 'Oceania': '🌏', 'Antarctica': '🐧'
-  };
-  return emojis[continent] || '🌐';
+  document.getElementById('avgSessionDuration').textContent = 
+    perf.avgSessionDuration ? `${Math.floor(perf.avgSessionDuration / 60)}:${String(perf.avgSessionDuration % 60).padStart(2, '0')}` : '-';
+  document.getElementById('bounceRate').textContent = 
+    perf.bounceRate ? `${perf.bounceRate}%` : '-';
+  document.getElementById('pagesPerSession').textContent = 
+    perf.pagesPerSession || '-';
 }
 
 function buildBrowsersChart(ctx, browsers){
@@ -512,21 +344,19 @@ function buildBrowsersChart(ctx, browsers){
       datasets: [{
         label: '방문자',
         data: browsers.map(b => b.users),
-        backgroundColor: ['#FF6B6B88', '#4ECDC488', '#45B7D188', '#96CEB488', '#FECA5788'],
-        borderColor: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57'],
+        backgroundColor: '#00ff9c55',
+        borderColor: '#00ff9c',
         borderWidth: 1.5,
         borderRadius: 4
       }]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
       indexAxis: 'y',
       scales: {
-        x: { ticks: { color: '#7fe4bf', font: { size: 10 } }, grid: { color: '#0f3d2d' } },
-        y: { ticks: { color: '#7fe4bf', font: { size: 10 } }, grid: { display: false } }
+        x: { ticks: { color: '#7fe4bf' }, grid: { color: '#0f3d2d' } },
+        y: { ticks: { color: '#7fe4bf' }, grid: { display: false } }
       },
-      plugins: { legend: { display: false } }
+      plugins: { legend: { labels: { color: '#9fffe2' } } }
     }
   });
 }
@@ -653,13 +483,10 @@ function buildMonthlyChart(ctx, rows){
       datasets:[{
         label:'월간 합계',
         data:values,
-  backgroundColor:'#009cffa8',
-  borderColor:'#00aaff',
-  borderWidth:1,
-  borderRadius:2,
-  maxBarThickness:18,
-  categoryPercentage:0.55,
-  barPercentage:0.7
+        backgroundColor:'#009cffa8',
+        borderColor:'#00aaff',
+        borderWidth:1.5,
+        borderRadius:3
       }]
     },
     options:{
@@ -672,21 +499,19 @@ function buildMonthlyChart(ctx, rows){
 /* 엔트리 */
 async function init(){
   // 병렬로 모든 데이터 가져오기 (1년치 데이터로 총 누적 정확히 계산)
-  const [rows, devices, countries, browsers, userTypes, hourly, pages, performance, realtime, regions, channels, languages, continents, timezoneRegions] = await Promise.all([
+  const [rows, devices, countries, browsers, userTypes, hourly, sources, pages, performance, realtime, regions, channels] = await Promise.all([
     fetchDailyData(365), // 1년치 데이터로 변경
     fetchDevicesData(),
     fetchCountriesData(),
     fetchBrowsersData(),
     fetchUserTypesData(),
     fetchHourlyData(),
+    fetchTrafficSources(),
     fetchPopularPages(),
     fetchPerformanceData(),
     fetchRealtimeData(),
     fetchRegionsData(),
-    fetchChannelsData(),
-    fetchLanguagesData(),
-    fetchContinentsData(),
-    fetchTimezoneRegionsData()
+    fetchChannelsData()
   ]);
 
   if(!rows.length) return;
@@ -724,20 +549,11 @@ async function init(){
   // 새로운 분석 차트들과 리스트들
   chartDevices = buildDevicesChart(document.getElementById('chartDevices'), devices);
   renderCountriesList(countries);
+  renderTrafficSources(sources);
   renderPopularPages(pages);
   chartBrowsers = buildBrowsersChart(document.getElementById('chartBrowsers'), browsers);
   chartUserTypes = buildUserTypesChart(document.getElementById('chartUserTypes'), userTypes);
   chartHourly = buildHourlyChart(document.getElementById('chartHourly'), hourly);
-  
-  // 새로운 기능들 렌더링
-  renderLanguagesAnalysis(languages);
-  renderContinentsAnalysis(continents);
-  renderTimezoneRegionsAnalysis(timezoneRegions);
-  
-  // 실시간 맵 렌더링 (지역 데이터 활용)
-  if (regions && regions.length > 0) {
-    renderRealtimeMap(regions.slice(0, 10));
-  }
   
   // 추가 데이터 로깅
   if (regions && regions.length > 0) {
@@ -745,12 +561,6 @@ async function init(){
   }
   if (channels && channels.length > 0) {
     console.log('📢 유입 채널 정보 (총 ' + channels.length + '개):', channels.slice(0, 5));
-  }
-  if (languages && languages.length > 0) {
-    console.log('🗣️ 언어별 정보 (총 ' + languages.length + '개):', languages.slice(0, 5));
-  }
-  if (continents && continents.length > 0) {
-    console.log('🌏 대륙별 정보 (총 ' + continents.length + '개):', continents.slice(0, 5));
   }
 
   // 실시간 데이터 주기적 업데이트 (30초마다)
@@ -778,300 +588,7 @@ function startRealtimeUpdates(){
   }, 30000); // 30초마다 업데이트
 }
 
-// 실시간 트래픽 알림 시스템
-let previousRealtimeCount = 0;
-let trafficHistory = [];
-
-function updateTrafficAlerts(currentCount) {
-  const container = document.getElementById('trafficAlerts');
-  if (!container) return;
-  
-  trafficHistory.push({ count: currentCount, time: new Date() });
-  if (trafficHistory.length > 10) trafficHistory.shift();
-  
-  let alertType = 'normal';
-  let alertText = '트래픽 정상';
-  let alertIcon = '✅';
-  
-  if (currentCount > previousRealtimeCount * 2 && currentCount > 5) {
-    alertType = 'warning';
-    alertText = `트래픽 급증 감지 (${previousRealtimeCount} → ${currentCount})`;
-    alertIcon = '⚠️';
-  } else if (currentCount === 0 && previousRealtimeCount > 0) {
-    alertType = 'danger';
-    alertText = '실시간 방문자 없음';
-    alertIcon = '🚨';
-  } else if (currentCount > 0) {
-    alertText = `현재 ${currentCount}명 접속 중`;
-    alertIcon = '✅';
-  }
-  
-  const timeStr = new Date().toLocaleTimeString('ko-KR', { 
-    hour: '2-digit', minute: '2-digit', second: '2-digit' 
-  });
-  
-  const alertHTML = `
-    <div class="alert-item ${alertType}">
-      <span class="alert-icon">${alertIcon}</span>
-      <span class="alert-text">${alertText}</span>
-      <span class="alert-time">${timeStr}</span>
-    </div>
-  `;
-  
-  container.insertAdjacentHTML('afterbegin', alertHTML);
-  
-  // 최대 5개 알림만 유지
-  const alerts = container.querySelectorAll('.alert-item');
-  if (alerts.length > 5) {
-    alerts[alerts.length - 1].remove();
-  }
-  
-  previousRealtimeCount = currentCount;
-}
-
-// 주간/월간 리포트 생성
-function generateWeeklyReport(dailyData) {
-  const last7Days = dailyData.slice(-7);
-  const totalVisitors = last7Days.reduce((sum, day) => sum + day.count, 0);
-  const avgDaily = Math.round(totalVisitors / 7);
-  const bestDay = last7Days.reduce((max, day) => day.count > max.count ? day : max);
-  
-  return {
-    period: '지난 7일',
-    totalVisitors,
-    avgDaily,
-    bestDay: `${bestDay.date} (${bestDay.count}명)`,
-    trend: last7Days[6].count > last7Days[0].count ? '상승' : '하락'
-  };
-}
-
-// 언어별 데이터 가져오기
-async function fetchLanguagesData() {
-  try {
-    const r = await fetch(`${BASE}/ga/languages?limit=10`, { cache: 'no-store', credentials: 'omit' });
-    const data = await r.json();
-    if (!data.ok) throw new Error(data.error || 'GA error');
-    return data.rows || [];
-  } catch (e) {
-    console.warn('Languages fetch failed:', e);
-    return [
-      { language: 'ko', languageName: '한국어', users: 150, sessions: 280 },
-      { language: 'en', languageName: '영어', users: 45, sessions: 78 },
-      { language: 'ja', languageName: '일본어', users: 12, sessions: 20 },
-      { language: 'zh', languageName: '중국어', users: 8, sessions: 15 }
-    ];
-  }
-}
-
-// 대륙별 데이터 가져오기
-async function fetchContinentsData() {
-  try {
-    const r = await fetch(`${BASE}/ga/continents?limit=10`, { cache: 'no-store', credentials: 'omit' });
-    const data = await r.json();
-    if (!data.ok) throw new Error(data.error || 'GA error');
-    return data.rows || [];
-  } catch (e) {
-    console.warn('Continents fetch failed:', e);
-    return [
-      { continent: 'Asia', users: 180, sessions: 320, countries: ['South Korea', 'Japan', 'China'] },
-      { continent: 'North America', users: 25, sessions: 45, countries: ['United States', 'Canada'] },
-      { continent: 'Europe', users: 15, sessions: 28, countries: ['Germany', 'France', 'United Kingdom'] }
-    ];
-  }
-}
-
-// 시간대별 지역 데이터 가져오기
-async function fetchTimezoneRegionsData() {
-  try {
-    const r = await fetch(`${BASE}/ga/timezone-regions?limit=10`, { cache: 'no-store', credentials: 'omit' });
-    const data = await r.json();
-    if (!data.ok) throw new Error(data.error || 'GA error');
-    return data.rows || [];
-  } catch (e) {
-    console.warn('Timezone regions fetch failed:', e);
-    return [
-      { timezone: 'Asia/Seoul', region: '서울', users: 120, sessions: 220 },
-      { timezone: 'Asia/Tokyo', region: '도쿄', users: 15, sessions: 28 },
-      { timezone: 'America/New_York', region: '뉴욕', users: 12, sessions: 20 },
-      { timezone: 'Europe/London', region: '런던', users: 8, sessions: 15 }
-    ];
-  }
-}
-
-// 언어 이모지 맵핑
-const languageEmojis = {
-  'ko': '🇰🇷', 'en': '🇺🇸', 'ja': '🇯🇵', 'zh': '🇨🇳', 'fr': '🇫🇷', 
-  'de': '🇩🇪', 'es': '🇪🇸', 'pt': '🇵🇹', 'ru': '🇷🇺', 'it': '🇮🇹'
-};
-
-// 언어별 분석 렌더링
-function renderLanguagesAnalysis(languages) {
-  const container = document.getElementById('languagesAnalysis');
-  if (!container) return;
-  if (!languages || !languages.length) {
-    container.innerHTML = '<div class="empty-msg">언어 데이터 없음</div>';
-    return;
-  }
-  
-  const total = languages.reduce((sum, lang) => sum + lang.users, 0);
-  
-  let html = `
-    <h3>🌐 언어별 분석</h3>
-    <div class="languages-grid">
-  `;
-  
-  languages.forEach(lang => {
-    const percentage = ((lang.users / total) * 100).toFixed(1);
-    const emoji = languageEmojis[lang.language] || '🌍';
-    
-    html += `
-      <div class="language-item">
-        <div class="language-header">
-          <span class="language-emoji">${emoji}</span>
-          <span class="language-name">${lang.languageName}</span>
-          <span class="language-percent">${percentage}%</span>
-        </div>
-        <div class="language-stats">
-          <span>사용자: ${lang.users.toLocaleString()}</span>
-          <span>세션: ${lang.sessions.toLocaleString()}</span>
-        </div>
-        <div class="language-bar">
-          <div class="language-fill" style="width: ${percentage}%"></div>
-        </div>
-      </div>
-    `;
-  });
-  
-  html += '</div>';
-  container.innerHTML = html;
-}
-
-// 대륙별 분석 렌더링
-function renderContinentsAnalysis(continents) {
-  const container = document.getElementById('continentsAnalysis');
-  if (!container) return;
-  if (!continents || !continents.length) {
-    container.innerHTML = '<div class="empty-msg">대륙 데이터 없음</div>';
-    return;
-  }
-  
-  const total = continents.reduce((sum, cont) => sum + cont.users, 0);
-  const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57', '#FF9FF3'];
-  
-  let html = `
-    <h3>🌍 대륙별 분석</h3>
-    <div class="continents-grid">
-  `;
-  
-  continents.forEach((cont, index) => {
-    const percentage = ((cont.users / total) * 100).toFixed(1);
-    const color = colors[index % colors.length];
-    
-    html += `
-      <div class="continent-item">
-        <div class="continent-header">
-          <span class="continent-name">${cont.continent}</span>
-          <span class="continent-percent">${percentage}%</span>
-        </div>
-        <div class="continent-stats">
-          <span>사용자: ${cont.users.toLocaleString()}</span>
-          <span>세션: ${cont.sessions.toLocaleString()}</span>
-        </div>
-        <div class="continent-countries">
-          국가: ${cont.countries ? cont.countries.slice(0, 3).join(', ') : 'N/A'}
-        </div>
-        <div class="continent-bar">
-          <div class="continent-fill" style="width: ${percentage}%; background-color: ${color}"></div>
-        </div>
-      </div>
-    `;
-  });
-  
-  html += '</div>';
-  container.innerHTML = html;
-}
-
-// 시간대 지역 분석 렌더링
-function renderTimezoneRegionsAnalysis(regions) {
-  const container = document.getElementById('timezoneRegionsAnalysis');
-  if (!container) return;
-  if (!regions || !regions.length) {
-    container.innerHTML = '<div class="empty-msg">시간대 데이터 없음</div>';
-    return;
-  }
-  
-  const total = regions.reduce((sum, region) => sum + region.users, 0);
-  
-  let html = `
-    <h3>⏰ 시간대별 지역 분석</h3>
-    <div class="timezone-grid">
-  `;
-  
-  regions.forEach(region => {
-    const percentage = ((region.users / total) * 100).toFixed(1);
-    const currentTime = new Date().toLocaleString('ko-KR', { 
-      timeZone: region.timezone,
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-    
-    html += `
-      <div class="timezone-item">
-        <div class="timezone-header">
-          <span class="timezone-region">${region.region}</span>
-          <span class="timezone-time">${currentTime}</span>
-        </div>
-        <div class="timezone-stats">
-          <span>사용자: ${region.users.toLocaleString()}</span>
-          <span>세션: ${region.sessions.toLocaleString()}</span>
-          <span>비율: ${percentage}%</span>
-        </div>
-        <div class="timezone-bar">
-          <div class="timezone-fill" style="width: ${percentage}%"></div>
-        </div>
-      </div>
-    `;
-  });
-  
-  html += '</div>';
-  container.innerHTML = html;
-}
-
-// 실시간 맵 렌더링 (간단한 텍스트 버전)
-function renderRealtimeMap(geoData) {
-  const container = document.getElementById('realtimeMap');
-  if (!container) return;
-  
-  let html = `
-    <h3>🗺️ 실시간 방문자 지도</h3>
-    <div class="realtime-locations">
-  `;
-  
-  geoData.forEach(location => {
-    const flag = getCountryFlag(location.country);
-    
-    html += `
-      <div class="location-dot">
-        <span class="location-flag">${flag}</span>
-        <span class="location-name">${location.city || location.country}</span>
-        <span class="location-count">${location.users}</span>
-      </div>
-    `;
-  });
-  
-  html += '</div>';
-  container.innerHTML = html;
-}
-
-// 국가별 플래그 가져오기
-function getCountryFlag(country) {
-  const flags = {
-    'South Korea': '🇰🇷', 'Korea': '🇰🇷', 'United States': '🇺🇸', 'Japan': '🇯🇵',
-    'China': '🇨🇳', 'Germany': '🇩🇪', 'France': '🇫🇷', 'United Kingdom': '🇬🇧',
-    'Canada': '🇨🇦', 'Australia': '🇦🇺', 'India': '🇮🇳', 'Brazil': '🇧🇷'
-  };
-  return flags[country] || '🌍';
-}
+// 접힐 수 있는 섹션 토글 기능
 function toggleRawData() {
   const content = document.getElementById('rawDataContent');
   const icon = document.getElementById('toggleIcon');
