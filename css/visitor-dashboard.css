@@ -601,7 +601,7 @@ body.v-body { margin:0; padding:0; font-family:'Nanum Gothic','Malgun Gothic',sa
   background:rgba(5,8,7,0.98); /* 상단 배경 살짝 강조 */
 }
 .nav-btn { 
-  position:absolute; top:18px; z-index:1001; pointer-events:auto;
+  position:fixed; top:15px; z-index:1001; pointer-events:auto;
   text-decoration:none; background:rgba(6,36,27,.95); color:#7fffd1; 
 padding:9px 10px; border-radius:16px; font-size:18px; font-weight:600; 
   border:1px solid #0f5a43; letter-spacing:.03em; 

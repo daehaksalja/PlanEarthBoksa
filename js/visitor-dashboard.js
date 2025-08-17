@@ -1168,4 +1168,33 @@ window.addEventListener('DOMContentLoaded', ()=>{
     const btn=document.getElementById('togglePerf');
     if(box && btn){ box.classList.add('collapsed'); btn.textContent='보이기'; }
   }
+  
+  // 로그아웃 버튼 이벤트 추가
+  const logoutBtn = document.getElementById('logout-btn');
+  if(logoutBtn){
+    logoutBtn.addEventListener('click', async ()=>{
+      try{
+        if(window.supabase){
+          const supabase = window.supabase.createClient(
+            'https://feprvneoartflrnmefxz.supabase.co',
+            'sb_publishable_LW3f112nFPSSUUNvrXl19A__y73y2DE'
+          );
+          await supabase.auth.signOut();
+        }
+        // 로컬 스토리지 캐시도 정리
+        localStorage.removeItem('fullDailyRows_v1');
+        localStorage.removeItem('cachedDevices_v1');
+        localStorage.removeItem('cachedCountries_v1');
+        localStorage.removeItem('cachedBrowsers_v1');
+        localStorage.removeItem('cachedUserTypes_v1');
+        localStorage.removeItem('cachedHourly_v1');
+        localStorage.removeItem('cachedPages_v1');
+        localStorage.removeItem('cachedPerformance_v1');
+        location.href = 'login.html';
+      }catch(e){
+        console.error('로그아웃 오류:', e);
+        location.href = 'login.html';
+      }
+    });
+  }
 });
