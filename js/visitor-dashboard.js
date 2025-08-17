@@ -770,12 +770,16 @@ function buildHourlyChart(ctx, hourly){
 }
 
 function buildDailyChart(ctx, rows){
-  // KST 기준 최근 14일 날짜 목록 생성
+  // 데이터 양에 따라 동적으로 일수 결정 (최소 14일, 최대 30일)
+  const dataLength = (rows || []).length;
+  const daysToShow = Math.min(Math.max(dataLength, 14), 30);
+  
+  // KST 기준 최근 N일 날짜 목록 생성
   const utcNow = Date.now();
   const offset = new Date().getTimezoneOffset()*60000;
   const kstNow = new Date(utcNow + offset + 9*60*60000);
   const dates = [];
-  for(let i=13;i>=0;i--){ const d=new Date(kstNow); d.setDate(kstNow.getDate()-i); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); dates.push(`${y}-${m}-${day}`); }
+  for(let i=daysToShow-1;i>=0;i--){ const d=new Date(kstNow); d.setDate(kstNow.getDate()-i); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); dates.push(`${y}-${m}-${day}`); }
   // rows를 date->count 맵으로 변환 (r.date가 'YYYY-MM-DD' 또는 ISO 문자열일 수 있으므로 정규화)
   const map = new Map((rows||[]).map(r=> { const key = (r.date||'').slice(0,10); return [key, Number(r.count||0)]; }));
   const dataArr = dates.map(dt => map.has(dt) ? map.get(dt) : 0);
@@ -794,11 +798,36 @@ function buildDailyChart(ctx, rows){
       }]
     },
     options:{
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { bottom: 50 } },
       scales:{
-        x:{ ticks:{ color:'#7fe4bf' }, grid:{ display:false } },
-        y:{ ticks:{ color:'#7fe4bf' }, grid:{ color:'#0f3d2d' } }
+        x:{ 
+          ticks:{ 
+            color:'#7fe4bf',
+            maxRotation: 45,
+            minRotation: 0,
+            autoSkip: true,
+            autoSkipPadding: Math.max(8, Math.floor(daysToShow/4)),
+            maxTicksLimit: Math.min(daysToShow, 15),
+            font: { size: daysToShow > 20 ? 9 : 10 }
+          }, 
+          grid:{ display:false } 
+        },
+        y:{ 
+          ticks:{ 
+            color:'#7fe4bf' 
+          }, 
+          grid:{ color:'#0f3d2d' } 
+        }
       },
-      plugins:{ legend:{ labels:{ color:'#9fffe2' } } }
+      plugins:{ 
+        legend:{ 
+          labels:{ 
+            color:'#9fffe2' 
+          } 
+        } 
+      }
     }
   });
 }

@@ -112,16 +112,16 @@ body.v-body { margin:0; padding:0; font-family:'Nanum Gothic','Malgun Gothic',sa
   
   .city-rank {
     min-width:16px;
-    height:16px;
-    font-size:10px;
-  }
-  
-  .city-name {
-    font-size:12px;
-  }
-  
-  .city-stats .count {
-    font-size:12px;
+    padding: clamp(8px, 2vw, 12px);
+    background: rgba(255,255,255,0.06);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 8px;
+    /* 각 그리드 셀을 가득 채우도록 높이 확장 */
+    height: 100%;
   }
   
   .city-stats .percentage {
@@ -668,12 +668,23 @@ padding:9px 10px; border-radius:16px; font-size:18px; font-weight:600;
 }
 .chart-box { 
   background:linear-gradient(145deg,#051f18,#041b16); 
-  border:1px solid #0f4d3d; border-radius:18px; padding:20px 22px 28px; 
+  border:1px solid #0f4d3d; border-radius:18px; padding:20px 22px 44px; 
   box-shadow:0 8px 32px rgba(0,255,156,.1), 0 2px 8px rgba(0,255,156,.05), 0 0 0 1px #0d4531 inset; 
   position:relative; min-width:0; overflow:hidden; transition:.3s;
+  height: 380px; /* analysis-box들과 비슷한 높이로 */
 }
 .chart-box:hover { transform:translateY(-1px); box-shadow:0 12px 40px rgba(0,255,156,.15); }
 .chart-box h3 { margin:0 0 14px; font-size:15px; font-weight:700; letter-spacing:.04em; color:#a5ffe5; }
+
+/* 차트 캔버스 크기 제한 */
+.chart-box canvas {
+  /* Allow chart to use available height so x-axis labels aren't clipped */
+  height: 100% !important;
+  max-height: none !important;
+  width: 100% !important;
+  display: block;
+  box-sizing: border-box;
+}
 
 .raw-section { background:#061e17; border:1px solid #0f3d2d; border-radius:18px; padding:20px 22px 32px; box-shadow:0 10px 30px -12px rgba(0,255,156,.15), 0 0 0 1px #0d3c2d inset; }
 .raw-section h3 { margin:0 0 16px; font-size:15px; font-weight:800; letter-spacing:.05em; color:#9fffe2; }
@@ -706,6 +717,98 @@ padding:9px 10px; border-radius:16px; font-size:18px; font-weight:600;
 
 /* 국가별 방문자 리스트 (향상된 버전) */
 .countries-list { display:grid; gap:10px; max-height:400px; overflow-y:auto; }
+
+/* 국가별 리스트 스크롤바 스타일 */
+.countries-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.countries-list::-webkit-scrollbar-track {
+  background: rgba(15, 61, 45, 0.3);
+  border-radius: 3px;
+}
+
+.countries-list::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #00ff9c, #0d9f6e);
+  border-radius: 3px;
+  transition: all 0.3s ease;
+}
+
+.countries-list::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #0d9f6e, #00ff9c);
+  box-shadow: 0 0 8px rgba(0, 255, 156, 0.3);
+}
+
+/* Firefox 스크롤바 스타일 */
+.countries-list {
+  scrollbar-width: thin;
+  scrollbar-color: #00ff9c rgba(15, 61, 45, 0.3);
+}
+
+/* 브라우저별 차트 컨테이너 높이 제한 및 스크롤 대비 */
+.analysis-box canvas {
+  max-height: 300px;
+}
+
+/* 브라우저별 데이터가 많아질 경우를 위한 리스트 형태 대비 */
+.browser-list {
+  display: grid;
+  gap: 8px;
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.browser-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(15, 77, 61, 0.3);
+  border: 1px solid #0f4d3d;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.browser-item:hover {
+  background: rgba(0, 255, 156, 0.1);
+  border-color: #0d9f6e;
+}
+
+.browser-name {
+  font-weight: 600;
+  color: #00ff9c;
+}
+
+.browser-count {
+  color: #7fe4bf;
+  font-size: 14px;
+}
+
+/* 브라우저 리스트 스크롤바 스타일 */
+.browser-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.browser-list::-webkit-scrollbar-track {
+  background: rgba(15, 61, 45, 0.3);
+  border-radius: 3px;
+}
+
+.browser-list::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #00ff9c, #0d9f6e);
+  border-radius: 3px;
+  transition: all 0.3s ease;
+}
+
+.browser-list::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #0d9f6e, #00ff9c);
+  box-shadow: 0 0 8px rgba(0, 255, 156, 0.3);
+}
+
+.browser-list {
+  scrollbar-width: thin;
+  scrollbar-color: #00ff9c rgba(15, 61, 45, 0.3);
+}
 .country-item { 
   display:flex; justify-content:space-between; align-items:center; 
   padding:10px 14px; background:rgba(4,25,20,.8); border:1px solid #0f4d3d; 
@@ -764,6 +867,33 @@ padding:9px 10px; border-radius:16px; font-size:18px; font-weight:600;
 .popular-pages.compact .page-item.detailed { padding:10px 10px; gap:4px; }
 .popular-pages.compact .page-path { font-size:12px; }
 .popular-pages.compact .page-stats { gap:6px; }
+
+/* 인기 페이지 스크롤바 스타일 */
+.popular-pages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.popular-pages::-webkit-scrollbar-track {
+  background: rgba(15, 61, 45, 0.3);
+  border-radius: 3px;
+}
+
+.popular-pages::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #00ff9c, #0d9f6e);
+  border-radius: 3px;
+  transition: all 0.3s ease;
+}
+
+.popular-pages::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #0d9f6e, #00ff9c);
+  box-shadow: 0 0 8px rgba(0, 255, 156, 0.3);
+}
+
+/* Firefox 스크롤바 스타일 */
+.popular-pages {
+  scrollbar-width: thin;
+  scrollbar-color: #00ff9c rgba(15, 61, 45, 0.3);
+}
 .page-item { 
   display:flex; justify-content:space-between; align-items:center; 
   padding:10px 12px; background:rgba(4,25,20,.8); border:1px solid #0f4d3d; 
@@ -845,6 +975,12 @@ padding:9px 10px; border-radius:16px; font-size:18px; font-weight:600;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: 2px solid #fff;
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.25);
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  border-radius: 14px;
+  /* 최소 높이를 주어 내부 2x2 그리드가 여유를 가지고 채워지도록 함 */
+  min-height: 320px;
 }
 
 /* 접힐 수 있는 섹션 */
@@ -898,12 +1034,38 @@ padding:9px 10px; border-radius:16px; font-size:18px; font-weight:600;
   50% { transform: scale(1.02); }
 }
 
-/* 성능 지표 박스 */
-.performance-metrics { display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); }
+/* 성능 지표 박스 - 이미 위에서 정의했으므로 중복 제거 */
+.performance-metrics { 
+  display: grid; 
+  gap: clamp(8px, 2vw, 14px);
+  /* 고정 2열 레이아웃: 상단 1,2 / 하단 3,4 (12 / 34 배열) */
+  grid-template-columns: repeat(2, 1fr);
+  /* 두 행이 동일한 높이를 가지도록 설정 */
+  grid-auto-rows: 1fr;
+  max-width: 100%;
+  align-content: stretch;
+  /* 부모(.performance-box)의 남은 높이를 채우도록 설정 */
+  flex: 1 1 auto;
+}
+
+/* 항상 2열 고정: 상단 1,2 / 하단 3,4 (12 / 34 배열) - 모든 화면 크기에서 유지 */
+.performance-metrics {
+  grid-template-columns: repeat(2, 1fr);
+  gap: clamp(8px, 2vw, 14px);
+}
+
 .perf-item { 
-  text-align:center; padding:14px 10px; 
-  background:rgba(4,25,20,.6); border:1px solid #0f4d3d; 
-  border-radius:10px; transition:.2s;
+  text-align: center; 
+  padding: clamp(10px, 2vw, 14px); 
+  background: rgba(4,25,20,.6); 
+  border: 1px solid #0f4d3d; 
+  border-radius: 10px; 
+  transition: .2s;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0; /* 컨테이너에 맞춰 늘어나도록 */
+  overflow: hidden; /* 내용이 넘치지 않도록 */
 }
 .perf-item:hover { background:rgba(15,77,61,.2); border-color:#1a6b52; }
 .perf-value { font-size:20px; font-weight:800; color:#00ffc8; margin-bottom:6px; text-shadow:0 0 8px #00ff9c44; }
@@ -923,7 +1085,6 @@ padding:9px 10px; border-radius:16px; font-size:18px; font-weight:600;
   .cards { grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; }
   .chart-section { grid-template-columns:1fr; gap:18px; }
   .analysis-row { grid-template-columns:1fr; gap:18px; }
-  .performance-metrics { grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; }
 }
 
 @media (max-width:540px){
@@ -946,10 +1107,6 @@ padding:9px 10px; border-radius:16px; font-size:18px; font-weight:600;
   .popular-pages { max-height:220px; gap:6px; }
   .country-item, .source-item { padding:8px 10px; font-size:12px; }
   .page-item { padding:6px 8px; font-size:11px; }
-  .performance-metrics { grid-template-columns:repeat(2,1fr); gap:8px; }
-  .perf-item { padding:10px 8px; }
-  .perf-value { font-size:18px; }
-  .perf-label { font-size:10px; }
 }
 
 @media (max-width:375px){
