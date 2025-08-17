@@ -85,11 +85,33 @@ export default {
 
       // 4) 실시간
       if (url.pathname === "/ga/realtime") {
-        const data = await gaRealtime(env, {
-          metrics: [{ name: "activeUsers" }],
-        });
-        const activeUsers = Number(data.totals?.[0]?.metricValues?.[0]?.value ?? 0);
-        return json({ ok: true, activeUsers }, origin);
+        try {
+          const data = await gaRealtime(env, {
+            metrics: [{ name: "activeUsers" }],
+          });
+          
+          const activeUsers = Number(data.totals?.[0]?.metricValues?.[0]?.value ?? 0);
+          
+          // 디버깅용 로그
+          console.log('GA4 Realtime API response:', JSON.stringify(data));
+          console.log('Active users:', activeUsers);
+          
+          return json({ 
+            ok: true, 
+            activeUsers,
+            debug: {
+              rawResponse: data,
+              timestamp: new Date().toISOString()
+            }
+          }, origin);
+        } catch (e: any) {
+          console.error('Realtime API error:', e);
+          return json({ 
+            ok: false, 
+            error: `Realtime API failed: ${e?.message ?? String(e)}`,
+            activeUsers: 0 
+          }, origin);
+        }
       }
 
       // 5) 디바이스별 분석
