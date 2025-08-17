@@ -65,20 +65,24 @@ export default {
         return json({ ok: true, rows }, origin);
       }
 
-      // 3) 인기 페이지
+      // 3) 인기 페이지 (상세 정보 포함)
       if (url.pathname === "/ga/pages") {
         const limit = clampInt(url.searchParams.get("limit"), 1, 100, 20);
         const data = await gaReport(env, {
           dateRanges: [{ startDate: "7daysAgo", endDate: "today" }],
-          metrics: [{ name: "screenPageViews" }],
-          dimensions: [{ name: "pagePath" }],
+          metrics: [{ name: "screenPageViews" }, { name: "activeUsers" }, { name: "averageSessionDuration" }, { name: "bounceRate" }],
+          dimensions: [{ name: "pagePath" }, { name: "pageTitle" }],
           orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
           limit,
         });
 
         const rows = (data.rows ?? []).map((row: any) => ({
           path: row.dimensionValues?.[0]?.value ?? "/",
+          title: row.dimensionValues?.[1]?.value ?? "Untitled",
           views: Number(row.metricValues?.[0]?.value ?? 0),
+          users: Number(row.metricValues?.[1]?.value ?? 0),
+          avgDuration: Number(row.metricValues?.[2]?.value ?? 0),
+          bounceRate: Number(row.metricValues?.[3]?.value ?? 0),
         }));
         return json({ ok: true, rows }, origin);
       }
@@ -130,20 +134,23 @@ export default {
         return json({ ok: true, rows }, origin);
       }
 
-      // 6) 국가별 방문자
+      // 6) 국가별 방문자 (시/군/구 포함)
       if (url.pathname === "/ga/countries") {
         const limit = clampInt(url.searchParams.get("limit"), 1, 50, 10);
         const data = await gaReport(env, {
           dateRanges: [{ startDate: "7daysAgo", endDate: "today" }],
-          metrics: [{ name: "activeUsers" }],
-          dimensions: [{ name: "country" }],
+          metrics: [{ name: "activeUsers" }, { name: "screenPageViews" }],
+          dimensions: [{ name: "country" }, { name: "region" }, { name: "city" }],
           orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
           limit,
         });
 
         const rows = (data.rows ?? []).map((row: any) => ({
           country: row.dimensionValues?.[0]?.value ?? "unknown",
+          region: row.dimensionValues?.[1]?.value ?? "unknown", 
+          city: row.dimensionValues?.[2]?.value ?? "unknown",
           users: Number(row.metricValues?.[0]?.value ?? 0),
+          pageviews: Number(row.metricValues?.[1]?.value ?? 0),
         }));
         return json({ ok: true, rows }, origin);
       }
@@ -238,6 +245,85 @@ export default {
           bounceRate: Math.round(Number(totals[1]?.value ?? 0) * 100),
           pagesPerSession: Number(totals[2]?.value ?? 0).toFixed(1)
         }, origin);
+      }
+
+      // 12) 상세 지역 분석 (시/도별)
+      if (url.pathname === "/ga/regions") {
+        const limit = clampInt(url.searchParams.get("limit"), 1, 30, 15);
+        const data = await gaReport(env, {
+          dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
+          metrics: [{ name: "activeUsers" }, { name: "screenPageViews" }, { name: "averageSessionDuration" }],
+          dimensions: [{ name: "country" }, { name: "region" }, { name: "city" }],
+          orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
+          limit,
+        });
+
+        const rows = (data.rows ?? []).map((row: any) => ({
+          country: row.dimensionValues?.[0]?.value ?? "unknown",
+          region: row.dimensionValues?.[1]?.value ?? "unknown", 
+          city: row.dimensionValues?.[2]?.value ?? "unknown",
+          users: Number(row.metricValues?.[0]?.value ?? 0),
+          pageviews: Number(row.metricValues?.[1]?.value ?? 0),
+          avgDuration: Number(row.metricValues?.[2]?.value ?? 0),
+          location: `${row.dimensionValues?.[0]?.value ?? ""} > ${row.dimensionValues?.[1]?.value ?? ""} > ${row.dimensionValues?.[2]?.value ?? ""}`
+        }));
+        return json({ ok: true, rows }, origin);
+      }
+
+      // 13) 페이지별 상세 분석
+      if (url.pathname === "/ga/pages-detail") {
+        const limit = clampInt(url.searchParams.get("limit"), 1, 50, 25);
+        const data = await gaReport(env, {
+          dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
+          metrics: [
+            { name: "screenPageViews" }, 
+            { name: "activeUsers" }, 
+            { name: "averageSessionDuration" }, 
+            { name: "bounceRate" },
+            { name: "scrolledUsers" }
+          ],
+          dimensions: [{ name: "pagePath" }, { name: "pageTitle" }],
+          orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
+          limit,
+        });
+
+        const rows = (data.rows ?? []).map((row: any) => ({
+          path: row.dimensionValues?.[0]?.value ?? "/",
+          title: row.dimensionValues?.[1]?.value ?? "Untitled",
+          views: Number(row.metricValues?.[0]?.value ?? 0),
+          users: Number(row.metricValues?.[1]?.value ?? 0),
+          avgDuration: Number(row.metricValues?.[2]?.value ?? 0),
+          bounceRate: Math.round(Number(row.metricValues?.[3]?.value ?? 0) * 100),
+          scrolledUsers: Number(row.metricValues?.[4]?.value ?? 0),
+          engagement: Number(row.metricValues?.[4]?.value ?? 0) / Number(row.metricValues?.[1]?.value ?? 1) * 100
+        }));
+        return json({ ok: true, rows }, origin);
+      }
+
+      // 14) 유입 채널 상세 분석
+      if (url.pathname === "/ga/channels") {
+        const data = await gaReport(env, {
+          dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
+          metrics: [
+            { name: "activeUsers" }, 
+            { name: "screenPageViews" }, 
+            { name: "averageSessionDuration" },
+            { name: "bounceRate" }
+          ],
+          dimensions: [{ name: "sessionDefaultChannelGrouping" }, { name: "sessionSourceMedium" }],
+          orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
+          limit: 20,
+        });
+
+        const rows = (data.rows ?? []).map((row: any) => ({
+          channel: row.dimensionValues?.[0]?.value ?? "Direct",
+          sourceMedium: row.dimensionValues?.[1]?.value ?? "direct / (none)",
+          users: Number(row.metricValues?.[0]?.value ?? 0),
+          pageviews: Number(row.metricValues?.[1]?.value ?? 0),
+          avgDuration: Number(row.metricValues?.[2]?.value ?? 0),
+          bounceRate: Math.round(Number(row.metricValues?.[3]?.value ?? 0) * 100),
+        }));
+        return json({ ok: true, rows }, origin);
       }
 
       // 핑
