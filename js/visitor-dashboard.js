@@ -182,13 +182,22 @@ async function fetchPerformanceData(){
 /* 실시간 데이터 */
 async function fetchRealtimeData(){
   try{
+    console.log('🔴 실시간 데이터 요청 중...');
     const r = await fetch(`${BASE}/ga/realtime`, { cache: 'no-store', credentials: 'omit' });
     const data = await r.json();
+    console.log('🔴 실시간 API 응답:', data);
+    
     if(!data.ok) throw new Error(data.error || 'GA error');
-    return data.activeUsers || 0;
+    
+    const activeUsers = data.activeUsers || 0;
+    console.log('🔴 실시간 활성 사용자:', activeUsers);
+    
+    // 실시간 데이터가 0이면 현재 방문자 수를 1로 설정 (본인)
+    return activeUsers > 0 ? activeUsers : 1;
   }catch(e){
     console.warn('Realtime fetch failed:', e);
-    return Math.floor(Math.random() * 20) + 5;
+    // 본인이 지금 접속해 있으니 최소 1명
+    return 1;
   }
 }
 
@@ -494,6 +503,30 @@ async function init(){
   chartBrowsers = buildBrowsersChart(document.getElementById('chartBrowsers'), browsers);
   chartUserTypes = buildUserTypesChart(document.getElementById('chartUserTypes'), userTypes);
   chartHourly = buildHourlyChart(document.getElementById('chartHourly'), hourly);
+
+  // 실시간 데이터 주기적 업데이트 (30초마다)
+  startRealtimeUpdates();
+}
+
+/* 실시간 데이터 주기적 업데이트 */
+function startRealtimeUpdates(){
+  setInterval(async () => {
+    try {
+      const realtimeUsers = await fetchRealtimeData();
+      setMetric('realtimeCount', realtimeUsers.toLocaleString());
+      
+      // 실시간 카드에 펄스 효과 추가
+      const realtimeCard = document.getElementById('card-realtime');
+      if(realtimeCard) {
+        realtimeCard.style.transform = 'scale(1.02)';
+        setTimeout(() => {
+          realtimeCard.style.transform = 'scale(1)';
+        }, 200);
+      }
+    } catch (e) {
+      console.warn('실시간 업데이트 실패:', e);
+    }
+  }, 30000); // 30초마다 업데이트
 }
 
 init();
