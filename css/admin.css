@@ -311,25 +311,465 @@
     }
 
 /* ===== Neon-styled Global Undo Bar ===== */
-#undo-bar { position:fixed; left:50%; bottom:16px; transform:translate(-50%,140%); background:linear-gradient(180deg,#041815,#07261c); border:1px solid rgba(11,58,42,0.6); padding:10px 14px; display:flex; gap:12px; align-items:center; border-radius:12px; box-shadow:0 10px 28px -6px rgba(0,255,156,0.18), inset 0 0 8px rgba(0,255,156,0.02); font-size:13px; letter-spacing:.02em; transition:transform .32s cubic-bezier(.2,.9,.3,1), opacity .28s; opacity:0; z-index:120; }
-#undo-bar.show { transform:translate(-50%,0); opacity:1; }
-#undo-bar .u-left{ width:46px; display:flex; align-items:center; justify-content:center; }
-#undo-bar .u-icon{ width:44px; height:44px; display:grid; place-items:center; border-radius:9px; background:linear-gradient(180deg,#072a1f,#042216); color:#bfffe7; font-size:20px; box-shadow:0 6px 18px rgba(0,255,156,0.06), 0 0 12px #00ff9c22 inset; }
-#undo-bar .u-body{ min-width:240px; display:flex; flex-direction:column; gap:6px; }
-#undo-bar .u-msg{ color:#eafff4; font-weight:800; font-size:14px; display:flex; gap:8px; align-items:center; }
-#undo-bar .u-title{ color:#bfffe7; }
-#undo-bar .u-sub{ color:#9feccf; font-weight:600; font-size:13px; }
-#undo-bar .u-meta{ color:#8fe7c6; font-size:12px; opacity:.95; }
-#undo-bar .u-prog-wrap{ width:100%; height:8px; background:linear-gradient(90deg,#021b14,#072318); border-radius:6px; overflow:hidden; border:1px solid rgba(9,58,40,0.4); }
-#undo-bar .u-prog{ width:100%; height:100%; background:linear-gradient(90deg,#00ff9c,#13e7a1); box-shadow:0 0 18px #00ff9c66; transform-origin:left center; transition:width 1s linear; }
-#undo-bar .u-actions{ display:flex; gap:8px; align-items:center; }
-#undo-bar .u-undo{ background:linear-gradient(120deg,#00ffd1,#00c28a); color:#032218; border:0; padding:8px 12px; border-radius:10px; font-weight:800; cursor:pointer; box-shadow:0 8px 26px rgba(0,255,156,0.18),0 0 0 1px rgba(4,60,45,0.12) inset; }
-#undo-bar .u-undo:hover{ transform:translateY(-2px); }
-#undo-bar .u-close{ background:transparent; color:#7fe4bf; border:0; font-weight:700; font-size:14px; cursor:pointer; }
+#undo-bar { 
+  position: fixed; 
+  left: 50%; 
+  bottom: 16px; 
+  transform: translate(-50%, 140%); 
+  background: linear-gradient(135deg, #041815, #072b20, #0a3426);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  border: 1px solid rgba(0, 255, 156, 0.2); 
+  padding: 12px 16px; 
+  display: flex; 
+  gap: 14px; 
+  align-items: center; 
+  border-radius: 16px; 
+  box-shadow: 
+    0 20px 40px -8px rgba(0, 255, 156, 0.25),
+    0 8px 32px -4px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 16px rgba(0, 255, 156, 0.03); 
+  font-size: 13px; 
+  letter-spacing: .02em; 
+  transition: all .4s cubic-bezier(.2, .9, .3, 1); 
+  opacity: 0; 
+  z-index: 120;
+  min-width: 360px;
+}
+
+#undo-bar.show { 
+  transform: translate(-50%, 0); 
+  opacity: 1; 
+  animation: undoBarSlideIn 0.5s cubic-bezier(.2, .9, .3, 1);
+}
+
+@keyframes undoBarSlideIn {
+  0% { transform: translate(-50%, 140%) scale(0.9); opacity: 0; }
+  50% { transform: translate(-50%, -8px) scale(1.02); }
+  100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+}
+
+#undo-bar .u-left{ 
+  width: 52px; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+}
+
+#undo-bar .u-icon{ 
+  width: 48px; 
+  height: 48px; 
+  display: grid; 
+  place-items: center; 
+  border-radius: 12px; 
+  background: linear-gradient(135deg, #0a3426, #072a1f, #051f17);
+  color: #bfffe7; 
+  font-size: 22px; 
+  box-shadow: 
+    0 8px 24px rgba(0, 255, 156, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 16px rgba(0, 255, 156, 0.08);
+  border: 1px solid rgba(0, 255, 156, 0.15);
+  transition: transform 0.3s ease;
+}
+
+#undo-bar .u-icon:hover {
+  transform: scale(1.05);
+}
+
+#undo-bar .u-body{ 
+  min-width: 240px; 
+  display: flex; 
+  flex-direction: column; 
+  gap: 8px; 
+  flex: 1;
+}
+
+#undo-bar .u-msg{ 
+  color: #eafff4; 
+  font-weight: 800; 
+  font-size: 15px; 
+  display: flex; 
+  gap: 8px; 
+  align-items: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+#undo-bar .u-title{ 
+  color: #ffffff; 
+  text-shadow: 0 0 8px rgba(0, 255, 156, 0.3);
+}
+
+#undo-bar .u-sub{ 
+  color: #a8f3d0; 
+  font-weight: 600; 
+  font-size: 13px; 
+}
+
+#undo-bar .u-meta{ 
+  color: #8fe7c6; 
+  font-size: 12px; 
+  opacity: .9;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+#undo-bar .u-prog-wrap{ 
+  width: 100%; 
+  height: 10px; 
+  background: linear-gradient(90deg, #021b14, #072318, #0a2a1d);
+  border-radius: 8px; 
+  overflow: hidden; 
+  border: 1px solid rgba(0, 255, 156, 0.2);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+#undo-bar .u-prog{ 
+  width: 100%; 
+  height: 100%; 
+  background: linear-gradient(90deg, #00ff9c, #13e7a1, #26f0b0);
+  box-shadow: 
+    0 0 20px rgba(0, 255, 156, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform-origin: left center; 
+  transition: width 1s linear;
+  border-radius: 6px;
+}
+
+#undo-bar .u-actions{ 
+  display: flex; 
+  gap: 10px; 
+  align-items: center; 
+}
+
+#undo-bar .u-undo{ 
+  background: linear-gradient(135deg, #00ffd1, #00c28a, #00a674);
+  color: #032218; 
+  border: 0; 
+  padding: 10px 16px; 
+  border-radius: 12px; 
+  font-weight: 800; 
+  font-size: 13px;
+  cursor: pointer; 
+  box-shadow: 
+    0 8px 28px rgba(0, 255, 156, 0.25),
+    0 4px 16px rgba(0, 200, 138, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(.2, .9, .3, 1);
+  border: 1px solid rgba(0, 255, 156, 0.3);
+}
+
+#undo-bar .u-undo:hover{ 
+  transform: translateY(-3px) scale(1.05); 
+  box-shadow: 
+    0 12px 36px rgba(0, 255, 156, 0.4),
+    0 6px 20px rgba(0, 200, 138, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+#undo-bar .u-undo:active{
+  transform: translateY(-1px) scale(1.02);
+}
+
+#undo-bar .u-close{ 
+  background: rgba(255, 255, 255, 0.05); 
+  color: #7fe4bf; 
+  border: 1px solid rgba(127, 228, 191, 0.2); 
+  font-weight: 700; 
+  font-size: 14px; 
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
+}
+
+#undo-bar .u-close:hover{
+  background: rgba(255, 255, 255, 0.1);
+  color: #a8f3d0;
+  transform: scale(1.1);
+  border-color: rgba(127, 228, 191, 0.4);
+}
 
 @media (max-width:640px){
-  #undo-bar{ left:50%; right:auto; transform:translate(-50%,140%); width: min(92vw,420px); bottom:22px; }
-  #undo-bar .u-body{ min-width:0; }
+  #undo-bar{ 
+    left: 50%; 
+    right: auto; 
+    transform: translate(-50%, 140%); 
+    width: min(94vw, 420px); 
+    bottom: 20px; 
+    padding: 10px 12px; 
+    gap: 10px; 
+    font-size: 12px;
+    min-width: unset;
+    border-radius: 14px;
+    backdrop-filter: blur(12px) saturate(140%);
+  }
+  
+  #undo-bar .u-body{ 
+    min-width: 0; 
+    gap: 6px; 
+    flex: 1;
+  }
+  
+  #undo-bar .u-left{ width: 44px; }
+  
+  #undo-bar .u-icon{ 
+    width: 40px; 
+    height: 40px; 
+    font-size: 18px; 
+    border-radius: 10px;
+  }
+  
+  #undo-bar .u-msg{ 
+    font-size: 13px; 
+    gap: 6px; 
+  }
+  
+  #undo-bar .u-sub{ font-size: 12px; }
+  #undo-bar .u-meta{ font-size: 11px; }
+  #undo-bar .u-prog-wrap{ height: 8px; }
+  
+  #undo-bar .u-actions{ gap: 8px; }
+  
+  #undo-bar .u-undo{ 
+    padding: 8px 12px; 
+    font-size: 12px; 
+    border-radius: 10px;
+    min-height: 36px;
+  }
+  
+  #undo-bar .u-close{ 
+    font-size: 12px; 
+    width: 32px; 
+    height: 32px;
+    border-radius: 8px;
+  }
+}
+
+@media (max-width:480px){
+  #undo-bar{ 
+    width: min(92vw, 340px); 
+    padding: 6px 8px; 
+    gap: 6px;
+    border-radius: 10px;
+    min-width: unset;
+    backdrop-filter: blur(8px) saturate(120%);
+    box-shadow: 
+      0 12px 24px -4px rgba(0, 255, 156, 0.2),
+      0 4px 16px -2px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+  
+  #undo-bar .u-left{ 
+    width: 32px; 
+    flex-shrink: 0;
+  }
+  
+  #undo-bar .u-icon{ 
+    width: 32px; 
+    height: 32px; 
+    font-size: 14px; 
+    border-radius: 6px;
+  }
+  
+  #undo-bar .u-body{ 
+    flex: 1; 
+    min-width: 0; 
+    gap: 3px; 
+  }
+  
+  #undo-bar .u-msg{ 
+    font-size: 11px; 
+    gap: 4px;
+    align-items: center;
+  }
+  
+  #undo-bar .u-title {
+    font-size: 11px;
+    font-weight: 700;
+  }
+  
+  #undo-bar .u-sub {
+    font-size: 10px;
+    opacity: 0.8;
+  }
+  
+  #undo-bar .u-meta{ 
+    font-size: 9px; 
+    margin-top: 1px;
+    opacity: 0.7;
+  }
+  
+  #undo-bar .u-prog-wrap{ 
+    height: 4px; 
+    margin: 2px 0;
+    border-radius: 4px;
+  }
+  
+  #undo-bar .u-prog{
+    border-radius: 3px;
+  }
+  
+  #undo-bar .u-actions{ 
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+  }
+  
+  #undo-bar .u-undo{ 
+    padding: 4px 8px; 
+    font-size: 10px;
+    min-height: 26px;
+    border-radius: 6px;
+    font-weight: 700;
+  }
+  
+  #undo-bar .u-close{
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+    flex-shrink: 0;
+    border-radius: 6px;
+  }
+}
+
+@media (max-width:360px){
+  #undo-bar{
+    width: min(94vw, 320px);
+    padding: 5px 6px;
+    gap: 4px;
+    bottom: 12px;
+  }
+  
+  #undo-bar .u-left{ width: 28px; }
+  
+  #undo-bar .u-icon{
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+    border-radius: 5px;
+  }
+  
+  #undo-bar .u-body{ gap: 2px; }
+  
+  #undo-bar .u-msg{
+    font-size: 10px;
+    gap: 3px;
+  }
+  
+  #undo-bar .u-title {
+    font-size: 10px;
+  }
+  
+  #undo-bar .u-sub {
+    font-size: 9px;
+  }
+  
+  #undo-bar .u-meta{
+    font-size: 8px;
+  }
+  
+  #undo-bar .u-prog-wrap{
+    height: 3px;
+    margin: 1px 0;
+  }
+  
+  #undo-bar .u-actions{
+    gap: 4px;
+    margin-top: 1px;
+  }
+  
+  #undo-bar .u-undo{
+    font-size: 9px;
+    padding: 3px 6px;
+    min-height: 22px;
+    border-radius: 5px;
+  }
+  
+  #undo-bar .u-close{
+    width: 20px;
+    height: 20px;
+    font-size: 9px;
+    border-radius: 5px;
+  }
+}
+
+/* 매우 좁은 화면용 (320px 이하) */
+@media (max-width:320px){
+  #undo-bar{
+    width: min(96vw, 300px);
+    padding: 4px 5px;
+    gap: 3px;
+    bottom: 10px;
+  }
+  
+  #undo-bar .u-left{ width: 24px; }
+  
+  #undo-bar .u-icon{
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+    border-radius: 4px;
+  }
+  
+  #undo-bar .u-msg{
+    font-size: 9px;
+    gap: 2px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  #undo-bar .u-title {
+    font-size: 9px;
+    line-height: 1.2;
+  }
+  
+  #undo-bar .u-sub {
+    font-size: 8px;
+    line-height: 1.1;
+  }
+  
+  #undo-bar .u-meta{
+    font-size: 7px;
+    margin-top: 0;
+  }
+  
+  #undo-bar .u-prog-wrap{
+    height: 2px;
+    margin: 1px 0;
+    border-radius: 2px;
+  }
+  
+  #undo-bar .u-prog{
+    border-radius: 2px;
+  }
+  
+  #undo-bar .u-actions{
+    gap: 3px;
+    margin-top: 1px;
+  }
+  
+  #undo-bar .u-undo{
+    font-size: 8px;
+    padding: 2px 5px;
+    min-height: 20px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  
+  #undo-bar .u-close{
+    width: 18px;
+    height: 18px;
+    font-size: 8px;
+    border-radius: 4px;
+  }
 }
 
 /* SweetAlert 스타일 튜닝: 모바일에서 토스트/팝업이 좌우로 꽉 차지 않도록 제한하고 네온 테마에 맞춤 */
