@@ -2,6 +2,13 @@ body.v-body { margin:0; padding:0; font-family:'Nanum Gothic','Malgun Gothic',sa
 /* FAB */
 .fab-container {position:fixed;bottom:18px;right:18px;display:flex;flex-direction:column;align-items:flex-end;gap:10px;z-index:1100;}
 .fab {background:#00ff9c;color:#03271d;border:none;width:52px;height:52px;border-radius:50%;font-size:22px;font-weight:700;cursor:pointer;box-shadow:0 8px 28px -6px #00ff9caa,0 0 0 2px #043427 inset;display:flex;align-items:center;justify-content:center;transition:.25s;}
+/* CSS 변수: 대시보드 그리드 동기화 */
+:root {
+  --dashboard-max-width: 1400px;
+  --grid-min: 320px;
+  --grid-max: 420px;
+  --grid-gap: 24px;
+}
 .fab:hover {transform:translateY(-3px) scale(1.05);box-shadow:0 12px 34px -4px #00ff9ccc,0 0 0 2px #065a42 inset;}
 .offline-badge {background:#ff5d5d;color:#fff;font-size:11px;font-weight:700;padding:6px 10px;border-radius:8px;letter-spacing:.05em;box-shadow:0 0 0 1px #ff5d5d55,0 4px 16px -6px #ff5d5d88;backdrop-filter:blur(6px);} 
 /* FAB menu */
@@ -647,26 +654,52 @@ padding:9px 10px; border-radius:16px; font-size:18px; font-weight:600;
 .metric { margin:0; font-size:32px; font-weight:800; letter-spacing:.02em; color:#00ffc8; text-shadow:0 0 16px #00ff9c88; word-break:break-all; }
 .sub { font-size:12px; letter-spacing:.03em; color:#85e4c5; opacity:.9; }
 
-.chart-section { display:grid; gap:24px; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); margin-bottom:40px; max-width:1400px; margin-left:auto; margin-right:auto; }
-.chart-section.three-col { grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); max-width:1400px; }
+.chart-section { display:grid; gap:var(--grid-gap); grid-template-columns:repeat(auto-fit,minmax(var(--grid-min),1fr)); margin-bottom:40px; max-width:var(--dashboard-max-width); margin-left:auto; margin-right:auto; }
+.chart-section.three-col { grid-template-columns:repeat(auto-fit,minmax(var(--grid-min),1fr)); max-width:var(--dashboard-max-width); }
 
-/* 넓은 화면에서 차트 크기 제한 */
+/* 넓은 화면에서 차트 크기 제한 (상/하단 동일 설정으로 통일) */
 @media (min-width: 1400px) {
-  .chart-section {
-    grid-template-columns: repeat(auto-fit, minmax(350px, 450px));
+  /* 상단 차트와 하단 분석 영역을 같은 3열 레이아웃으로 고정하여
+     뷰포트 확대 시 한쪽만 더 넓어지는 현상 방지 */
+  .chart-section, .chart-section.three-col, .analysis-row {
+    grid-template-columns: repeat(3, minmax(var(--grid-min), var(--grid-max)));
     justify-content: center;
+    gap: var(--grid-gap);
   }
-  .chart-section.three-col {
-    grid-template-columns: repeat(3, minmax(300px, 400px));
-    justify-content: center;
+  /* 정확한 동기화를 위해 총 너비를 계산하여 상/하단 컨테이너에 강제 적용
+     (3열 * 컬럼 최대 너비 + 2 * gap) */
+  :root { --sync-width: calc(3 * var(--grid-max) + 2 * var(--grid-gap)); }
+
+  /* 높은 특이성으로 강제 적용: v-main 직속 자식에 동일한 폭을 줌 */
+  .v-main > .chart-section, .v-main > .analysis-section {
+    width: var(--sync-width) !important;
+    max-width: var(--sync-width) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box;
+  }
+
+  /* 상단 메인 통계(6개 카드)를 하단 3열 레이아웃과 동일한 컬럼 폭으로 동기화
+     넓은 화면에서 3열 x 2행으로 표현되며, 하단 차트/분석 섹션의 폭과 정확히 일치함 */
+  .v-main > .cards,
+  .v-main > .main-stats {
+    width: var(--sync-width) !important;
+    max-width: var(--sync-width) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box;
+   /* 상단 6개 카드를 한 행(6열)으로 배치: 컨테이너 폭은 --sync-width와 동기화되어
+     각 카드가 동일한 너비를 가지도록 함. 최소 컬럼 너비는 너무 작지 않게 120px로 설정. */
+   grid-template-columns: repeat(6, minmax(120px, 1fr)) !important;
+  gap: var(--grid-gap) !important;
   }
 }
 
 /* 태블릿 화면에서 차트 섹션 최적화 */
 @media (min-width: 769px) and (max-width: 1200px) {
   .chart-section.three-col {
-    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-    gap:20px;
+    grid-template-columns:repeat(auto-fit,minmax(var(--grid-min),1fr));
+    gap:var(--grid-gap);
   }
   
   .chart-box {
@@ -715,7 +748,7 @@ padding:9px 10px; border-radius:16px; font-size:18px; font-weight:600;
 .mid { color:#ffd27f; }
 
 /* 새로운 분석 섹션 */
-.analysis-section { margin-bottom:40px; max-width:1400px; margin-left:auto; margin-right:auto; }
+.analysis-section { margin-bottom:40px; max-width:var(--dashboard-max-width); margin-left:auto; margin-right:auto; }
 .analysis-row { display:grid; gap:24px; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); margin-bottom:24px; }
 .analysis-row.full-width { grid-template-columns:1fr; }
 .analysis-box { 
@@ -1085,8 +1118,7 @@ padding:9px 10px; border-radius:16px; font-size:18px; font-weight:600;
 
 @media (max-width:1024px){
   .cards { grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; }
-  .chart-section { grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:20px; }
-  .analysis-row { grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:20px; }
+  .chart-section, .chart-section.three-col, .analysis-row { grid-template-columns:repeat(auto-fit,minmax(var(--grid-min),1fr)); gap:var(--grid-gap); }
   .v-title { font-size:24px; }
 }
 
@@ -1095,7 +1127,7 @@ padding:9px 10px; border-radius:16px; font-size:18px; font-weight:600;
   .v-title { font-size:22px; }
   .metric { font-size:28px; }
   .cards { grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; }
-  .chart-section { grid-template-columns:1fr; gap:18px; }
+  .chart-section, .chart-section.three-col, .analysis-row { grid-template-columns:1fr; gap:18px; }
   .analysis-row { grid-template-columns:1fr; gap:18px; }
 }
 

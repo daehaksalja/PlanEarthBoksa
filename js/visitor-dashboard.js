@@ -412,9 +412,9 @@ async function setupLeaderElection(timeoutMs=500){
         }
         // if leader, start leader-only tasks
         if(isLeader) {
-          console.log('Leader elected:', leaderId);
-          startRealtimeUpdates(); scheduleMidnightRefresh();
-        }
+            console.log('Leader elected:', leaderId);
+            startRealtimeUpdates();
+          }
         resolve();
       }, timeoutMs);
       // release on unload
@@ -604,7 +604,8 @@ function renderCountriesList(countries) {
 
 function renderTrafficSources(sources) {
   const container = document.getElementById('trafficSources');
-  container.innerHTML = sources.slice(0, 8).map(source => `
+  if(!container) return;
+  container.innerHTML = (sources || []).slice(0, 8).map(source => `
     <div class="source-item">
       <span class="source-name">${source.source}</span>
       <span class="source-users">${source.users.toLocaleString()}</span>
@@ -843,7 +844,11 @@ async function init(){
   // rows: leader fetches, followers will read cache via fetchAllDailyData (which reads cache)
   const rowsPromise = isLeader ? fetchAllDailyData() : (async ()=>{
     // wait briefly for leader to populate cache
-    for(let i=0;i<6;i++){ try{ const raw=localStorage.getItem('fullDailyRows_v1'); if(raw){ const obj=JSON.parse(raw); if(obj && obj.rows) return obj.rows; } }catch(e){} await new Promise(r=>setTimeout(r, 500)); }
+    for(let i=0;i<6;i++){ try{ const raw=localStorage.getItem('fullDailyRows_v1'); if(raw){ const obj=JSON.parse(raw); if(obj){ // support both {ts,data} and legacy {ts,rows}
+          const rowsData = obj.data || obj.rows || obj;
+          if(Array.isArray(rowsData) && rowsData.length) return rowsData;
+        }
+      } }catch(e){} await new Promise(r=>setTimeout(r, 500)); }
     // fallback to local fetch (limited)
     return fetchAllDailyData();
   })();
@@ -927,21 +932,24 @@ async function init(){
       const path = p.path || p.page || '/';
       const title = p.title || p.name || path;
       const key = path;
-      if(!map.has(key)) map.set(key, { path, title, views:0, users:0, avgDuration:0, bounceRate:null, engagement:null });
+      if(!map.has(key)) map.set(key, { path, title, views:0, users:0, _durSum:0, _durWeight:0, _bounceSum:0, _bounceCount:0, _engageSum:0, _engageCount:0 });
       const cur = map.get(key);
-      cur.views += Number(p.views||p.pageviews||0);
-      cur.users += Number(p.users||0);
-      // avgDuration: keep weighted sum; we'll finalize after loop
-      cur.avgDuration = (cur.avgDuration || 0) + (Number(p.avgDuration||p.averageDuration||0) * (Number(p.views||p.pageviews||0) || 1));
-      if(p.bounceRate!=null) cur.bounceRate = (cur.bounceRate||0) + Number(p.bounceRate);
-      if(p.engagement!=null) cur.engagement = (cur.engagement||0) + Number(p.engagement);
+      const views = Number(p.views||p.pageviews||0) || 0;
+      const users = Number(p.users||0) || 0;
+      cur.views += views;
+      cur.users += users;
+      const dur = Number(p.avgDuration||p.averageDuration||0) || 0;
+      if(dur > 0){ cur._durSum += dur * (views || 1); cur._durWeight += (views || 1); }
+      if(p.bounceRate!=null && !isNaN(Number(p.bounceRate))){ cur._bounceSum += Number(p.bounceRate); cur._bounceCount += 1; }
+      if(p.engagement!=null && !isNaN(Number(p.engagement))){ cur._engageSum += Number(p.engagement); cur._engageCount += 1; }
     });
     // finalize averages
     Array.from(map.values()).forEach(v=>{
-      const denom = v.views || 1;
-      v.avgDuration = Math.round((v.avgDuration||0)/denom);
-      if(v.bounceRate!=null) v.bounceRate = (v.bounceRate / (1)).toFixed? Number((v.bounceRate).toFixed(2)) : v.bounceRate;
-      if(v.engagement!=null) v.engagement = (v.engagement / (1)).toFixed? Number((v.engagement).toFixed(1)) : v.engagement;
+      v.avgDuration = v._durWeight ? Math.round(v._durSum / v._durWeight) : 0;
+      v.bounceRate = v._bounceCount ? Number((v._bounceSum / v._bounceCount).toFixed(2)) : null;
+      v.engagement = v._engageCount ? Number((v._engageSum / v._engageCount).toFixed(1)) : null;
+      // cleanup helpers
+      delete v._durSum; delete v._durWeight; delete v._bounceSum; delete v._bounceCount; delete v._engageSum; delete v._engageCount;
     });
     return Array.from(map.values()).sort((a,b)=> b.views - a.views);
   }
@@ -1101,7 +1109,7 @@ function scheduleMidnightRefresh(){
   }, ms);
 }
 
-scheduleMidnightRefresh();
+// midnight refresh is scheduled when a leader is elected or during init
 
 // (이전 중복 코드 정리됨)
 
