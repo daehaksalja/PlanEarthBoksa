@@ -302,8 +302,21 @@ if (window.__ADMIN_INIT__) {
   }
 
   // 대표 이미지
-  $S('#btn-thumb').addEventListener('click', ()=> $S('#f-thumb').click());
-  $S('#f-thumb').addEventListener('change', (e)=>{ const f=e.target.files?.[0]; if(!f) return; setThumbPreview(f); });
+  (function(){
+    const btn = $S('#btn-thumb');
+    const input = $S('#f-thumb');
+    if(btn && input){
+      btn.addEventListener('click', (ev)=>{
+        try{ input.click(); }catch(_){}
+        // 즉시 포커스 해제 시도 (파일 다이얼로그에서 복귀 시에도 포커스가 남는 경우 방지)
+        setTimeout(()=>{ try{ btn.blur(); }catch(_){}} , 80);
+      });
+      input.addEventListener('change', (e)=>{ const f=e.target.files?.[0]; if(!f){ try{ btn.blur(); }catch(_){}} else { setThumbPreview(f); try{ btn.blur(); }catch(_){}} });
+      // 파일 다이얼로그에서 취소로 돌아오거나 다른 창에서 복귀할 때 포커스가 남아있으면 해제
+      window.addEventListener('focus', ()=>{ try{ btn.blur(); }catch(_){}});
+      document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible'){ try{ btn.blur(); }catch(_){}} });
+    }
+  })();
   const thumbDrop=$S('#thumb-drop');
   ['dragenter','dragover'].forEach(ev=>thumbDrop.addEventListener(ev,(e)=>{e.preventDefault(); thumbDrop.classList.add('dragover');}));
   ['dragleave','drop'].forEach(ev=>thumbDrop.addEventListener(ev,(e)=>{e.preventDefault(); thumbDrop.classList.remove('dragover');}));
@@ -311,8 +324,40 @@ if (window.__ADMIN_INIT__) {
   function setThumbPreview(file){ thumbFile=file; const url=URL.createObjectURL(file); const img=$S('#thumb-preview'); img.src=url; img.style.display='block'; }
 
   // 갤러리
-  $S('#btn-gallery').addEventListener('click', ()=> $S('#f-gallery').click());
-  $S('#f-gallery').addEventListener('change',(e)=> addGalleryFiles(e.target.files));
+  (function(){
+    const btn = $S('#btn-gallery');
+    const input = $S('#f-gallery');
+    if(btn && input){
+      btn.addEventListener('click', (ev)=>{
+        try{ input.click(); }catch(_){}
+        setTimeout(()=>{ try{ btn.blur(); }catch(_){}} , 80);
+      });
+      input.addEventListener('change',(e)=>{ addGalleryFiles(e.target.files); try{ btn.blur(); }catch(_){} });
+      window.addEventListener('focus', ()=>{ try{ btn.blur(); }catch(_){}});
+      document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible'){ try{ btn.blur(); }catch(_){}} });
+    }
+  })();
+
+  // 모바일/터치 장치에서 파일 선택 다이얼로그 후 버튼이 눌린 상태로 고정되는 문제 방지
+  (function(){
+    function clearActiveButtons(){
+      try{
+        const ae = document.activeElement;
+        if(!ae) return;
+        const isTarget = ae.id === 'btn-thumb' || ae.id === 'btn-gallery' || ae.classList?.contains('btn');
+        if(isTarget) try{ ae.blur(); }catch(_){ }
+        // 파일 input 자체가 active로 남아있을 경우도 해제
+        if(ae.tagName === 'INPUT' && ae.type === 'file') try{ ae.blur(); }catch(_){ }
+      }catch(_){ }
+    }
+
+    // 터치로 돌아오는 경우: touchend와 pointerup을 모두 커버
+    document.addEventListener('touchend', clearActiveButtons, { passive:true });
+    document.addEventListener('pointerup', clearActiveButtons, { passive:true });
+    // 안전망: visibility 복귀 시에도 클리어
+    document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') clearActiveButtons(); });
+    window.addEventListener('focus', clearActiveButtons);
+  })();
   const galDrop=$S('#gallery-drop');
   ['dragenter','dragover'].forEach(ev=>galDrop.addEventListener(ev,(e)=>{e.preventDefault(); galDrop.classList.add('dragover');}));
   ['dragleave','drop'].forEach(ev=>galDrop.addEventListener(ev,(e)=>{e.preventDefault(); galDrop.classList.remove('dragover');}));

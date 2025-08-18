@@ -27,7 +27,7 @@
 .neon-btn:hover {
   box-shadow: 0 0 24px #00ff9c, 0 0 8px #00ff9c;
   background: linear-gradient(120deg, #021a13 40%, #00ff9c33 100%);
-  color: #021a13;
+  color: #00ffb3;
 }
 .neon-btn:active {
   transform: scale(0.97);
@@ -250,6 +250,9 @@
   .gallery-item .g-del{ background:transparent; border:1px solid #2b5c4b; color:#ffb4b4; border-radius:8px; padding:6px 8px; cursor:pointer; font-size:13px; min-width:64px; justify-self:end; white-space:nowrap; }
   .btn{ border-radius:10px; padding:10px 14px; cursor:pointer; border:1px solid #0f3b2c; background:#0b241c; color:var(--text); }
   .btn.primary{ background:var(--acc); color:#032218; border:0; font-weight:800; box-shadow:0 8px 24px rgba(0,255,156,.25); }
+  /* 호버/포커스 시 버튼 텍스트를 네온 초록으로 표시 (이미지 추가 버튼 등) */
+  .btn:hover, .btn:focus { color: var(--acc); }
+  /* primary 버튼은 배경이 초록이라 텍스트 변경이 필요하면 별도 규칙 적용 가능 */
   .btn.ghost{ background:transparent; color:#7fe4bf; }
   .sheet-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.45); backdrop-filter: blur(2px); opacity:0; pointer-events:none; transition:opacity .2s ease; z-index:19; }
   .sheet-backdrop.open{ opacity:1; pointer-events:auto; }
@@ -382,3 +385,27 @@
     font-size: 16px;
   }
 }
+
+/* 임시: 파일 선택 대화상자 오픈 시 :hover 시각 효과가 고정되는 문제를 방지하기 위한 스코프 */
+.no-hover .btn:hover,
+.no-hover .neon-btn:hover,
+.no-hover .hacker-fab:hover,
+.no-hover .del-work:hover,
+.no-hover .admin-visitor-dashboard-btn:hover,
+.no-hover .gallery-item .g-handle:hover,
+.no-hover .thumb:hover,
+.no-hover .meta:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  background: inherit !important;
+  color: inherit !important;
+}
+
+/* 터치에서 :hover 효과를 시뮬레이트하기 위한 클래스
+   - 터치 시작에서 .sim-hover를 붙이고 touchend에서 제거합니다. */
+.sim-hover {
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 0 28px #00ff9c44, 0 0 10px #00ff9c33 !important;
+  color: var(--acc) !important;
+}
+.sim-hover * { color: inherit !important; }
