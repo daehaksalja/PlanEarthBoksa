@@ -143,8 +143,10 @@
   .idx { color: var(--sub); text-align: right; font-variant-numeric: tabular-nums; }
   .drag { background: transparent; border: 0; color: var(--sub); font-size: 18px; cursor: grab; opacity: 1; transition: opacity .2s ease; }
   .drag:active { cursor: grabbing; }
-  .thumb { width: 56px; height: 56px; border-radius: 6px; object-fit: cover; pointer-events: none; user-select: none; }
-  .meta { min-width: 0; margin-top: 4px; }
+  .thumb { width: 56px; height: 56px; border-radius: 6px; object-fit: cover; pointer-events: auto; user-select: none; cursor: pointer; }
+  .meta { min-width: 0; margin-top: 4px; cursor: pointer; }
+  /* 모바일/터치에서 클릭 시 생기는 파란 하이라이트 제거 (영향 범위를 .row로 제한) */
+  .row, .row * { -webkit-tap-highlight-color: transparent; }
   .title { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); margin-bottom: 3.5px; }
   .sub { font-size: 12px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .right { color: #7fe4bf; font-variant-numeric: tabular-nums; padding-left: 8px; }

@@ -277,9 +277,16 @@ if (window.__ADMIN_INIT__) {
     resetSheetForm();
     $S('#edit-sheet').classList.add('open');
     $S('#sheet-backdrop').classList.add('open');
+    // hide visitor dashboard button while the sheet is open
+    try{ const _v = $S('.admin-visitor-dashboard-btn'); if(_v) _v.style.display='none'; }catch(_){}
     if(mode==='edit' && workId) loadWorkIntoForm(workId);
   }
-  function closeSheet(){ $S('#edit-sheet').classList.remove('open'); $S('#sheet-backdrop').classList.remove('open'); }
+  function closeSheet(){
+    $S('#edit-sheet').classList.remove('open');
+    $S('#sheet-backdrop').classList.remove('open');
+    // restore visitor dashboard button visibility
+    try{ const _v = $S('.admin-visitor-dashboard-btn'); if(_v) _v.style.display='inline-flex'; }catch(_){}
+  }
   window.openSheet = openSheet;
 
   $S('#sheet-close').addEventListener('click', closeSheet);
@@ -468,12 +475,25 @@ if (window.__ADMIN_INIT__) {
 
   // 트리거
   $('#add-work-btn').addEventListener('click', ()=> openSheet('create'));
-  document.addEventListener('dblclick',(e)=>{ const row=e.target.closest('.row'); if(!row) return; openSheet('edit', row.dataset.id); });
+  // Desktop: open edit only when clicking the .meta area or the .thumb (ignore other clicks)
+  document.addEventListener('click', (e) => {
+    if(('ontouchstart' in window) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0)) return;
+    // ignore clicks on controls
+    if(e.target.closest('.del-work') || e.target.closest('.drag') || e.target.closest('button')) return;
+    // only allow when clicking inside .meta or on the .thumb image
+    if(!e.target.closest('.meta') && !e.target.closest('.thumb')) return;
+    const row = e.target.closest('.row'); if(!row) return;
+    try { e.preventDefault(); } catch(_) {}
+    openSheet('edit', row.dataset.id);
+    try { const sel = window.getSelection && window.getSelection(); if(sel && sel.removeAllRanges) sel.removeAllRanges(); } catch(_){}
+  });
 
   // 모바일: 더블클릭 대신 탭으로 편집 열기
   if(('ontouchstart' in window) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0)){
     $('#works-list').addEventListener('click', (e)=>{
       if(e.target.closest('.del-work') || e.target.closest('.drag') || e.target.closest('button')) return;
+      // mobile: only open when tapping .meta or .thumb
+      if(!e.target.closest('.meta') && !e.target.closest('.thumb')) return;
       const row = e.target.closest('.row'); if(!row) return;
       openSheet('edit', row.dataset.id);
     });
