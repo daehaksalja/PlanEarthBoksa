@@ -348,6 +348,16 @@ if (window.__ADMIN_INIT__) {
         if(isTarget) try{ ae.blur(); }catch(_){ }
         // 파일 input 자체가 active로 남아있을 경우도 해제
         if(ae.tagName === 'INPUT' && ae.type === 'file') try{ ae.blur(); }catch(_){ }
+        
+        // 모바일에서 hover 효과가 남는 문제 해결: 임시로 hover를 비활성화
+        if(('ontouchstart' in window) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0)){
+          try{
+            document.body.classList.add('mobile-clearing');
+            setTimeout(() => {
+              try{ document.body.classList.remove('mobile-clearing'); }catch(_){}
+            }, 300);
+          }catch(_){}
+        }
       }catch(_){ }
     }
 

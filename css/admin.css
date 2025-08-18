@@ -147,6 +147,27 @@
   .meta { min-width: 0; margin-top: 4px; cursor: pointer; }
   /* 모바일/터치에서 클릭 시 생기는 파란 하이라이트 제거 (영향 범위를 .row로 제한) */
   .row, .row * { -webkit-tap-highlight-color: transparent; }
+  
+  /* 모바일에서 파일선택 후 hover 효과가 남는 문제 해결 */
+  body.mobile-clearing .btn,
+  body.mobile-clearing .neon-btn,
+  body.mobile-clearing .hacker-fab {
+    transform: none !important;
+    box-shadow: 0 0 10px #00ff9c44, 0 0 2px #00ff9c !important;
+    background: linear-gradient(120deg, #021a13 60%, #00ff9c22 100%) !important;
+    color: #00ff9c !important;
+  }
+  
+  /* 터치 디바이스에서 hover 상태 자동 해제를 위한 추가 규칙 */
+  @media (hover: none) and (pointer: coarse) {
+    .btn:hover, 
+    .neon-btn:hover,
+    .hacker-fab:hover {
+      transform: none !important;
+      box-shadow: 0 0 10px #00ff9c44, 0 0 2px #00ff9c !important;
+      background: linear-gradient(120deg, #021a13 60%, #00ff9c22 100%) !important;
+    }
+  }
   .title { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); margin-bottom: 3.5px; }
   .sub { font-size: 12px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .right { color: #7fe4bf; font-variant-numeric: tabular-nums; padding-left: 8px; }
@@ -385,27 +406,3 @@
     font-size: 16px;
   }
 }
-
-/* 임시: 파일 선택 대화상자 오픈 시 :hover 시각 효과가 고정되는 문제를 방지하기 위한 스코프 */
-.no-hover .btn:hover,
-.no-hover .neon-btn:hover,
-.no-hover .hacker-fab:hover,
-.no-hover .del-work:hover,
-.no-hover .admin-visitor-dashboard-btn:hover,
-.no-hover .gallery-item .g-handle:hover,
-.no-hover .thumb:hover,
-.no-hover .meta:hover {
-  transform: none !important;
-  box-shadow: none !important;
-  background: inherit !important;
-  color: inherit !important;
-}
-
-/* 터치에서 :hover 효과를 시뮬레이트하기 위한 클래스
-   - 터치 시작에서 .sim-hover를 붙이고 touchend에서 제거합니다. */
-.sim-hover {
-  transform: translateY(-2px) scale(1.02) !important;
-  box-shadow: 0 0 28px #00ff9c44, 0 0 10px #00ff9c33 !important;
-  color: var(--acc) !important;
-}
-.sim-hover * { color: inherit !important; }
