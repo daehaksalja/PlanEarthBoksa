@@ -12,11 +12,9 @@ const DEBUG_ENABLED = window.CONFIG?.enableDebugLogs || false;
       s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js';
       s.onload=authGuard; document.head.appendChild(s); return;
     }
-    const supabase = window.supabase.createClient(
-      'https://feprvneoartflrnmefxz.supabase.co',
-      'sb_publishable_LW3f112nFPSSUUNvrXl19A__y73y2DE'
-    );
-    const { data:{ user } } = await supabase.auth.getUser();
+    const client = getSupabaseClient();
+    if (!client) return;
+    const { data:{ user } } = await client.auth.getUser();
     if(!user){ location.href='login.html'; return; }
   }catch(e){ console.warn('auth guard error', e); }
 })();
@@ -27,6 +25,45 @@ function sum(arr){ return arr.reduce((a,b)=>a+b,0); }
 function avg(arr){ return arr.length? sum(arr)/arr.length : 0; }
 function percentChange(a,b){ if(!b) return 0; return (a-b)/b*100; }
 function classifyPct(p){ if (p > 10) return 'good'; if (p < -10) return 'bad'; return 'mid'; }
+
+// 공통 유틸리티: 사용자 수 추출
+function extractUserCount(data) {
+  return Number(
+    data.users || data.uniqueUsers || data.totalUsers || 
+    data.activeUsers || data.visitors || 0
+  );
+}
+
+// 공통 유틸리티: 캐시 관리
+function getCachedData(key, maxAgeMs = 10 * 60 * 1000) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (obj && obj.ts && (Date.now() - obj.ts) < maxAgeMs) {
+      return obj.data;
+    }
+  } catch(e) {}
+  return null;
+}
+
+function setCachedData(key, data) {
+  try {
+    localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data }));
+  } catch(e) {}
+}
+
+// 공통 유틸리티: Supabase 클라이언트
+let supabaseClient = null;
+function getSupabaseClient() {
+  if (!supabaseClient && window.supabase) {
+    supabaseClient = window.supabase.createClient(
+      'https://feprvneoartflrnmefxz.supabase.co',
+      'sb_publishable_LW3f112nFPSSUUNvrXl19A__y73y2DE'
+    );
+  }
+  return supabaseClient;
+}
 
 /* === API 호출 함수들 === */
 
@@ -53,22 +90,11 @@ async function fetchDailyData(days=365){
     const data = await r.json();
     if(!data.ok) throw new Error(data.error || 'GA error');
     
-    // 👇 users(방문자) 기준으로 매핑. 다양한 필드명 대응
-    return (data.rows || []).map(row => {
-      const userCount = Number(
-        row.users || 
-        row.uniqueUsers || 
-        row.totalUsers || 
-        row.activeUsers || 
-        row.visitors || 
-        0
-      );
-      
-      return {
-        date: row.date,
-        count: userCount
-      };
-    }).filter(row => row.date && !isNaN(row.count)); // 유효한 데이터만 필터링
+    // 사용자 수 추출 로직 통합
+    return (data.rows || []).map(row => ({
+      date: row.date,
+      count: extractUserCount(row)
+    })).filter(row => row.date && !isNaN(row.count));
     
   }catch(e){
     console.warn('GA fetch failed, using mock:', e);
@@ -77,13 +103,11 @@ async function fetchDailyData(days=365){
 }
 
 // 사이트 개설 이후 전체 구간을 (추정) 무제한 확장하여 확보
-// days 파라미터를 지수적으로 늘리며 더 오래된 날짜가 안 나올 때 중단
 async function fetchAllDailyData(){
-  // Check cache first
-  try{
-    const raw = localStorage.getItem('fullDailyRows_v1');
-    if(raw){ const obj = JSON.parse(raw); if(obj && obj.ts && (Date.now() - obj.ts) < 10*60*1000){ return obj.rows; } }
-  }catch(e){}
+  // 캐시 확인
+  const cached = getCachedData('fullDailyRows_v1');
+  if (cached) return cached;
+  
   let days=400; let lastFirst=null; let rows=[];
   // Limit expansions to avoid runaway requests (max 2 expansions -> up to ~1600 days)
   for(let i=0;i<2;i++){
@@ -95,124 +119,87 @@ async function fetchAllDailyData(){
     lastFirst=first;
     days*=2;
   }
-  try{ localStorage.setItem('fullDailyRows_v1', JSON.stringify({ ts: Date.now(), rows })); }catch(e){}
+  
+  // 캐시 저장
+  setCachedData('fullDailyRows_v1', rows);
   return rows;
 }
 
+// 공통 API 호출 함수 (캐시 + 에러 처리 통합)
+async function apiCall(endpoint, cacheKey, mockData, cacheMs = 5 * 60 * 1000) {
+  // 캐시 확인
+  const cached = getCachedData(cacheKey, cacheMs);
+  if (cached) return cached;
+  
+  try {
+    const r = await fetch(`${BASE}${endpoint}`, { 
+      cache: 'no-store', 
+      credentials: 'omit' 
+    });
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'API error');
+    
+    const result = data.rows || data;
+    setCachedData(cacheKey, result);
+    return result;
+    
+  } catch(e) {
+    console.warn(`${endpoint} fetch failed:`, e);
+    return mockData;
+  }
+}
+
 async function fetchDevicesData(){
-  try{
-    const r = await fetch(`${BASE}/ga/devices`, { cache: 'no-store', credentials: 'omit' });
-    const data = await r.json();
-    if(!data.ok) throw new Error(data.error || 'GA error');
-    return data.rows || [];
-  }catch(e){
-    console.warn('Devices fetch failed:', e);
-    return [
-      { device: 'mobile', users: 150 },
-      { device: 'desktop', users: 120 },
-      { device: 'tablet', users: 30 }
-    ];
-  }
+  return apiCall('/ga/devices', 'cachedDevices_v1', [
+    { device: 'mobile', users: 150 },
+    { device: 'desktop', users: 120 },
+    { device: 'tablet', users: 30 }
+  ]);
 }
 
-/* 국가별 데이터 (시/군/구 포함) */
 async function fetchCountriesData(){
-  try{
-  // request a large limit so we can aggregate across the full returned set
-  const r = await fetch(`${BASE}/ga/countries?limit=1000`, { cache: 'no-store', credentials: 'omit' });
-    const data = await r.json();
-    if(!data.ok) throw new Error(data.error || 'GA error');
-    return data.rows || [];
-  }catch(e){
-    console.warn('Countries fetch failed:', e);
-    return [
-      { country: 'South Korea', region: 'Seoul', city: 'Gangnam-gu', users: 200, pageviews: 400 },
-      { country: 'South Korea', region: 'Gyeonggi-do', city: 'Suwon', users: 150, pageviews: 300 },
-      { country: 'United States', region: 'California', city: 'Los Angeles', users: 50, pageviews: 100 }
-    ];
-  }
+  return apiCall('/ga/countries?limit=1000', 'cachedCountries_v1', [
+    { country: 'South Korea', region: 'Seoul', city: 'Gangnam-gu', users: 200, pageviews: 400 },
+    { country: 'South Korea', region: 'Gyeonggi-do', city: 'Suwon', users: 150, pageviews: 300 },
+    { country: 'United States', region: 'California', city: 'Los Angeles', users: 50, pageviews: 100 }
+  ]);
 }
 
-/* 브라우저별 데이터 */
 async function fetchBrowsersData(){
-  try{
-  const r = await fetch(`${BASE}/ga/browsers?limit=1000`, { cache: 'no-store', credentials: 'omit' });
-    const data = await r.json();
-    if(!data.ok) throw new Error(data.error || 'GA error');
-    return data.rows || [];
-  }catch(e){
-    console.warn('Browsers fetch failed:', e);
-    return [
-      { browser: 'Chrome', users: 180 },
-      { browser: 'Safari', users: 60 },
-      { browser: 'Firefox', users: 40 }
-    ];
-  }
+  return apiCall('/ga/browsers?limit=1000', 'cachedBrowsers_v1', [
+    { browser: 'Chrome', users: 180 },
+    { browser: 'Safari', users: 60 },
+    { browser: 'Firefox', users: 40 }
+  ]);
 }
 
-/* 신규 vs 재방문자 데이터 */
 async function fetchUserTypesData(){
-  try{
-    const r = await fetch(`${BASE}/ga/user-types`, { cache: 'no-store', credentials: 'omit' });
-    const data = await r.json();
-    if(!data.ok) throw new Error(data.error || 'GA error');
-    return data;
-  }catch(e){
-    console.warn('User types fetch failed:', e);
-    return { newUsers: 150, returningUsers: 100, totalUsers: 250, newUserPercent: 60 };
-  }
+  return apiCall('/ga/user-types', 'cachedUserTypes_v1', 
+    { newUsers: 150, returningUsers: 100, totalUsers: 250, newUserPercent: 60 });
 }
 
-/* 시간대별 데이터 */
 async function fetchHourlyData(){
-  try{
-    const r = await fetch(`${BASE}/ga/hourly`, { cache: 'no-store', credentials: 'omit' });
-    const data = await r.json();
-    if(!data.ok) throw new Error(data.error || 'GA error');
-    return data.rows || [];
-  }catch(e){
-    console.warn('Hourly fetch failed:', e);
-    const mock = [];
-    for(let h = 0; h < 24; h++){
-      mock.push({ hour: h, users: Math.floor(Math.random() * 50) + 10 });
-    }
-    return mock;
+  const mockHourly = [];
+  for(let h = 0; h < 24; h++){
+    mockHourly.push({ hour: h, users: Math.floor(Math.random() * 50) + 10 });
   }
+  return apiCall('/ga/hourly', 'cachedHourly_v1', mockHourly);
 }
 
-/* 트래픽 소스 데이터 */
 async function fetchTrafficSources(){
-  try{
-    const r = await fetch(`${BASE}/ga/sources?limit=10`, { cache: 'no-store', credentials: 'omit' });
-    const data = await r.json();
-    if(!data.ok) throw new Error(data.error || 'GA error');
-    return data.rows || [];
-  }catch(e){
-    console.warn('Traffic sources fetch failed:', e);
-    return [
-      { source: 'google / organic', users: 120, pageviews: 300 },
-      { source: 'direct / (none)', users: 80, pageviews: 200 },
-      { source: 'naver / organic', users: 40, pageviews: 100 }
-    ];
-  }
+  return apiCall('/ga/sources?limit=10', 'cachedSources_v1', [
+    { source: 'google / organic', users: 120, pageviews: 300 },
+    { source: 'direct / (none)', users: 80, pageviews: 200 },
+    { source: 'naver / organic', users: 40, pageviews: 100 }
+  ]);
 }
 
-/* 인기 페이지 데이터 (상세 정보 포함) */
 async function fetchPopularPages(){
-  try{
-  // request many rows so client can aggregate across whole returned set
-  const r = await fetch(`${BASE}/ga/pages-detail?limit=1000`, { cache: 'no-store', credentials: 'omit' });
-    const data = await r.json();
-    if(!data.ok) throw new Error(data.error || 'GA error');
-    return data.rows || [];
-  }catch(e){
-    console.warn('Popular pages fetch failed:', e);
-    return [
-      { path: '/', title: 'Home', views: 150, users: 120, avgDuration: 45, bounceRate: 35, engagement: 65 },
-      { path: '/works.html', title: 'Works', views: 80, users: 65, avgDuration: 120, bounceRate: 25, engagement: 75 },
-      { path: '/workshop.html', title: 'Workshop', views: 60, users: 50, avgDuration: 90, bounceRate: 30, engagement: 70 }
-    ];
-  }
+  return apiCall('/ga/pages-detail?limit=1000', 'cachedPages_v1', [
+    { path: '/', title: 'Home', views: 150, users: 120, avgDuration: 45, bounceRate: 35, engagement: 65 },
+    { path: '/works.html', title: 'Works', views: 80, users: 65, avgDuration: 120, bounceRate: 25, engagement: 75 },
+    { path: '/workshop.html', title: 'Workshop', views: 60, users: 50, avgDuration: 90, bounceRate: 30, engagement: 70 }
+  ]);
 }
 
 /* 성능 지표 데이터 */
@@ -507,96 +494,92 @@ function renderCountriesList(countries) {
   const container = document.getElementById('countriesList');
   if(!container) return;
   
-  // 전체 사용자 수 계산 (백분율용) - 다양한 필드명 대응
-  const totalUsers = (countries||[]).reduce((sum, c) => {
-    const userCount = Number(
-      c.users || 
-      c.uniqueUsers || 
-      c.totalUsers || 
-      c.visitors || 
-      c.activeUsers || 
-      0
-    );
-    return sum + userCount;
-  }, 0);
+  // 공통 사용자 수 추출 함수
+  const getUserCount = (c) => Number(
+    c.users || c.uniqueUsers || c.totalUsers || c.visitors || c.activeUsers || 0
+  );
+  
+  // 0명 국가 필터링 먼저 수행
+  const validCountries = (countries||[]).filter(c => getUserCount(c) > 0);
+  
+  // 필터링된 데이터로 전체 사용자 수 계산
+  const totalUsers = validCountries.reduce((sum, c) => sum + getUserCount(c), 0);
+  
   if(totalUsers === 0) {
     container.innerHTML = '<div class="country-item">데이터 없음</div>';
     return;
   }
   
-  // 그룹화: country -> cities with region info
+  // 그룹화: country -> cities 최적화된 로직
   const map = new Map();
-  (countries||[]).forEach(c=>{
+  validCountries.forEach(c => {
     const country = c.country || 'Unknown';
     const region = c.region || '';
     const city = c.city || '';
+    const users = getUserCount(c);
     
-    // 사용자 수 필드명 통합 처리
-    const users = Number(
-      c.users || 
-      c.uniqueUsers || 
-      c.totalUsers || 
-      c.visitors || 
-      c.activeUsers || 
-      0
-    );
-    
-    if(!map.has(country)) map.set(country, { total:0, cities: new Map() });
+    // 국가별 집계 초기화
+    if(!map.has(country)) {
+      map.set(country, { total: 0, cities: new Map() });
+    }
     const entry = map.get(country);
     entry.total += users;
     
-    // 지역+도시 조합으로 더 상세한 위치 정보 생성
-    let locationName = '';
-    if(region && city && region !== city) {
-      locationName = `${region}, ${city}`;
-    } else if(city) {
-      locationName = city;
-    } else if(region) {
-      locationName = region;
-    } else {
-      locationName = '기타 지역';
-    }
+    // 지역 정보 정리 (중복 제거 로직 개선)
+    const locationName = (() => {
+      if(region && city && region !== city) return `${region}, ${city}`;
+      if(city) return city;
+      if(region) return region;
+      return '기타 지역';
+    })();
     
-    if(locationName) {
-      const currentUsers = entry.cities.get(locationName) || 0;
-      entry.cities.set(locationName, currentUsers + users);
-    }
+    // 도시별 집계
+    const currentUsers = entry.cities.get(locationName) || 0;
+    entry.cities.set(locationName, currentUsers + users);
   });
   
-  // 정렬: 사용자 수로 내림차순
-  const arr = Array.from(map.entries()).map(([country, v])=> ({ 
-    country, 
-    total: v.total, 
+  // 정렬 및 백분율 계산 최적화
+  const arr = Array.from(map.entries()).map(([country, v]) => ({
+    country,
+    total: v.total,
     percentage: ((v.total / totalUsers) * 100).toFixed(1),
     cities: Array.from(v.cities.entries())
-      .map(([location,users])=>({location, users, percentage: ((users / totalUsers) * 100).toFixed(1)}))
-      .sort((a,b) => b.users - a.users)
-  }));
-  arr.sort((a,b)=> b.total - a.total);
+      .map(([location, users]) => ({
+        location,
+        users,
+        percentage: ((users / totalUsers) * 100).toFixed(1)
+      }))
+      .sort((a, b) => b.users - a.users)
+      .slice(0, 10) // 상위 10개 도시만
+  }))
+  .sort((a, b) => b.total - a.total)
+  .slice(0, 10); // 상위 10개 국가만
   
-  // 렌더링: 상위 10개 국가, 각 국가별 상위 10개 지역
-  const html = arr.slice(0,10).map((cn, idx) => {
+  // 렌더링 최적화
+  const html = arr.map((cn, idx) => {
     const rank = idx + 1;
-    const citiesHtml = cn.cities.slice(0,10).map((ct, cityIdx) => {
-      const cityRank = cityIdx + 1;
-      return `
-        <div class="city-line">
-          <div class="city-left">
-            <span class="city-rank">${cityRank}</span>
-            <span class="city-name">${ct.location}</span>
-          </div>
-          <div class="city-stats">
-            <span class="count">${ct.users}명</span>
-            <span class="percentage">${ct.percentage}%</span>
-          </div>
-        </div>`;
-    }).join('');
+    const citiesHtml = cn.cities.map((ct, cityIdx) => `
+      <div class="city-line">
+        <div class="city-left">
+          <span class="city-rank">${cityIdx + 1}</span>
+          <span class="city-name">${ct.location}</span>
+        </div>
+        <div class="city-stats">
+          <span class="count">${ct.users}명</span>
+          <span class="percentage">${ct.percentage}%</span>
+        </div>
+      </div>`
+    ).join('');
     
-    const flagEmoji = cn.country === 'South Korea' ? '🇰🇷' : 
-                     cn.country === 'United States' ? '🇺🇸' : 
-                     cn.country === 'Japan' ? '🇯🇵' :
-                     cn.country === 'China' ? '🇨🇳' :
-                     cn.country === 'Unknown' ? '🌍' : '🌐';
+    // 국가 플래그 매핑 최적화
+    const flagMap = {
+      'South Korea': '🇰🇷',
+      'United States': '🇺🇸', 
+      'Japan': '🇯🇵',
+      'China': '🇨🇳',
+      'Unknown': '🌍'
+    };
+    const flagEmoji = flagMap[cn.country] || '🌐';
     
     return `
       <div class="country-item detailed enhanced">
@@ -801,6 +784,11 @@ function buildDailyChart(ctx, rows){
       responsive: true,
       maintainAspectRatio: false,
       layout: { padding: { bottom: 50 } },
+      animation: false,
+      transitions: {
+        active: { animation: { duration: 0 } },
+        resize: { animation: { duration: 0 } }
+      },
       scales:{
         x:{ 
           ticks:{ 
@@ -1087,9 +1075,7 @@ async function refreshDailySection(){
     return `${y}-${m}-${d}`;
   }
   setText('firstDate', `개설 이후: ${rows[0].date} ~ ${getKSTDateString()}`);
-  // 차트/테이블 업데이트
-  if(chartDaily){ chartDaily.destroy(); }
-  chartDaily = buildDailyChart(document.getElementById('chartDaily'), rows);
+  // 차트/테이블 업데이트 (중복 제거)
   renderTable(rows.slice(-90));
 }
 
@@ -1174,22 +1160,17 @@ window.addEventListener('DOMContentLoaded', ()=>{
   if(logoutBtn){
     logoutBtn.addEventListener('click', async ()=>{
       try{
-        if(window.supabase){
-          const supabase = window.supabase.createClient(
-            'https://feprvneoartflrnmefxz.supabase.co',
-            'sb_publishable_LW3f112nFPSSUUNvrXl19A__y73y2DE'
-          );
-          await supabase.auth.signOut();
-        }
-        // 로컬 스토리지 캐시도 정리
-        localStorage.removeItem('fullDailyRows_v1');
-        localStorage.removeItem('cachedDevices_v1');
-        localStorage.removeItem('cachedCountries_v1');
-        localStorage.removeItem('cachedBrowsers_v1');
-        localStorage.removeItem('cachedUserTypes_v1');
-        localStorage.removeItem('cachedHourly_v1');
-        localStorage.removeItem('cachedPages_v1');
-        localStorage.removeItem('cachedPerformance_v1');
+        const client = getSupabaseClient();
+        if(client) await client.auth.signOut();
+        
+        // 로컬 스토리지 캐시 정리 (통합된 키 목록)
+        const cacheKeys = [
+          'fullDailyRows_v1', 'cachedDevices_v1', 'cachedCountries_v1', 
+          'cachedBrowsers_v1', 'cachedUserTypes_v1', 'cachedHourly_v1', 
+          'cachedSources_v1', 'cachedPages_v1', 'cachedPerformance_v1'
+        ];
+        cacheKeys.forEach(key => localStorage.removeItem(key));
+        
         location.href = 'login.html';
       }catch(e){
         console.error('로그아웃 오류:', e);

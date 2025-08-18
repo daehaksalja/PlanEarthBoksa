@@ -647,8 +647,20 @@ padding:9px 10px; border-radius:16px; font-size:18px; font-weight:600;
 .metric { margin:0; font-size:32px; font-weight:800; letter-spacing:.02em; color:#00ffc8; text-shadow:0 0 16px #00ff9c88; word-break:break-all; }
 .sub { font-size:12px; letter-spacing:.03em; color:#85e4c5; opacity:.9; }
 
-.chart-section { display:grid; gap:24px; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); margin-bottom:40px; }
-.chart-section.three-col { grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
+.chart-section { display:grid; gap:24px; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); margin-bottom:40px; max-width:1400px; margin-left:auto; margin-right:auto; }
+.chart-section.three-col { grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); max-width:1400px; }
+
+/* 넓은 화면에서 차트 크기 제한 */
+@media (min-width: 1400px) {
+  .chart-section {
+    grid-template-columns: repeat(auto-fit, minmax(350px, 450px));
+    justify-content: center;
+  }
+  .chart-section.three-col {
+    grid-template-columns: repeat(3, minmax(300px, 400px));
+    justify-content: center;
+  }
+}
 
 /* 태블릿 화면에서 차트 섹션 최적화 */
 @media (min-width: 769px) and (max-width: 1200px) {
@@ -679,8 +691,8 @@ padding:9px 10px; border-radius:16px; font-size:18px; font-weight:600;
 /* 차트 캔버스 크기 제한 */
 .chart-box canvas {
   /* Allow chart to use available height so x-axis labels aren't clipped */
-  height: 100% !important;
-  max-height: none !important;
+  height: 280px !important;
+  max-height: 280px !important;
   width: 100% !important;
   display: block;
   box-sizing: border-box;
@@ -703,8 +715,8 @@ padding:9px 10px; border-radius:16px; font-size:18px; font-weight:600;
 .mid { color:#ffd27f; }
 
 /* 새로운 분석 섹션 */
-.analysis-section { margin-bottom:40px; }
-.analysis-row { display:grid; gap:24px; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); margin-bottom:24px; }
+.analysis-section { margin-bottom:40px; max-width:1400px; margin-left:auto; margin-right:auto; }
+.analysis-row { display:grid; gap:24px; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); margin-bottom:24px; }
 .analysis-row.full-width { grid-template-columns:1fr; }
 .analysis-box { 
   background:linear-gradient(145deg,#051f18,#041b16); 
@@ -1074,7 +1086,7 @@ padding:9px 10px; border-radius:16px; font-size:18px; font-weight:600;
 @media (max-width:1024px){
   .cards { grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; }
   .chart-section { grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:20px; }
-  .analysis-row { grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:20px; }
+  .analysis-row { grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:20px; }
   .v-title { font-size:24px; }
 }
 
