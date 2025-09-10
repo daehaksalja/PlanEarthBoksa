@@ -14,6 +14,13 @@
    outline: 1px solid red !important;
  }
 
+ .email a {
+  color: inherit;        /* 부모 글자색 따라감 */
+  text-decoration: none; /* 밑줄 제거 */
+}
+.email a:hover {
+  text-decoration: underline; /* 마우스 올리면 밑줄만 */
+}
  .container {
    width: 100%;
    max-width: 898px;
@@ -115,7 +122,7 @@
  }
 
  .workshop-link {
-   color: #0066cc;
+   color: #666;
    text-decoration: underline;
    word-break: break-all;
    margin-top: 4px;
@@ -128,14 +135,7 @@
    color: #666;
  }
 
- .email a {
-   color: #0073e6;
-   text-decoration: none;
- }
 
- .email a:hover {
-   text-decoration: underline;
- }
 
 
  /* 모바일 터치 잉크(파란 터치) 완전 OFF */
@@ -151,4 +151,26 @@
 *:focus {
   outline: none !important;
   box-shadow: none !important;
+}
+
+/* ✅ 이메일: 클릭은 유지, 색은 부모색(회색)로 통일 */
+.contact .email a:any-link {
+  color: inherit !important;             /* 기본 링크색 무시 */
+  -webkit-text-fill-color: inherit !important; /* iOS Safari의 보라/파랑 채움색 무력화 */
+  text-decoration: none;
+}
+
+/* 상태 가리지 말고 전부 무력화 */
+.contact .email a:link,
+.contact .email a:visited,
+.contact .email a:active,
+.contact .email a:focus {
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+  text-decoration: none;
+}
+
+/* 호버일 때만 밑줄로 '링크임'을 표시 */
+.contact .email a:hover {
+  text-decoration: underline;
 } 
